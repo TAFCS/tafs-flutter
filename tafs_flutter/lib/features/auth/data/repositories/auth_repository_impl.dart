@@ -30,6 +30,11 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, void>> logout() async {
     try {
+      try {
+        await remoteDataSource.logout();
+      } catch (e) {
+        // We still want to clear local cache even if remote fails (e.g. no internet)
+      }
       await localDataSource.clearCache();
       return const Right(null);
     } catch (e) {

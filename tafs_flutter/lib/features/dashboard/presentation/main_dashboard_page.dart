@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../auth/presentation/bloc/auth_bloc.dart';
+import '../../auth/presentation/bloc/auth_state.dart';
+import '../../auth/presentation/login_page.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/student_switcher_sheet.dart';
 import 'widgets/live_ledger_card.dart';
@@ -32,8 +36,18 @@ class MainDashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      drawer: const AppDrawer(),
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is AuthUnauthenticated) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+            (route) => false,
+          );
+        }
+      },
+      child: Scaffold(
+        drawer: const AppDrawer(),
       appBar: AppBar(
         backgroundColor: AppTheme.surface1,
         foregroundColor: AppTheme.textMain,
@@ -126,6 +140,6 @@ class MainDashboardPage extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 }

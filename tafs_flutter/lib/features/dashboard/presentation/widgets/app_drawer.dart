@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_event.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -99,6 +102,14 @@ class AppDrawer extends StatelessWidget {
                   icon: Icons.people,
                   text: 'Staff Directory',
                   isPlaceholder: true,
+                ),
+                const Divider(),
+                _buildDrawerItem(
+                  icon: Icons.logout,
+                  text: 'Logout',
+                  onTap: () {
+                    context.read<AuthBloc>().add(AuthLogoutRequested());
+                  },
                 ),
               ],
             ),

@@ -5,6 +5,7 @@ import '../models/parent_dto.dart';
 
 abstract class AuthRemoteDataSource {
   Future<ParentDto> login(String username, String password);
+  Future<void> logout();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -41,6 +42,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw const InvalidCredentialsFailure();
       }
       throw ServerFailure(e.message ?? 'Unknown server error');
+    } catch (e) {
+      throw ServerFailure(e.toString());
+    }
+  }
+
+  @override
+  Future<void> logout() async {
+    final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+    try {
+      await dio.post('$baseUrl/auth/parent/logout');
     } catch (e) {
       throw ServerFailure(e.toString());
     }
