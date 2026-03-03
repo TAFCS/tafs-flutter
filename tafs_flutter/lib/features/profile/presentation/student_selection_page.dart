@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../dashboard/presentation/main_dashboard_page.dart';
+import '../../auth/domain/entities/student.dart';
 
 class StudentSelectionPage extends StatelessWidget {
-  const StudentSelectionPage({super.key});
+  final List<Student> students;
+
+  const StudentSelectionPage({super.key, required this.students});
 
   @override
   Widget build(BuildContext context) {
-    // Mock data for students
-    final students = [
-      {'name': 'Ahmad Ali', 'grade': 'Grade 5', 'section': 'A'},
-      {'name': 'Fatima Ali', 'grade': 'Grade 3', 'section': 'B'},
-    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -46,17 +44,20 @@ class StudentSelectionPage extends StatelessWidget {
               leading: CircleAvatar(
                 backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
                 radius: 28,
-                child: Text(
-                  student['name']![0],
+                backgroundImage: student.profilePictureUrl != null 
+                    ? NetworkImage(student.profilePictureUrl!) 
+                    : null,
+                child: student.profilePictureUrl == null ? Text(
+                  student.fullName[0],
                   style: const TextStyle(
                     color: AppTheme.primary,
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
                   ),
-                ),
+                ) : null,
               ),
               title: Text(
-                student['name']!,
+                student.fullName,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -64,7 +65,7 @@ class StudentSelectionPage extends StatelessWidget {
                 ),
               ),
               subtitle: Text(
-                '${student['grade']} - ${student['section']}',
+                student.section,
                 style: const TextStyle(color: AppTheme.textMuted),
               ),
               trailing: const Icon(
@@ -76,7 +77,15 @@ class StudentSelectionPage extends StatelessWidget {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => MainDashboardPage(student: student),
+                    builder: (context) => MainDashboardPage(
+                      student: {
+                        'name': student.fullName,
+                        'grade': student.section,
+                        'section': '',
+                        'gr': 'GR-XXXX',
+                        'campus': 'Main Campus'
+                      }
+                    ),
                   ),
                 );
               },
