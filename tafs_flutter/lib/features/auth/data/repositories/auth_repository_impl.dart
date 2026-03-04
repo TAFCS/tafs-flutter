@@ -15,7 +15,10 @@ class AuthRepositoryImpl implements AuthRepository {
   });
 
   @override
-  Future<Either<Failure, Parent>> login(String username, String password) async {
+  Future<Either<Failure, Parent>> login(
+    String username,
+    String password,
+  ) async {
     try {
       final parentDto = await remoteDataSource.login(username, password);
       await localDataSource.cacheParent(parentDto);
@@ -31,7 +34,11 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, void>> logout() async {
     try {
       try {
-        await remoteDataSource.logout();
+        // Read the cached access token so the server can revoke the refresh token
+        final cached = await localDataSource.getCachedParent();
+        if (cached != null) {
+          await remoteDataSource.logout(cached.accessToken);
+        }
       } catch (e) {
         // We still want to clear local cache even if remote fails (e.g. no internet)
       }
