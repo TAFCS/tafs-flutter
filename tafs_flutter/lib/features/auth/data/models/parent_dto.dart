@@ -18,9 +18,11 @@ class ParentDto extends Parent {
 
     return ParentDto(
       id: family['id'] as int,
-      username: family['username'] as String,
+      username: family['email'] as String? ?? '',
       householdName: family['householdName'] as String? ?? '',
-      students: studentsList.map((e) => StudentDto.fromJson(e as Map<String, dynamic>)).toList(),
+      students: studentsList
+          .map((e) => StudentDto.fromJson(e as Map<String, dynamic>))
+          .toList(),
       accessToken: data['accessToken'] ?? '',
       refreshToken: data['refreshToken'] ?? '',
     );
@@ -29,15 +31,11 @@ class ParentDto extends Parent {
   Map<String, dynamic> toJson() {
     return {
       'data': {
-        'family': {
-          'id': id,
-          'username': username,
-          'householdName': householdName,
-        },
+        'family': {'id': id, 'email': username, 'householdName': householdName},
         'students': students.map((e) => (e as StudentDto).toJson()).toList(),
         'accessToken': accessToken,
         'refreshToken': refreshToken,
-      }
+      },
     };
   }
 }

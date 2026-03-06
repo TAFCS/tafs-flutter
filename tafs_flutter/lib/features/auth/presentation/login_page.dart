@@ -65,14 +65,16 @@ class _LoginPageState extends State<LoginPage> {
                     'grade': students.first.section,
                     'section': '', // Mock mapped data
                     'gr': 'GR-XXXX',
-                    'campus': 'Main Campus'
+                    'campus': 'Main Campus',
                   },
                 ),
               ),
             );
           } else {
-             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('No students linked to this account.')),
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('No students linked to this account.'),
+              ),
             );
           }
         } else if (state is AuthError) {
@@ -98,14 +100,12 @@ class _LoginPageState extends State<LoginPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Image.asset(
-                        'assets/logo.png',
-                        height: 80,
-                      ),
+                      Image.asset('assets/logo.png', height: 80),
                       const SizedBox(height: 32),
                       Text(
                         'Welcome to TAFS',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: AppTheme.primary,
                             ),
@@ -115,18 +115,19 @@ class _LoginPageState extends State<LoginPage> {
                       Text(
                         'Log in to your parent portal',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppTheme.textMuted,
-                            ),
+                          color: AppTheme.textMuted,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 48),
                       CustomTextField(
-                        label: 'Username',
-                        hint: 'Enter your username',
+                        label: 'Email',
+                        hint: 'Enter your email address',
                         controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your username';
+                            return 'Please enter your email address';
                           }
                           return null;
                         },
