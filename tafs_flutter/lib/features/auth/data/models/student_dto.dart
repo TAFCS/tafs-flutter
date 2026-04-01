@@ -2,24 +2,24 @@ import '../../domain/entities/student.dart';
 
 class StudentDto extends Student {
   const StudentDto({
-    required super.id,
+    required super.cc,
     required super.fullName,
-    required super.section,
+    super.section,
     super.profilePictureUrl,
   });
 
   factory StudentDto.fromJson(Map<String, dynamic> json) {
     return StudentDto(
-      id: json['id'],
-      fullName: json['fullName'],
-      section: json['section'],
-      profilePictureUrl: json['profilePictureUrl'],
+      cc: (json['cc'] as int?) ?? 0,
+      fullName: json['fullName'] as String? ?? '',
+      section: json['section'] as String?,
+      profilePictureUrl: json['profilePictureUrl'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'cc': cc,
       'fullName': fullName,
       'section': section,
       'profilePictureUrl': profilePictureUrl,

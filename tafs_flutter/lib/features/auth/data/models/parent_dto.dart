@@ -17,7 +17,7 @@ class ParentDto extends Parent {
     final studentsList = data['students'] as List<dynamic>? ?? [];
 
     return ParentDto(
-      id: family['id'] as int,
+      id: (family['id'] as int?) ?? 0,
       username: family['email'] as String? ?? '',
       householdName: family['householdName'] as String? ?? '',
       students: studentsList

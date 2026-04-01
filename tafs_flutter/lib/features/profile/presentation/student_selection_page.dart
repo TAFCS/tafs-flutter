@@ -65,7 +65,7 @@ class StudentSelectionPage extends StatelessWidget {
                 ),
               ),
               subtitle: Text(
-                student.section,
+                student.section ?? '',
                 style: const TextStyle(color: AppTheme.textMuted),
               ),
               trailing: const Icon(
@@ -80,7 +80,7 @@ class StudentSelectionPage extends StatelessWidget {
                     builder: (context) => MainDashboardPage(
                       student: {
                         'name': student.fullName,
-                        'grade': student.section,
+                        'grade': student.section ?? '',
                         'section': '',
                         'gr': 'GR-XXXX',
                         'campus': 'Main Campus'

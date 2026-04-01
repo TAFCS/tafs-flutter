@@ -62,7 +62,7 @@ class _LoginPageState extends State<LoginPage> {
                 builder: (context) => MainDashboardPage(
                   student: {
                     'name': students.first.fullName,
-                    'grade': students.first.section,
+                    'grade': students.first.section ?? '',
                     'section': '', // Mock mapped data
                     'gr': 'GR-XXXX',
                     'campus': 'Main Campus',
