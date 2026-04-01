@@ -47,7 +47,7 @@ class MainDashboardPage extends StatelessWidget {
         }
       },
       child: Scaffold(
-        drawer: const AppDrawer(),
+        drawer: AppDrawer(student: student),
       appBar: AppBar(
         backgroundColor: AppTheme.surface1,
         foregroundColor: AppTheme.textMain,
@@ -131,7 +131,10 @@ class MainDashboardPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               // Live Ledger
-              const LiveLedgerCard(),
+              LiveLedgerCard(
+                studentCc: int.tryParse(student['cc'] ?? '') ?? 0,
+                studentName: student['name'] ?? 'Student',
+              ),
               const SizedBox(height: 32),
               // Communication Feed
               const CommunicationFeed(),

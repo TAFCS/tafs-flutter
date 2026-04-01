@@ -8,8 +8,15 @@ import 'features/auth/domain/usecases/parent_login_usecase.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 
+// Fee Ledger
+import 'features/fee_ledger/data/datasources/fee_ledger_remote_data_source.dart';
+import 'features/fee_ledger/data/repositories/fee_ledger_repository_impl.dart';
+import 'features/fee_ledger/domain/usecases/get_student_vouchers_usecase.dart';
+import 'features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
+
 class InjectionContainer {
   static late final AuthBloc authBloc;
+  static late final FeeLedgerBloc feeLedgerBloc;
 
   static void init() {
     // Core
@@ -25,13 +32,23 @@ class InjectionContainer {
       localDataSource: localDataSource,
     );
 
+    final feeLedgerRemoteDataSource = FeeLedgerRemoteDataSourceImpl(dio);
+    final feeLedgerRepository = FeeLedgerRepositoryImpl(
+      remoteDataSource: feeLedgerRemoteDataSource,
+    );
+
     // Use cases
     final parentLoginUseCase = ParentLoginUseCase(authRepository);
+    final getStudentVouchersUseCase = GetStudentVouchersUseCase(feeLedgerRepository);
 
     // BLoCs
     authBloc = AuthBloc(
       loginUseCase: parentLoginUseCase,
       repository: authRepository,
+    );
+
+    feeLedgerBloc = FeeLedgerBloc(
+      getStudentVouchers: getStudentVouchersUseCase,
     );
 
     // ── Dio interceptors ───────────────────────────────────────────────────

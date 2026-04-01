@@ -79,6 +79,7 @@ class StudentSelectionPage extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (context) => MainDashboardPage(
                       student: {
+                        'cc': student.cc.toString(),
                         'name': student.fullName,
                         'grade': student.section ?? '',
                         'section': '',

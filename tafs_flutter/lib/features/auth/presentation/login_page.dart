@@ -61,6 +61,7 @@ class _LoginPageState extends State<LoginPage> {
               MaterialPageRoute(
                 builder: (context) => MainDashboardPage(
                   student: {
+                    'cc': students.first.cc.toString(),
                     'name': students.first.fullName,
                     'grade': students.first.section ?? '',
                     'section': '', // Mock mapped data

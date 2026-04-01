@@ -4,8 +4,12 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 
+import '../../../fee_ledger/presentation/pages/fee_ledger_page.dart';
+
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
+  final Map<String, String> student;
+
+  const AppDrawer({super.key, required this.student});
 
   @override
   Widget build(BuildContext context) {
@@ -17,24 +21,24 @@ class AppDrawer extends StatelessWidget {
             padding: const EdgeInsets.only(top: 64, bottom: 24, left: 16, right: 16),
             width: double.infinity,
             color: AppTheme.primary,
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 30,
                   backgroundColor: AppTheme.surface1,
                   child: Icon(Icons.person, color: AppTheme.primary, size: 36),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Text(
-                  'FamID: 98765-XYZ',
-                  style: TextStyle(
-                    color: AppTheme.surface2,
-                    fontSize: 14,
+                  'Parent Profile',
+                  style: const TextStyle(
+                    color: Color(0xB3FFFFFF), // 70% white
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                Text(
+                const Text(
                   'Muhammad Ali',
                   style: TextStyle(
                     color: AppTheme.textOnPrimary,
@@ -42,11 +46,23 @@ class AppDrawer extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(
+                const Text(
                   'Parent / Guardian',
                   style: TextStyle(
                     color: Color(0xB3FFFFFF), // 70% white
                     fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white12,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Active Student: ${student['name']}',
+                    style: const TextStyle(color: Colors.white, fontSize: 11),
                   ),
                 ),
               ],
@@ -66,7 +82,16 @@ class AppDrawer extends StatelessWidget {
                   icon: Icons.account_balance_wallet,
                   text: 'Fee Ledger',
                   onTap: () {
-                    // Navigate to Fee Ledger
+                    Navigator.pop(context); // Close drawer first
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FeeLedgerPage(
+                          studentCc: int.tryParse(student['cc'] ?? '') ?? 0,
+                          studentName: student['name'] ?? 'Student',
+                        ),
+                      ),
+                    );
                   },
                 ),
                 _buildDrawerItem(
@@ -119,7 +144,7 @@ class AppDrawer extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               child: Text(
                 'TAFS App Version 1.0.0',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
               ),
             ),
           ),
@@ -135,13 +160,17 @@ class AppDrawer extends StatelessWidget {
     bool isActive = false,
     bool isPlaceholder = false,
   }) {
-    final color = isPlaceholder ? AppTheme.textMuted.withValues(alpha: 0.5) : (isActive ? AppTheme.primary : AppTheme.textMain);
     return ListTile(
-      leading: Icon(icon, color: color),
+      leading: Icon(
+        icon,
+        color: isPlaceholder
+            ? AppTheme.textMuted.withValues(alpha: 0.5)
+            : (isActive ? AppTheme.primary : AppTheme.textMain),
+      ),
       title: Text(
         text,
         style: TextStyle(
-          color: color,
+          color: isPlaceholder ? AppTheme.textMuted.withValues(alpha: 0.5) : (isActive ? AppTheme.primary : AppTheme.textMain),
           fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
         ),
       ),
