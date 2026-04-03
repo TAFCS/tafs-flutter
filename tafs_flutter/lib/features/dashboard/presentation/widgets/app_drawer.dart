@@ -1,24 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/domain/entities/student.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
-
+import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../fee_ledger/presentation/pages/fee_ledger_page.dart';
 
 class AppDrawer extends StatelessWidget {
-  final Map<String, String> student;
+  final Student student;
 
   const AppDrawer({super.key, required this.student});
 
   @override
   Widget build(BuildContext context) {
+    final authState = context.read<AuthBloc>().state;
+    String parentName = 'Parent / Guardian';
+    if (authState is AuthAuthenticated) {
+      parentName = authState.parent.householdName;
+    }
+
     return Drawer(
       backgroundColor: AppTheme.background,
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.only(top: 64, bottom: 24, left: 16, right: 16),
+            padding:
+                const EdgeInsets.only(top: 64, bottom: 24, left: 16, right: 16),
             width: double.infinity,
             color: AppTheme.primary,
             child: Column(
@@ -30,17 +38,17 @@ class AppDrawer extends StatelessWidget {
                   child: Icon(Icons.person, color: AppTheme.primary, size: 36),
                 ),
                 const SizedBox(height: 16),
-                Text(
+                const Text(
                   'Parent Profile',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Color(0xB3FFFFFF), // 70% white
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const Text(
-                  'Muhammad Ali',
-                  style: TextStyle(
+                Text(
+                  parentName,
+                  style: const TextStyle(
                     color: AppTheme.textOnPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -55,13 +63,14 @@ class AppDrawer extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white12,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    'Active Student: ${student['name']}',
+                    'Active Student: ${student.fullName}',
                     style: const TextStyle(color: Colors.white, fontSize: 11),
                   ),
                 ),
@@ -87,8 +96,8 @@ class AppDrawer extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => FeeLedgerPage(
-                          studentCc: int.tryParse(student['cc'] ?? '') ?? 0,
-                          studentName: student['name'] ?? 'Student',
+                          studentCc: student.cc,
+                          studentName: student.fullName,
                         ),
                       ),
                     );
@@ -103,7 +112,8 @@ class AppDrawer extends StatelessWidget {
                 ),
                 const Divider(),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Text(
                     'FUTURE MODULES',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -139,12 +149,12 @@ class AppDrawer extends StatelessWidget {
               ],
             ),
           ),
-          SafeArea(
+          const SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(16.0),
               child: Text(
                 'TAFS App Version 1.0.0',
-                style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
               ),
             ),
           ),
@@ -170,13 +180,16 @@ class AppDrawer extends StatelessWidget {
       title: Text(
         text,
         style: TextStyle(
-          color: isPlaceholder ? AppTheme.textMuted.withValues(alpha: 0.5) : (isActive ? AppTheme.primary : AppTheme.textMain),
+          color: isPlaceholder
+              ? AppTheme.textMuted.withValues(alpha: 0.5)
+              : (isActive ? AppTheme.primary : AppTheme.textMain),
           fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
         ),
       ),
       onTap: isPlaceholder ? null : onTap,
       trailing: isPlaceholder
-          ? Icon(Icons.lock_outline, size: 16, color: AppTheme.textMuted.withValues(alpha: 0.5))
+          ? Icon(Icons.lock_outline,
+              size: 16, color: AppTheme.textMuted.withValues(alpha: 0.5))
           : null,
     );
   }

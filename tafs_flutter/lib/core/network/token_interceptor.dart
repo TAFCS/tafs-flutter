@@ -14,6 +14,7 @@ import '../../features/auth/data/models/parent_dto.dart';
 ///   5. Retry the original request (and any queued concurrent requests)
 ///   6. If refresh also fails → clear storage + call [onLogout] (triggers AuthBloc)
 class TokenInterceptor extends Interceptor {
+  final Dio dio;
   final AuthLocalDataSource localDataSource;
 
   /// Called when refresh fails or no cached session exists.
@@ -27,16 +28,28 @@ class TokenInterceptor extends Interceptor {
   /// to avoid an infinite loop when the refresh endpoint itself returns 401.
   final Dio _refreshDio = Dio();
 
-  TokenInterceptor({required this.localDataSource, required this.onLogout});
+  TokenInterceptor({
+    required this.dio,
+    required this.localDataSource,
+    required this.onLogout,
+  });
 
   @override
   Future<void> onError(
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
+    final alreadyRetried = err.requestOptions.extra['__retried_after_refresh'] == true;
+    final path = err.requestOptions.path;
+    final isAuthPath =
+        path.contains('/auth/parent/login') ||
+        path.contains('/auth/parent/refresh') ||
+        path.contains('/auth/parent/logout');
+
     // Only intercept 401s that are not from the refresh endpoint itself
     if (err.response?.statusCode != 401 ||
-        err.requestOptions.path.contains('/auth/parent/refresh')) {
+        isAuthPath ||
+        alreadyRetried) {
       return handler.next(err);
     }
 
@@ -58,12 +71,13 @@ class TokenInterceptor extends Interceptor {
 
     _isRefreshing = true;
 
+    String? newAccess;
     try {
       // ── 1. Read cached session ──────────────────────────────────────────
       final cached = await localDataSource.getCachedParent();
       if (cached == null) {
         _failAll(err);
-        _clearAndLogout();
+        await _clearAndLogout();
         return handler.next(err);
       }
 
@@ -79,7 +93,7 @@ class TokenInterceptor extends Interceptor {
 
       // ── 3. Unwrap { data: { accessToken, refreshToken } } envelope ───────
       final innerData = (refreshResponse.data!['data'] as Map<String, dynamic>);
-      final newAccess = innerData['accessToken'] as String;
+      newAccess = innerData['accessToken'] as String;
       final newRefresh = innerData['refreshToken'] as String;
 
       // ── 4. Persist updated tokens ───────────────────────────────────────
@@ -96,8 +110,9 @@ class TokenInterceptor extends Interceptor {
       // ── 5. Drain queue — retry all waiting requests ─────────────────────
       for (final pending in _pendingQueue) {
         pending.options.headers['Authorization'] = 'Bearer $newAccess';
+        pending.options.extra['__retried_after_refresh'] = true;
         try {
-          final retried = await Dio().fetch<dynamic>(pending.options);
+          final retried = await dio.fetch<dynamic>(pending.options);
           pending.completer.complete(retried);
         } catch (e) {
           pending.completer.completeError(e);
@@ -107,12 +122,24 @@ class TokenInterceptor extends Interceptor {
 
       // ── 6. Retry the original request ───────────────────────────────────
       original.headers['Authorization'] = 'Bearer $newAccess';
-      final retriedResponse = await Dio().fetch<dynamic>(original);
+      original.extra['__retried_after_refresh'] = true;
+      final retriedResponse = await dio.fetch<dynamic>(original);
       return handler.resolve(retriedResponse);
+    } on DioException catch (refreshErr) {
+      // Logout only when refresh itself is rejected/unauthorized.
+      if (refreshErr.requestOptions.path.contains('/auth/parent/refresh') &&
+          (refreshErr.response?.statusCode == 401 ||
+              refreshErr.response?.statusCode == 403)) {
+        _failAll(err);
+        await _clearAndLogout();
+        return handler.next(err);
+      }
+      _failAll(refreshErr);
+      return handler.next(refreshErr);
     } catch (_) {
-      // Refresh failed — all queued requests fail, session is cleared
+      // Refresh parsing/storage failed — treat as auth session failure.
       _failAll(err);
-      _clearAndLogout();
+      await _clearAndLogout();
       return handler.next(err);
     } finally {
       _isRefreshing = false;
@@ -128,8 +155,9 @@ class TokenInterceptor extends Interceptor {
     _pendingQueue.clear();
   }
 
-  void _clearAndLogout() {
-    localDataSource.clearCache().then((_) => onLogout());
+  Future<void> _clearAndLogout() async {
+    await localDataSource.clearCache();
+    onLogout();
   }
 }
 

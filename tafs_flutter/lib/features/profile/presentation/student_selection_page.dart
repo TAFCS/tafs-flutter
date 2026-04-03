@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../dashboard/presentation/main_dashboard_page.dart';
 import '../../auth/domain/entities/student.dart';
+import '../../auth/presentation/bloc/selected_student_cubit.dart';
 
 class StudentSelectionPage extends StatelessWidget {
   final List<Student> students;
@@ -44,10 +46,10 @@ class StudentSelectionPage extends StatelessWidget {
               leading: CircleAvatar(
                 backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
                 radius: 28,
-                backgroundImage: student.profilePictureUrl != null 
-                    ? NetworkImage(student.profilePictureUrl!) 
+                backgroundImage: student.photographUrl != null 
+                    ? NetworkImage(student.photographUrl!) 
                     : null,
-                child: student.profilePictureUrl == null ? Text(
+                child: student.photographUrl == null ? Text(
                   student.fullName[0],
                   style: const TextStyle(
                     color: AppTheme.primary,
@@ -74,19 +76,11 @@ class StudentSelectionPage extends StatelessWidget {
                 color: AppTheme.textMuted,
               ),
               onTap: () {
+                context.read<SelectedStudentCubit>().select(student);
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => MainDashboardPage(
-                      student: {
-                        'cc': student.cc.toString(),
-                        'name': student.fullName,
-                        'grade': student.section ?? '',
-                        'section': '',
-                        'gr': 'GR-XXXX',
-                        'campus': 'Main Campus'
-                      }
-                    ),
+                    builder: (context) => const MainDashboardPage(),
                   ),
                 );
               },

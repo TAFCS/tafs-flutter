@@ -8,11 +8,31 @@ import 'widgets/app_drawer.dart';
 import 'widgets/student_switcher_sheet.dart';
 import 'widgets/live_ledger_card.dart';
 import 'widgets/communication_feed.dart';
+import '../../auth/domain/entities/student.dart';
+import '../../auth/presentation/bloc/selected_student_cubit.dart';
+import '../../fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
+import '../../fee_ledger/presentation/bloc/fee_ledger_event.dart';
+import '../../fee_ledger/presentation/bloc/fee_summary_bloc.dart';
+import '../../fee_ledger/presentation/bloc/fee_summary_event.dart';
 
-class MainDashboardPage extends StatelessWidget {
-  final Map<String, String> student;
+class MainDashboardPage extends StatefulWidget {
+  const MainDashboardPage({super.key});
 
-  const MainDashboardPage({super.key, required this.student});
+  @override
+  State<MainDashboardPage> createState() => _MainDashboardPageState();
+}
+
+class _MainDashboardPageState extends State<MainDashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Initial fetch for the already selected student
+    final student = context.read<SelectedStudentCubit>().state;
+    if (student != null) {
+      context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
+      context.read<FeeLedgerBloc>().add(FeeLedgerLoadRequested(student.cc));
+    }
+  }
 
   void _showStudentSwitcher(BuildContext context) {
     showModalBottomSheet(
@@ -20,129 +40,148 @@ class MainDashboardPage extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const StudentSwitcherSheet(),
-    ).then((selectedStudent) {
-      if (!context.mounted) return;
-      if (selectedStudent != null && selectedStudent != student) {
-        // Typically handled by BLoC instead of Navigator
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MainDashboardPage(student: selectedStudent as Map<String, String>),
-          ),
-        );
-      }
-    });
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
-        if (state is AuthUnauthenticated) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginPage()),
-            (route) => false,
-          );
-        }
-      },
-      child: Scaffold(
-        drawer: AppDrawer(student: student),
-      appBar: AppBar(
-        backgroundColor: AppTheme.surface1,
-        foregroundColor: AppTheme.textMain,
-        elevation: 0,
-        centerTitle: false,
-        title: GestureDetector(
-          onTap: () => _showStudentSwitcher(context),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        student['name'] ?? 'Student',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_drop_down, color: AppTheme.primary),
-                    ],
-                  ),
-                  Text(
-                    '${student['gr'] ?? 'GR-XXXX'} • ${student['campus'] ?? 'Main Campus'}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppTheme.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<AuthBloc, AuthState>(
+          listener: (context, state) {
+            if (state is AuthUnauthenticated) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginPage()),
+                (route) => false,
+              );
+            }
+          },
         ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Welcome Banner
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppTheme.primary, Color(0xFF1B436D)], // Darker Denim
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        BlocListener<SelectedStudentCubit, Student?>(
+          listener: (context, student) {
+            if (student != null) {
+              context
+                  .read<FeeSummaryBloc>()
+                  .add(FeeSummaryLoadRequested(student.cc));
+              context
+                  .read<FeeLedgerBloc>()
+                  .add(FeeLedgerLoadRequested(student.cc));
+            }
+          },
+        ),
+      ],
+      child: BlocBuilder<SelectedStudentCubit, Student?>(
+        builder: (context, student) {
+          if (student == null) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          return Scaffold(
+            drawer: AppDrawer(student: student),
+            appBar: AppBar(
+              backgroundColor: AppTheme.surface1,
+              foregroundColor: AppTheme.textMain,
+              elevation: 0,
+              centerTitle: false,
+              title: GestureDetector(
+                onTap: () => _showStudentSwitcher(context),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      '${student['grade']} - ${student['section']}',
-                      style: const TextStyle(
-                        color: AppTheme.textOnPrimary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Welcome to TAFS!',
-                      style: TextStyle(
-                        color: AppTheme.textOnPrimary,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              student.fullName,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.arrow_drop_down,
+                                color: AppTheme.primary),
+                          ],
+                        ),
+                        Text(
+                          '${student.grNumber ?? 'GR-XXXX'} • ${student.campus ?? 'Main Campus'}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.textMuted,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              // Live Ledger
-              LiveLedgerCard(
-                studentCc: int.tryParse(student['cc'] ?? '') ?? 0,
-                studentName: student['name'] ?? 'Student',
+            ),
+            body: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Welcome Banner
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            AppTheme.primary,
+                            Color(0xFF1B436D)
+                          ], // Darker Denim
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${student.className} - ${student.section}',
+                            style: const TextStyle(
+                              color: AppTheme.textOnPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Welcome to TAFS!',
+                            style: TextStyle(
+                              color: AppTheme.textOnPrimary,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // Live Ledger
+                    LiveLedgerCard(
+                      studentCc: student.cc,
+                      studentName: student.fullName,
+                    ),
+                    const SizedBox(height: 32),
+                    // Communication Feed
+                    const CommunicationFeed(),
+                    const SizedBox(height: 16),
+                  ],
+                ),
               ),
-              const SizedBox(height: 32),
-              // Communication Feed
-              const CommunicationFeed(),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
-    ));
+    );
   }
 }

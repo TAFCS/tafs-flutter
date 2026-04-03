@@ -8,6 +8,7 @@ import 'bloc/auth_bloc.dart';
 import 'bloc/auth_event.dart';
 import 'bloc/auth_state.dart';
 import '../../dashboard/presentation/main_dashboard_page.dart';
+import 'bloc/selected_student_cubit.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -56,19 +57,11 @@ class _LoginPageState extends State<LoginPage> {
               ),
             );
           } else if (students.length == 1) {
+            context.read<SelectedStudentCubit>().select(students.first);
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => MainDashboardPage(
-                  student: {
-                    'cc': students.first.cc.toString(),
-                    'name': students.first.fullName,
-                    'grade': students.first.section ?? '',
-                    'section': '', // Mock mapped data
-                    'gr': 'GR-XXXX',
-                    'campus': 'Main Campus',
-                  },
-                ),
+                builder: (context) => const MainDashboardPage(),
               ),
             );
           } else {

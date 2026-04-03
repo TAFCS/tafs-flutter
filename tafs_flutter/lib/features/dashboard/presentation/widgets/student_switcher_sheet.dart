@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../auth/presentation/bloc/selected_student_cubit.dart';
 
 class StudentSwitcherSheet extends StatelessWidget {
   const StudentSwitcherSheet({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Mock data for siblings linked to Family ID
-    final siblings = [
-      {'name': 'Ahmad Ali', 'grade': 'Grade 5', 'section': 'A', 'campus': 'Main Campus', 'gr': 'GR-1209'},
-      {'name': 'Fatima Ali', 'grade': 'Grade 3', 'section': 'B', 'campus': 'Main Campus', 'gr': 'GR-1450'},
-    ];
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! AuthAuthenticated) return const SizedBox.shrink();
+    final siblings = authState.parent.students;
 
     return Container(
       padding: const EdgeInsets.all(24.0),
@@ -49,29 +51,37 @@ class StudentSwitcherSheet extends StatelessWidget {
                 side: const BorderSide(color: AppTheme.borderSubtle),
               ),
               child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 leading: CircleAvatar(
                   backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                  child: Text(
-                    student['name']![0],
-                    style: const TextStyle(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  backgroundImage: student.photographUrl != null
+                      ? NetworkImage(student.photographUrl!)
+                      : null,
+                  child: student.photographUrl == null
+                      ? Text(
+                          student.fullName[0],
+                          style: const TextStyle(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
                 ),
                 title: Text(
-                  student['name']!,
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textMain),
+                  student.fullName,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, color: AppTheme.textMain),
                 ),
                 subtitle: Text(
-                  '${student['grade']} - ${student['section']}\n${student['gr']} • ${student['campus']}',
-                  style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                  '${student.className} - ${student.section}\n${student.grNumber} • ${student.campus}',
+                  style:
+                      const TextStyle(color: AppTheme.textMuted, fontSize: 13),
                 ),
                 isThreeLine: true,
                 onTap: () {
-                  // Dispatch SwitchStudentContext event to BLoC here in the future
-                  Navigator.pop(context, student);
+                  context.read<SelectedStudentCubit>().select(student);
+                  Navigator.pop(context);
                 },
               ),
             );

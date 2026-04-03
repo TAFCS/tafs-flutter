@@ -1,12 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/student_profile_card.dart';
 import '../../domain/entities/voucher.dart';
 
 class VoucherDetailPage extends StatelessWidget {
   final Voucher voucher;
 
   const VoucherDetailPage({super.key, required this.voucher});
+
+  Future<void> _launchPdf(BuildContext context) async {
+    if (voucher.pdfUrl == null) return;
+    final uri = Uri.parse(voucher.pdfUrl!);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not launch PDF viewer')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,12 +48,7 @@ class VoucherDetailPage extends StatelessWidget {
           if (voucher.pdfUrl != null)
             IconButton(
               icon: const Icon(Icons.download_rounded, color: AppTheme.primary),
-              onPressed: () {
-                // TODO: Implement PDF download/view
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('PDF download starting...')),
-                );
-              },
+              onPressed: () => _launchPdf(context),
             ),
         ],
       ),
@@ -38,6 +57,10 @@ class VoucherDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Student Header
+            const StudentProfileCard(),
+            const SizedBox(height: 24),
+
             // Status Header
             _StatusHeader(voucher: voucher),
             const SizedBox(height: 24),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/student_profile_card.dart';
 import '../../domain/entities/voucher.dart';
 import '../bloc/fee_ledger_bloc.dart';
 import '../bloc/fee_ledger_event.dart';
@@ -25,15 +26,13 @@ class FeeLedgerPage extends StatefulWidget {
 class _FeeLedgerPageState extends State<FeeLedgerPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-  final _tabs = const ['All', 'Unpaid', 'Paid', 'Overdue'];
+  final _tabs = const ['All', 'Unpaid', 'Partial', 'Paid'];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
-    context
-        .read<FeeLedgerBloc>()
-        .add(FeeLedgerLoadRequested(widget.studentCc));
+    context.read<FeeLedgerBloc>().add(FeeLedgerLoadRequested(widget.studentCc));
   }
 
   @override
@@ -47,9 +46,9 @@ class _FeeLedgerPageState extends State<FeeLedgerPage>
       case 1:
         return all.where((v) => v.status == 'UNPAID').toList();
       case 2:
-        return all.where((v) => v.status == 'PAID').toList();
+        return all.where((v) => v.status == 'PARTIALLY_PAID').toList();
       case 3:
-        return all.where((v) => v.status == 'OVERDUE').toList();
+        return all.where((v) => v.status == 'PAID').toList();
       default:
         return all;
     }
@@ -60,18 +59,9 @@ class _FeeLedgerPageState extends State<FeeLedgerPage>
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Fee Ledger',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              widget.studentName,
-              style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
-            ),
-          ],
+        title: const Text(
+          'Fee Ledger',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         backgroundColor: AppTheme.surface1,
         foregroundColor: AppTheme.textMain,
@@ -112,6 +102,10 @@ class _FeeLedgerPageState extends State<FeeLedgerPage>
 
             return Column(
               children: [
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: StudentProfileCard(),
+                ),
                 _SummaryStrip(
                   totalOutstanding: totalOut,
                   totalChallans: vouchers.length,

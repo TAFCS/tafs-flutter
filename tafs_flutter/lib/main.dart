@@ -5,6 +5,8 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/login_page.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
+import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
+import 'features/auth/presentation/bloc/selected_student_cubit.dart';
 import 'injection_container.dart';
 
 void main() async {
@@ -27,6 +29,12 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<FeeLedgerBloc>(
           create: (context) => InjectionContainer.feeLedgerBloc,
+        ),
+        BlocProvider<FeeSummaryBloc>(
+          create: (context) => InjectionContainer.feeSummaryBloc,
+        ),
+        BlocProvider<SelectedStudentCubit>(
+          create: (context) => InjectionContainer.selectedStudentCubit,
         ),
       ],
       child: MaterialApp(

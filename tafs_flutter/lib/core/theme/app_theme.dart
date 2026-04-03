@@ -17,8 +17,9 @@ class AppTheme {
   static const Color surface2 = Color(0xFFFFFFFF);   // Level 2: Elevated Card
   static const Color surface3 = Color(0xFFFFFFFF);   // Level 3: Overlay/Tooltip
   
-  // Borders
+  // Colors
   static const Color borderSubtle = Color(0xFFE9ECEF);
+  static const Color error = Color(0xFFDC3545);
   
   // Box Shadows
   static const List<BoxShadow> shadowL1 = [
