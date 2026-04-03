@@ -34,9 +34,6 @@ class VoucherDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat('#,##0', 'en_US');
-    final dateFmt = DateFormat('dd MMM yyyy');
-
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
@@ -301,34 +298,91 @@ class _FeeBreakdown extends StatelessWidget {
           final head = heads[i];
           return Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        head.feeType,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                      ),
-                      if (head.discountAmount > 0)
-                        Text(
-                          'Discount: ${head.discountLabel ?? "Applied"} (-Rs. ${fmt.format(head.discountAmount)})',
-                          style: const TextStyle(color: Colors.green, fontSize: 12),
-                        ),
-                    ],
-                  ),
-                ),
                 Text(
-                  'Rs. ${fmt.format(head.netAmount)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  head.feeType,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+                if (head.discountAmount > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      'Discount: ${head.discountLabel ?? "Applied"} (-Rs. ${fmt.format(head.discountAmount)})',
+                      style: const TextStyle(color: Colors.green, fontSize: 12),
+                    ),
+                  ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _BreakdownStat(
+                        label: 'Net Amount',
+                        value: 'Rs. ${fmt.format(head.netAmount)}',
+                      ),
+                    ),
+                    Expanded(
+                      child: _BreakdownStat(
+                        label: 'Deposited',
+                        value: 'Rs. ${fmt.format(head.amountDeposited)}',
+                        valueColor: Colors.green.shade700,
+                      ),
+                    ),
+                    Expanded(
+                      child: _BreakdownStat(
+                        label: 'Balance',
+                        value: 'Rs. ${fmt.format(head.balance)}',
+                        valueColor: head.balance > 0
+                            ? Colors.red.shade700
+                            : Colors.green.shade700,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           );
         },
       ),
+    );
+  }
+}
+
+class _BreakdownStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  const _BreakdownStat({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: AppTheme.textMuted,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: valueColor ?? AppTheme.textMain,
+          ),
+        ),
+      ],
     );
   }
 }

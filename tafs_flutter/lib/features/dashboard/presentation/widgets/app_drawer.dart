@@ -5,6 +5,7 @@ import '../../../auth/domain/entities/student.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../auth/presentation/bloc/selected_student_cubit.dart';
 import '../../../fee_ledger/presentation/pages/fee_ledger_page.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -78,9 +79,14 @@ class AppDrawer extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
+            child: BlocBuilder<SelectedStudentCubit, Student?>(
+              builder: (context, selectedStudent) {
+                final siblings = authState is AuthAuthenticated
+                    ? authState.parent.students
+                    : const <Student>[];
+                return ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
                 _buildDrawerItem(
                   icon: Icons.dashboard,
                   text: 'Dashboard',
@@ -96,13 +102,71 @@ class AppDrawer extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => FeeLedgerPage(
-                          studentCc: student.cc,
-                          studentName: student.fullName,
+                          studentCc: selectedStudent?.cc ?? student.cc,
+                          studentName: selectedStudent?.fullName ?? student.fullName,
                         ),
                       ),
                     );
                   },
                 ),
+                if (siblings.length > 1) ...[
+                  const Divider(),
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      'SWITCH STUDENT',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: AppTheme.textMuted,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                    ),
+                  ),
+                  ...siblings.map(
+                    (s) => ListTile(
+                      leading: CircleAvatar(
+                        radius: 16,
+                        backgroundColor:
+                            AppTheme.primary.withValues(alpha: 0.1),
+                        backgroundImage: s.photographUrl != null
+                            ? NetworkImage(s.photographUrl!)
+                            : null,
+                        child: s.photographUrl == null
+                            ? Text(
+                                s.fullName[0],
+                                style: const TextStyle(
+                                  color: AppTheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : null,
+                      ),
+                      title: Text(
+                        s.fullName,
+                        style: const TextStyle(
+                          color: AppTheme.textMain,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${s.className ?? ''} ${s.section ?? ''}'.trim(),
+                        style: const TextStyle(
+                          color: AppTheme.textMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                      trailing: (selectedStudent?.cc ?? student.cc) == s.cc
+                          ? const Icon(Icons.check_circle,
+                              color: Colors.green, size: 18)
+                          : null,
+                      onTap: () {
+                        context.read<SelectedStudentCubit>().select(s);
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ),
+                ],
                 _buildDrawerItem(
                   icon: Icons.download,
                   text: 'Downloads',
@@ -146,7 +210,9 @@ class AppDrawer extends StatelessWidget {
                     context.read<AuthBloc>().add(AuthLogoutRequested());
                   },
                 ),
-              ],
+                  ],
+                );
+              },
             ),
           ),
           const SafeArea(

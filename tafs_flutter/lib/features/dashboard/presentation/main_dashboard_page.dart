@@ -8,6 +8,7 @@ import 'widgets/app_drawer.dart';
 import 'widgets/student_switcher_sheet.dart';
 import 'widgets/live_ledger_card.dart';
 import 'widgets/communication_feed.dart';
+import '../../../../core/widgets/student_profile_card.dart';
 import '../../auth/domain/entities/student.dart';
 import '../../auth/presentation/bloc/selected_student_cubit.dart';
 import '../../fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
@@ -127,6 +128,8 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const StudentProfileCard(),
+                    const SizedBox(height: 16),
                     // Welcome Banner
                     Container(
                       width: double.infinity,

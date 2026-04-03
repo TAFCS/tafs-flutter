@@ -20,9 +20,12 @@ class FeeLedgerRemoteDataSourceImpl implements FeeLedgerRemoteDataSource {
       if (response.statusCode == 200 && response.data != null) {
         final List<dynamic> raw =
             (response.data['data'] as List<dynamic>?) ?? [];
-        return raw
+        final vouchers = raw
             .map((e) => VoucherDto.fromJson(e as Map<String, dynamic>))
             .toList();
+        // Ensure newest first irrespective of backend default ordering.
+        vouchers.sort((a, b) => b.issueDate.compareTo(a.issueDate));
+        return vouchers;
       }
       throw const ServerFailure('Failed to load vouchers');
     } on DioException catch (e) {

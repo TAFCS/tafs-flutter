@@ -121,6 +121,35 @@ class LiveLedgerCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isClear
+                          ? Colors.green.withValues(alpha: 0.10)
+                          : Colors.orange.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isClear
+                            ? Colors.green.withValues(alpha: 0.35)
+                            : Colors.orange.withValues(alpha: 0.45),
+                      ),
+                    ),
+                    child: Text(
+                      isClear
+                          ? 'All clear: no unpaid vouchers'
+                          : 'Overdue total: ${cur.format(summary.outstandingBalance)}',
+                      style: TextStyle(
+                        color: isClear
+                            ? Colors.green.shade800
+                            : Colors.orange.shade900,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     cur.format(summary.outstandingBalance),
