@@ -111,7 +111,7 @@ class LiveLedgerCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          isClear ? 'All Clear' : 'Overdue',
+                          isClear ? 'All Clear' : 'Unpaid',
                           style: TextStyle(
                             color: isClear ? Colors.green : AppTheme.error,
                             fontSize: 12,
@@ -140,7 +140,7 @@ class LiveLedgerCard extends StatelessWidget {
                     child: Text(
                       isClear
                           ? 'All clear: no unpaid vouchers'
-                          : 'Overdue total: ${cur.format(summary.outstandingBalance)}',
+                          : 'Unpaid total: ${cur.format(summary.outstandingBalance)}',
                       style: TextStyle(
                         color: isClear
                             ? Colors.green.shade800
@@ -208,7 +208,7 @@ class LiveLedgerCard extends StatelessWidget {
                           Text(
                             isClear
                                 ? 'Fees are up to date'
-                                : '${summary.overdueCount} pending vouchers',
+                                : '${summary.overdueCount} unpaid vouchers',
                             style: TextStyle(
                               fontSize: 12,
                               color: AppTheme.textMuted.withValues(alpha: 0.8),

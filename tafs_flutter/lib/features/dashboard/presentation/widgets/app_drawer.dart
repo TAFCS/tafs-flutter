@@ -81,135 +81,75 @@ class AppDrawer extends StatelessWidget {
           Expanded(
             child: BlocBuilder<SelectedStudentCubit, Student?>(
               builder: (context, selectedStudent) {
-                final siblings = authState is AuthAuthenticated
-                    ? authState.parent.students
-                    : const <Student>[];
                 return ListView(
                   padding: EdgeInsets.zero,
                   children: [
-                _buildDrawerItem(
-                  icon: Icons.dashboard,
-                  text: 'Dashboard',
-                  onTap: () => Navigator.pop(context),
-                  isActive: true,
-                ),
-                _buildDrawerItem(
-                  icon: Icons.account_balance_wallet,
-                  text: 'Fee Ledger',
-                  onTap: () {
-                    Navigator.pop(context); // Close drawer first
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => FeeLedgerPage(
-                          studentCc: selectedStudent?.cc ?? student.cc,
-                          studentName: selectedStudent?.fullName ?? student.fullName,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                if (siblings.length > 1) ...[
-                  const Divider(),
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Text(
-                      'SWITCH STUDENT',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: AppTheme.textMuted,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
+                    _buildDrawerItem(
+                      icon: Icons.dashboard,
+                      text: 'Dashboard',
+                      onTap: () => Navigator.pop(context),
+                      isActive: true,
                     ),
-                  ),
-                  ...siblings.map(
-                    (s) => ListTile(
-                      leading: CircleAvatar(
-                        radius: 16,
-                        backgroundColor:
-                            AppTheme.primary.withValues(alpha: 0.1),
-                        backgroundImage: s.photographUrl != null
-                            ? NetworkImage(s.photographUrl!)
-                            : null,
-                        child: s.photographUrl == null
-                            ? Text(
-                                s.fullName[0],
-                                style: const TextStyle(
-                                  color: AppTheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                            : null,
-                      ),
-                      title: Text(
-                        s.fullName,
-                        style: const TextStyle(
-                          color: AppTheme.textMain,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Text(
-                        '${s.className ?? ''} ${s.section ?? ''}'.trim(),
-                        style: const TextStyle(
-                          color: AppTheme.textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                      trailing: (selectedStudent?.cc ?? student.cc) == s.cc
-                          ? const Icon(Icons.check_circle,
-                              color: Colors.green, size: 18)
-                          : null,
+                    _buildDrawerItem(
+                      icon: Icons.account_balance_wallet,
+                      text: 'Fee Ledger',
                       onTap: () {
-                        context.read<SelectedStudentCubit>().select(s);
-                        Navigator.pop(context);
+                        Navigator.pop(context); // Close drawer first
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => FeeLedgerPage(
+                              studentCc: selectedStudent?.cc ?? student.cc,
+                              studentName:
+                                  selectedStudent?.fullName ?? student.fullName,
+                            ),
+                          ),
+                        );
                       },
                     ),
-                  ),
-                ],
-                _buildDrawerItem(
-                  icon: Icons.download,
-                  text: 'Downloads',
-                  onTap: () {
-                    // Navigate to Downloads
-                  },
-                ),
-                const Divider(),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text(
-                    'FUTURE MODULES',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppTheme.textMuted,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                  ),
-                ),
-                _buildDrawerItem(
-                  icon: Icons.calendar_today,
-                  text: 'Attendance',
-                  isPlaceholder: true,
-                ),
-                _buildDrawerItem(
-                  icon: Icons.assessment,
-                  text: 'Report Cards',
-                  isPlaceholder: true,
-                ),
-                _buildDrawerItem(
-                  icon: Icons.people,
-                  text: 'Staff Directory',
-                  isPlaceholder: true,
-                ),
-                const Divider(),
-                _buildDrawerItem(
-                  icon: Icons.logout,
-                  text: 'Logout',
-                  onTap: () {
-                    context.read<AuthBloc>().add(AuthLogoutRequested());
-                  },
-                ),
+                    _buildDrawerItem(
+                      icon: Icons.download,
+                      text: 'Downloads',
+                      onTap: () {
+                        // Navigate to Downloads
+                      },
+                    ),
+                    const Divider(),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Text(
+                        'FUTURE MODULES',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: AppTheme.textMuted,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
+                      ),
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.calendar_today,
+                      text: 'Attendance',
+                      isPlaceholder: true,
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.assessment,
+                      text: 'Report Cards',
+                      isPlaceholder: true,
+                    ),
+                    _buildDrawerItem(
+                      icon: Icons.people,
+                      text: 'Staff Directory',
+                      isPlaceholder: true,
+                    ),
+                    const Divider(),
+                    _buildDrawerItem(
+                      icon: Icons.logout,
+                      text: 'Logout',
+                      onTap: () {
+                        context.read<AuthBloc>().add(AuthLogoutRequested());
+                      },
+                    ),
                   ],
                 );
               },
