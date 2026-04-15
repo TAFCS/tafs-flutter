@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../domain/entities/fee_month_status.dart';
 import '../../domain/entities/voucher.dart';
 
 abstract class FeeLedgerState extends Equatable {
@@ -17,11 +18,12 @@ class FeeLedgerLoading extends FeeLedgerState {
 }
 
 class FeeLedgerLoaded extends FeeLedgerState {
+  final List<FeeMonthStatus> months;
   final List<Voucher> vouchers;
-  const FeeLedgerLoaded(this.vouchers);
+  const FeeLedgerLoaded({required this.months, required this.vouchers});
 
   @override
-  List<Object?> get props => [vouchers];
+  List<Object?> get props => [months, vouchers];
 }
 
 class FeeLedgerError extends FeeLedgerState {

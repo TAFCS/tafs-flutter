@@ -13,8 +13,10 @@ import 'features/fee_ledger/data/datasources/fee_ledger_remote_data_source.dart'
 import 'features/fee_ledger/data/datasources/fee_summary_remote_data_source.dart';
 import 'features/fee_ledger/data/repositories/fee_ledger_repository_impl.dart';
 import 'features/fee_ledger/data/repositories/fee_summary_repository_impl.dart';
+import 'features/fee_ledger/domain/usecases/get_student_fee_months_usecase.dart';
 import 'features/fee_ledger/domain/usecases/get_student_vouchers_usecase.dart';
 import 'features/fee_ledger/domain/usecases/get_fee_summary_usecase.dart';
+import 'features/fee_ledger/domain/usecases/resolve_voucher_for_month_usecase.dart';
 import 'features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import 'features/auth/presentation/bloc/selected_student_cubit.dart';
@@ -51,8 +53,15 @@ class InjectionContainer {
 
     // Use cases
     final parentLoginUseCase = ParentLoginUseCase(authRepository);
-    final getStudentVouchersUseCase =
-        GetStudentVouchersUseCase(feeLedgerRepository);
+    final getStudentFeeMonthsUseCase = GetStudentFeeMonthsUseCase(
+      feeLedgerRepository,
+    );
+    final getStudentVouchersUseCase = GetStudentVouchersUseCase(
+      feeLedgerRepository,
+    );
+    final resolveVoucherForMonthUseCase = ResolveVoucherForMonthUseCase(
+      feeLedgerRepository,
+    );
     final getFeeSummaryUseCase = GetFeeSummaryUseCase(feeSummaryRepository);
 
     // BLoCs
@@ -62,12 +71,12 @@ class InjectionContainer {
     );
 
     feeLedgerBloc = FeeLedgerBloc(
+      getStudentFeeMonths: getStudentFeeMonthsUseCase,
       getStudentVouchers: getStudentVouchersUseCase,
+      resolveVoucherForMonthUseCase: resolveVoucherForMonthUseCase,
     );
 
-    feeSummaryBloc = FeeSummaryBloc(
-      getFeeSummary: getFeeSummaryUseCase,
-    );
+    feeSummaryBloc = FeeSummaryBloc(getFeeSummary: getFeeSummaryUseCase);
 
     selectedStudentCubit = SelectedStudentCubit();
 

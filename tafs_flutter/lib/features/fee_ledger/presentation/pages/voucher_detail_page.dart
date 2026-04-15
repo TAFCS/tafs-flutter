@@ -1,5 +1,9 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/student_profile_card.dart';
@@ -10,26 +14,16 @@ class VoucherDetailPage extends StatelessWidget {
 
   const VoucherDetailPage({super.key, required this.voucher});
 
-  Future<void> _launchPdf(BuildContext context) async {
+  void _showChallanOptions(BuildContext context) {
     if (voucher.pdfUrl == null) return;
-    final uri = Uri.parse(voucher.pdfUrl!);
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not launch PDF viewer')),
-          );
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ChallanOptionsSheet(
+        voucherId: voucher.id,
+        pdfUrl: voucher.pdfUrl!,
+      ),
+    );
   }
 
   @override
@@ -44,8 +38,9 @@ class VoucherDetailPage extends StatelessWidget {
         actions: [
           if (voucher.pdfUrl != null)
             IconButton(
-              icon: const Icon(Icons.download_rounded, color: AppTheme.primary),
-              onPressed: () => _launchPdf(context),
+              icon: const Icon(Icons.picture_as_pdf_rounded, color: AppTheme.primary),
+              tooltip: 'Challan Options',
+              onPressed: () => _showChallanOptions(context),
             ),
         ],
       ),
@@ -450,6 +445,293 @@ class _BankField extends StatelessWidget {
           if (canCopy)
             const Icon(Icons.copy_rounded, size: 14, color: AppTheme.primary),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Challan Options Bottom Sheet ────────────────────────────────────────────
+class _ChallanOptionsSheet extends StatefulWidget {
+  final int voucherId;
+  final String pdfUrl;
+
+  const _ChallanOptionsSheet({
+    required this.voucherId,
+    required this.pdfUrl,
+  });
+
+  @override
+  State<_ChallanOptionsSheet> createState() => _ChallanOptionsSheetState();
+}
+
+class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
+  bool _isDownloading = false;
+  double _downloadProgress = 0;
+  String? _downloadedPath;
+
+  Future<void> _viewInBrowser() async {
+    Navigator.pop(context);
+    final uri = Uri.parse(widget.pdfUrl);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open browser')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _downloadToDevice() async {
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0;
+    });
+
+    try {
+      // Determine download directory
+      Directory dir;
+      if (Platform.isAndroid) {
+        dir = Directory('/storage/emulated/0/Download');
+        if (!await dir.exists()) {
+          dir = await getApplicationDocumentsDirectory();
+        }
+      } else {
+        dir = await getApplicationDocumentsDirectory();
+      }
+
+      final fileName = 'Challan_${widget.voucherId}.pdf';
+      final savePath = '${dir.path}/$fileName';
+
+      final dio = Dio();
+      await dio.download(
+        widget.pdfUrl,
+        savePath,
+        onReceiveProgress: (received, total) {
+          if (total > 0) {
+            setState(() => _downloadProgress = received / total);
+          }
+        },
+      );
+
+      setState(() {
+        _isDownloading = false;
+        _downloadedPath = savePath;
+        _downloadProgress = 1.0;
+      });
+
+      if (mounted) {
+        // Show success and offer to open
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Saved to Downloads/$fileName'),
+            action: SnackBarAction(
+              label: 'Open',
+              onPressed: () async {
+                await OpenFilex.open(savePath);
+              },
+            ),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      setState(() => _isDownloading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+      decoration: BoxDecoration(
+        color: AppTheme.surface1,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppTheme.borderSubtle),
+        boxShadow: AppTheme.shadowL2,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppTheme.borderSubtle,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Icon + Title
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.picture_as_pdf_rounded,
+                color: AppTheme.primary, size: 32),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Challan PDF',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textMain,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'How would you like to open this challan?',
+            style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+          ),
+          const SizedBox(height: 24),
+
+          // Download progress
+          if (_isDownloading)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  LinearProgressIndicator(
+                    value: _downloadProgress,
+                    backgroundColor: AppTheme.background,
+                    valueColor:
+                        const AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                    minHeight: 6,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${(_downloadProgress * 100).toStringAsFixed(0)}% downloaded...',
+                    style:
+                        const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+
+          // Action Buttons
+          if (!_isDownloading) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  // View in Browser
+                  Expanded(
+                    child: _OptionButton(
+                      icon: Icons.open_in_browser_rounded,
+                      label: 'View in Browser',
+                      subtitle: 'Opens in external app',
+                      color: AppTheme.accent,
+                      onTap: _viewInBrowser,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Download
+                  Expanded(
+                    child: _OptionButton(
+                      icon: Icons.download_rounded,
+                      label: 'Download',
+                      subtitle: 'Save to device',
+                      color: AppTheme.primary,
+                      onTap: _downloadToDevice,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: AppTheme.textMuted),
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+
+class _OptionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _OptionButton({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 11,
+                color: color.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
