@@ -7,6 +7,7 @@ import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../auth/presentation/bloc/selected_student_cubit.dart';
 import '../../../fee_ledger/presentation/pages/fee_ledger_page.dart';
+import '../../../profile/presentation/family_profile_page.dart';
 
 class AppDrawer extends StatelessWidget {
   final Student student;
@@ -26,8 +27,12 @@ class AppDrawer extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            padding:
-                const EdgeInsets.only(top: 64, bottom: 24, left: 16, right: 16),
+            padding: const EdgeInsets.only(
+              top: 64,
+              bottom: 24,
+              left: 16,
+              right: 16,
+            ),
             width: double.infinity,
             color: AppTheme.primary,
             child: Column(
@@ -64,8 +69,10 @@ class AppDrawer extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white12,
                     borderRadius: BorderRadius.circular(4),
@@ -108,23 +115,31 @@ class AppDrawer extends StatelessWidget {
                       },
                     ),
                     _buildDrawerItem(
-                      icon: Icons.download,
-                      text: 'Downloads',
+                      icon: Icons.family_restroom_rounded,
+                      text: 'Family Profile',
                       onTap: () {
-                        // Navigate to Downloads
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const FamilyProfilePage(),
+                          ),
+                        );
                       },
                     ),
                     const Divider(),
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: Text(
                         'FUTURE MODULES',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: AppTheme.textMuted,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                            ),
+                          color: AppTheme.textMuted,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
                       ),
                     ),
                     _buildDrawerItem(
@@ -194,8 +209,11 @@ class AppDrawer extends StatelessWidget {
       ),
       onTap: isPlaceholder ? null : onTap,
       trailing: isPlaceholder
-          ? Icon(Icons.lock_outline,
-              size: 16, color: AppTheme.textMuted.withValues(alpha: 0.5))
+          ? Icon(
+              Icons.lock_outline,
+              size: 16,
+              color: AppTheme.textMuted.withValues(alpha: 0.5),
+            )
           : null,
     );
   }

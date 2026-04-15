@@ -9,6 +9,8 @@ class VoucherHeadDto extends VoucherHead {
     required super.balance,
     super.discountLabel,
     required super.discountAmount,
+    super.academicYear,
+    super.targetMonth,
   });
 
   factory VoucherHeadDto.fromJson(Map<String, dynamic> json) {
@@ -22,6 +24,8 @@ class VoucherHeadDto extends VoucherHead {
       balance: _toDouble(json['balance']),
       discountLabel: json['discount_label'] as String?,
       discountAmount: _toDouble(json['discount_amount']),
+      academicYear: fee['academic_year'] as String?,
+      targetMonth: fee['target_month'] as int?,
     );
   }
 }
@@ -78,8 +82,12 @@ class VoucherDto extends Voucher {
     return VoucherDto(
       id: (json['id'] as int?) ?? 0,
       status: json['status'] as String? ?? 'UNPAID',
-      issueDate: DateTime.tryParse(json['issue_date'] as String? ?? '') ?? DateTime.now(),
-      dueDate: DateTime.tryParse(json['due_date'] as String? ?? '') ?? DateTime.now(),
+      issueDate:
+          DateTime.tryParse(json['issue_date'] as String? ?? '') ??
+          DateTime.now(),
+      dueDate:
+          DateTime.tryParse(json['due_date'] as String? ?? '') ??
+          DateTime.now(),
       validityDate: json['validity_date'] != null
           ? DateTime.tryParse(json['validity_date'] as String)
           : null,
@@ -92,8 +100,11 @@ class VoucherDto extends Voucher {
       lateFeeCharge: json['late_fee_charge'] as bool? ?? false,
       heads: heads,
       bankInfo: bank,
-      campusName: (json['campuses'] as Map<String, dynamic>?)?['campus_name'] as String?,
-      className: (json['classes'] as Map<String, dynamic>?)?['description'] as String?,
+      campusName:
+          (json['campuses'] as Map<String, dynamic>?)?['campus_name']
+              as String?,
+      className:
+          (json['classes'] as Map<String, dynamic>?)?['description'] as String?,
     );
   }
 }

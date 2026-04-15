@@ -8,6 +8,8 @@ class VoucherHead extends Equatable {
   final double balance;
   final String? discountLabel;
   final double discountAmount;
+  final String? academicYear;
+  final int? targetMonth;
 
   const VoucherHead({
     required this.id,
@@ -17,10 +19,20 @@ class VoucherHead extends Equatable {
     required this.balance,
     this.discountLabel,
     required this.discountAmount,
+    this.academicYear,
+    this.targetMonth,
   });
 
   @override
-  List<Object?> get props => [id, feeType, netAmount, amountDeposited, balance];
+  List<Object?> get props => [
+    id,
+    feeType,
+    netAmount,
+    amountDeposited,
+    balance,
+    academicYear,
+    targetMonth,
+  ];
 }
 
 class BankInfo extends Equatable {
@@ -80,7 +92,21 @@ class Voucher extends Equatable {
   });
 
   double get totalPaid => heads.fold(0.0, (s, h) => s + h.amountDeposited) + lateFeeDeposited;
-  double get totalBalance => heads.fold(0.0, (s, h) => s + h.balance);
+
+  double get remainingLateSurcharge {
+    if (!lateFeeCharge) return 0.0;
+    final totalSurcharge = (totalPayableAfterDue - totalPayableBeforeDue).clamp(
+      0.0,
+      double.infinity,
+    );
+    return (totalSurcharge - lateFeeDeposited).clamp(0.0, double.infinity);
+  }
+
+  double get totalBalance {
+    final headBalance = heads.fold(0.0, (s, h) => s + h.balance);
+    return headBalance + (isOverdue ? remainingLateSurcharge : 0.0);
+  }
+
   bool get isOverdue => DateTime.now().isAfter(dueDate) && status != 'PAID';
 
   @override

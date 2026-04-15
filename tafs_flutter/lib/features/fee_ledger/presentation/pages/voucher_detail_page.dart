@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
@@ -19,10 +20,8 @@ class VoucherDetailPage extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ChallanOptionsSheet(
-        voucherId: voucher.id,
-        pdfUrl: voucher.pdfUrl!,
-      ),
+      builder: (_) =>
+          _ChallanOptionsSheet(voucherId: voucher.id, pdfUrl: voucher.pdfUrl!),
     );
   }
 
@@ -38,7 +37,10 @@ class VoucherDetailPage extends StatelessWidget {
         actions: [
           if (voucher.pdfUrl != null)
             IconButton(
-              icon: const Icon(Icons.picture_as_pdf_rounded, color: AppTheme.primary),
+              icon: const Icon(
+                Icons.picture_as_pdf_rounded,
+                color: AppTheme.primary,
+              ),
               tooltip: 'Challan Options',
               onPressed: () => _showChallanOptions(context),
             ),
@@ -208,11 +210,15 @@ class _SummaryCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _SummaryRow(label: 'Net Amount', value: 'Rs. ${fmt.format(voucher.totalPayableBeforeDue)}'),
+          _SummaryRow(
+            label: 'Net Amount',
+            value: 'Rs. ${fmt.format(voucher.totalPayableBeforeDue)}',
+          ),
           if (voucher.lateFeeCharge && voucher.isOverdue)
             _SummaryRow(
               label: 'Late Surcharge',
-              value: 'Rs. ${fmt.format(voucher.totalPayableAfterDue - voucher.totalPayableBeforeDue)}',
+              value:
+                  'Rs. ${fmt.format(voucher.totalPayableAfterDue - voucher.totalPayableBeforeDue)}',
               color: Colors.red,
             ),
           const Divider(height: 24),
@@ -288,7 +294,8 @@ class _FeeBreakdown extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: heads.length,
-        separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16),
+        separatorBuilder: (_, __) =>
+            const Divider(height: 1, indent: 16, endIndent: 16),
         itemBuilder: (ctx, i) {
           final head = heads[i];
           return Padding(
@@ -298,7 +305,10 @@ class _FeeBreakdown extends StatelessWidget {
               children: [
                 Text(
                   head.feeType,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
                 ),
                 if (head.discountAmount > 0)
                   Padding(
@@ -393,24 +403,38 @@ class _BankDetails extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.background,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderSubtle, style: BorderStyle.solid),
+        border: Border.all(
+          color: AppTheme.borderSubtle,
+          style: BorderStyle.solid,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.account_balance_rounded, size: 18, color: AppTheme.primary),
+              const Icon(
+                Icons.account_balance_rounded,
+                size: 18,
+                color: AppTheme.primary,
+              ),
               const SizedBox(width: 8),
               Text(
                 bankInfo.bankName,
-                style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           _BankField(label: 'Account Title', value: bankInfo.accountTitle),
-          _BankField(label: 'Account Number', value: bankInfo.accountNumber, canCopy: true),
+          _BankField(
+            label: 'Account Number',
+            value: bankInfo.accountNumber,
+            canCopy: true,
+          ),
           if (bankInfo.iban != null)
             _BankField(label: 'IBAN', value: bankInfo.iban!, canCopy: true),
         ],
@@ -424,7 +448,11 @@ class _BankField extends StatelessWidget {
   final String value;
   final bool canCopy;
 
-  const _BankField({required this.label, required this.value, this.canCopy = false});
+  const _BankField({
+    required this.label,
+    required this.value,
+    this.canCopy = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -434,7 +462,10 @@ class _BankField extends StatelessWidget {
         children: [
           SizedBox(
             width: 100,
-            child: Text(label, style: const TextStyle(color: AppTheme.textMuted, fontSize: 13)),
+            child: Text(
+              label,
+              style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+            ),
           ),
           Expanded(
             child: Text(
@@ -455,10 +486,7 @@ class _ChallanOptionsSheet extends StatefulWidget {
   final int voucherId;
   final String pdfUrl;
 
-  const _ChallanOptionsSheet({
-    required this.voucherId,
-    required this.pdfUrl,
-  });
+  const _ChallanOptionsSheet({required this.voucherId, required this.pdfUrl});
 
   @override
   State<_ChallanOptionsSheet> createState() => _ChallanOptionsSheetState();
@@ -467,7 +495,6 @@ class _ChallanOptionsSheet extends StatefulWidget {
 class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
   bool _isDownloading = false;
   double _downloadProgress = 0;
-  String? _downloadedPath;
 
   Future<void> _viewInBrowser() async {
     Navigator.pop(context);
@@ -484,9 +511,9 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -498,24 +525,11 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
     });
 
     try {
-      // Determine download directory
-      Directory dir;
-      if (Platform.isAndroid) {
-        dir = Directory('/storage/emulated/0/Download');
-        if (!await dir.exists()) {
-          dir = await getApplicationDocumentsDirectory();
-        }
-      } else {
-        dir = await getApplicationDocumentsDirectory();
-      }
-
       final fileName = 'Challan_${widget.voucherId}.pdf';
-      final savePath = '${dir.path}/$fileName';
 
-      final dio = Dio();
-      await dio.download(
+      final response = await Dio().get<List<int>>(
         widget.pdfUrl,
-        savePath,
+        options: Options(responseType: ResponseType.bytes),
         onReceiveProgress: (received, total) {
           if (total > 0) {
             setState(() => _downloadProgress = received / total);
@@ -523,21 +537,55 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
         },
       );
 
+      final bytes = response.data;
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception('Received empty file from server.');
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final tempPath = '${tempDir.path}/$fileName';
+      final tempFile = File(tempPath);
+      await tempFile.writeAsBytes(bytes, flush: true);
+
+      String? savedPath;
+
+      if (Platform.isAndroid || Platform.isIOS) {
+        savedPath = await FlutterFileDialog.saveFile(
+          params: SaveFileDialogParams(
+            sourceFilePath: tempPath,
+            fileName: fileName,
+          ),
+        );
+      } else {
+        final downloads = await getDownloadsDirectory();
+        final targetDir = downloads ?? await getApplicationDocumentsDirectory();
+        savedPath = '${targetDir.path}/$fileName';
+        await File(savedPath).writeAsBytes(bytes, flush: true);
+      }
+
+      if (savedPath == null) {
+        throw Exception('Save cancelled.');
+      }
+
+      final finalSavedPath = savedPath;
+
       setState(() {
         _isDownloading = false;
-        _downloadedPath = savePath;
         _downloadProgress = 1.0;
       });
 
       if (mounted) {
-        // Show success and offer to open
+        final shownPath = finalSavedPath.length > 48
+            ? '...${finalSavedPath.substring(finalSavedPath.length - 48)}'
+            : finalSavedPath;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Saved to Downloads/$fileName'),
+            content: Text('Saved: $shownPath'),
             action: SnackBarAction(
               label: 'Open',
               onPressed: () async {
-                await OpenFilex.open(savePath);
+                await OpenFilex.open(finalSavedPath);
               },
             ),
             duration: const Duration(seconds: 5),
@@ -545,12 +593,18 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
         );
         Navigator.pop(context);
       }
+
+      try {
+        if (await tempFile.exists()) {
+          await tempFile.delete();
+        }
+      } catch (_) {}
     } catch (e) {
       setState(() => _isDownloading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Download failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
       }
     }
   }
@@ -587,8 +641,11 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
               color: AppTheme.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.picture_as_pdf_rounded,
-                color: AppTheme.primary, size: 32),
+            child: const Icon(
+              Icons.picture_as_pdf_rounded,
+              color: AppTheme.primary,
+              size: 32,
+            ),
           ),
           const SizedBox(height: 12),
           const Text(
@@ -615,16 +672,19 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
                   LinearProgressIndicator(
                     value: _downloadProgress,
                     backgroundColor: AppTheme.background,
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppTheme.primary,
+                    ),
                     minHeight: 6,
                     borderRadius: BorderRadius.circular(3),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '${(_downloadProgress * 100).toStringAsFixed(0)}% downloaded...',
-                    style:
-                        const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textMuted,
+                    ),
                   ),
                   const SizedBox(height: 20),
                 ],

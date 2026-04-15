@@ -110,9 +110,19 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
                         final month = months[index];
                         final monthVouchers = vouchers
                             .where(
-                              (v) =>
-                                  v.academicYear == month.academicYear &&
-                                  v.month == month.targetMonth,
+                              (v) {
+                                final directMatch =
+                                    v.academicYear == month.academicYear &&
+                                    v.month == month.targetMonth;
+
+                                if (directMatch) return true;
+
+                                return v.heads.any(
+                                  (h) =>
+                                      h.academicYear == month.academicYear &&
+                                      h.targetMonth == month.targetMonth,
+                                );
+                              },
                             )
                             .toList();
 

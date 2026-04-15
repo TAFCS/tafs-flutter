@@ -174,30 +174,76 @@ class FeeLedgerRemoteDataSourceImpl implements FeeLedgerRemoteDataSource {
     final grouped = <String, _MonthAccumulator>{};
 
     for (final voucher in vouchers) {
-      final month = voucher.month;
-      final year = voucher.academicYear;
-      if (month == null || year == null || month < 1 || month > 12) continue;
       if (voucher.status == 'VOID') continue;
 
-      final key = '$year|$month';
-      final acc = grouped.putIfAbsent(
-        key,
-        () => _MonthAccumulator(academicYear: year, targetMonth: month),
-      );
+      final month = voucher.month;
+      final year = voucher.academicYear;
+      final hasDirectMonth =
+          month != null && year != null && month >= 1 && month <= 12;
 
-      final net = voucher.totalPayableBeforeDue;
-      final paid = voucher.totalPaid;
-      final outstanding = voucher.totalBalance;
+      if (hasDirectMonth) {
+        final key = '$year|$month';
+        final acc = grouped.putIfAbsent(
+          key,
+          () => _MonthAccumulator(academicYear: year, targetMonth: month),
+        );
 
-      acc.totalAmount += net;
-      acc.totalPaid += paid;
-      acc.outstanding += outstanding;
-      acc.status = _pickStrongerStatus(acc.status, voucher.status);
-      acc.latestIssueDate =
-          acc.latestIssueDate == null ||
-              voucher.issueDate.isAfter(acc.latestIssueDate!)
-          ? voucher.issueDate
-          : acc.latestIssueDate;
+        final net = voucher.heads.fold<double>(0, (s, h) => s + h.netAmount);
+        final paid = voucher.heads.fold<double>(
+          0,
+          (s, h) => s + h.amountDeposited,
+        );
+        final outstanding = voucher.heads.fold<double>(
+          0,
+          (s, h) => s + h.balance,
+        );
+
+        acc.totalAmount += net;
+        acc.totalPaid += paid;
+        acc.outstanding += outstanding;
+        acc.status = _pickStrongerStatus(acc.status, voucher.status);
+        acc.latestIssueDate =
+            acc.latestIssueDate == null ||
+                voucher.issueDate.isAfter(acc.latestIssueDate!)
+            ? voucher.issueDate
+            : acc.latestIssueDate;
+        continue;
+      }
+
+      // If voucher-level month is missing, derive month buckets from fee-head metadata.
+      for (final head in voucher.heads) {
+        final headMonth = head.targetMonth;
+        final headYear = head.academicYear;
+        if (headMonth == null ||
+            headYear == null ||
+            headMonth < 1 ||
+            headMonth > 12) {
+          continue;
+        }
+
+        final key = '$headYear|$headMonth';
+        final acc = grouped.putIfAbsent(
+          key,
+          () =>
+              _MonthAccumulator(academicYear: headYear, targetMonth: headMonth),
+        );
+
+        acc.totalAmount += head.netAmount;
+        acc.totalPaid += head.amountDeposited;
+        acc.outstanding += head.balance;
+        acc.status = _pickStrongerStatus(
+          acc.status,
+          _statusFromHeadTotals(
+            paid: head.amountDeposited,
+            outstanding: head.balance,
+          ),
+        );
+        acc.latestIssueDate =
+            acc.latestIssueDate == null ||
+                voucher.issueDate.isAfter(acc.latestIssueDate!)
+            ? voucher.issueDate
+            : acc.latestIssueDate;
+      }
     }
 
     final months = grouped.values
@@ -286,6 +332,15 @@ class FeeLedgerRemoteDataSourceImpl implements FeeLedgerRemoteDataSource {
     }
 
     return rank(next) >= rank(current) ? next : current;
+  }
+
+  String _statusFromHeadTotals({
+    required double paid,
+    required double outstanding,
+  }) {
+    if (outstanding <= 0) return 'PAID';
+    if (paid > 0) return 'PARTIALLY_PAID';
+    return 'ISSUED';
   }
 }
 
