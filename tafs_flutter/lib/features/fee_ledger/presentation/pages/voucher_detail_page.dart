@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:intl/intl.dart';
@@ -500,9 +501,11 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
     Navigator.pop(context);
     final uri = Uri.parse(widget.pdfUrl);
     try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
+      final launched = kIsWeb
+          ? await launchUrl(uri, webOnlyWindowName: '_blank')
+          : await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+      if (!launched && mounted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Could not open browser')),
@@ -519,6 +522,26 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
   }
 
   Future<void> _downloadToDevice() async {
+    if (kIsWeb) {
+      Navigator.pop(context);
+      final uri = Uri.parse(widget.pdfUrl);
+      try {
+        final launched = await launchUrl(uri, webOnlyWindowName: '_blank');
+        if (!launched && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not start PDF download.')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+        }
+      }
+      return;
+    }
+
     setState(() {
       _isDownloading = true;
       _downloadProgress = 0;
