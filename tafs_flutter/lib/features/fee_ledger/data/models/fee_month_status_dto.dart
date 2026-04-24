@@ -11,6 +11,8 @@ class FeeMonthStatusDto extends FeeMonthStatus {
     required super.runningOutstandingBalance,
     required super.status,
     super.feeDate,
+    super.voucherTotal,
+    super.voucherId,
   });
 
   factory FeeMonthStatusDto.fromJson(Map<String, dynamic> json) {
@@ -34,6 +36,8 @@ class FeeMonthStatusDto extends FeeMonthStatus {
       ),
       status: (json['month_status'] ?? json['status'] ?? 'ISSUED').toString(),
       feeDate: _toDate(json['fee_date'] ?? json['feeDate']),
+      voucherTotal: _toDouble(json['voucher_total'] ?? json['voucherTotal']),
+      voucherId: _toInt(json['voucher_id'] ?? json['voucherId']),
     );
   }
 

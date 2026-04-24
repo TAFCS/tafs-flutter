@@ -11,6 +11,9 @@ class VoucherHead extends Equatable {
   final String? academicYear;
   final int? targetMonth;
 
+  final bool isArrear;
+  final bool isSurcharge;
+
   const VoucherHead({
     required this.id,
     required this.feeType,
@@ -21,6 +24,8 @@ class VoucherHead extends Equatable {
     required this.discountAmount,
     this.academicYear,
     this.targetMonth,
+    this.isArrear = false,
+    this.isSurcharge = false,
   });
 
   @override

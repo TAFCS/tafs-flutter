@@ -102,8 +102,10 @@ class TokenInterceptor extends Interceptor {
         username: cached.username,
         householdName: cached.householdName,
         students: cached.students,
+        guardians: cached.guardians,
         accessToken: newAccess,
         refreshToken: newRefresh,
+        photographUrl: cached.photographUrl,
       );
       await localDataSource.cacheParent(updated);
 

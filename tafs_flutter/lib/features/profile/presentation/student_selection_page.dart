@@ -32,49 +32,15 @@ class StudentSelectionPage extends StatelessWidget {
         itemCount: students.length,
         itemBuilder: (context, index) {
           final student = students[index];
-          return Card(
+          return Container(
             margin: const EdgeInsets.only(bottom: 16.0),
-            color: AppTheme.surface1,
-            elevation: 1,
-            shadowColor: Colors.black12,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: AppTheme.borderSubtle),
+            decoration: BoxDecoration(
+              color: AppTheme.surface1,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.borderSubtle),
+              boxShadow: AppTheme.shadowL1,
             ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              leading: CircleAvatar(
-                backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                radius: 28,
-                backgroundImage: student.photographUrl != null 
-                    ? NetworkImage(student.photographUrl!) 
-                    : null,
-                child: student.photographUrl == null ? Text(
-                  student.fullName[0],
-                  style: const TextStyle(
-                    color: AppTheme.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
-                ) : null,
-              ),
-              title: Text(
-                student.fullName,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: AppTheme.textMain,
-                ),
-              ),
-              subtitle: Text(
-                student.section ?? '',
-                style: const TextStyle(color: AppTheme.textMuted),
-              ),
-              trailing: const Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: AppTheme.textMuted,
-              ),
+            child: InkWell(
               onTap: () {
                 context.read<SelectedStudentCubit>().select(student);
                 Navigator.pushReplacement(
@@ -84,9 +50,108 @@ class StudentSelectionPage extends StatelessWidget {
                   ),
                 );
               },
+              borderRadius: BorderRadius.circular(14),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // Student Photo
+                    CircleAvatar(
+                      backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                      radius: 32,
+                      backgroundImage: student.photographUrl != null
+                          ? NetworkImage(student.photographUrl!)
+                          : null,
+                      child: student.photographUrl == null
+                          ? Text(
+                              student.fullName.isNotEmpty
+                                  ? student.fullName[0]
+                                  : '?',
+                              style: const TextStyle(
+                                color: AppTheme.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 24,
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 14),
+                    // Student Details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            student.fullName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 17,
+                              color: AppTheme.textMain,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${student.className ?? 'Class -'} • ${student.section ?? '-'}',
+                            style: const TextStyle(
+                              color: AppTheme.textMain,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            student.campus ?? 'Campus not assigned',
+                            style: const TextStyle(
+                              color: AppTheme.textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: [
+                              _chip('CC ${student.cc}'),
+                              if (student.grNumber != null)
+                                _chip('GR ${student.grNumber}'),
+                              if (student.academicYear != null)
+                                _chip(student.academicYear!),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: AppTheme.textMuted,
+                    ),
+                  ],
+                ),
+              ),
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _chip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppTheme.background,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.borderSubtle),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: AppTheme.textMuted,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

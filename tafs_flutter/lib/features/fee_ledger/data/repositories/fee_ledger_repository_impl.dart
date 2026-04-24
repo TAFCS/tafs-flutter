@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/fee_month_status.dart';
+import '../../domain/entities/ledger.dart';
 import '../../domain/entities/voucher.dart';
 import '../../domain/entities/voucher_resolution.dart';
 import '../../domain/repositories/fee_ledger_repository.dart';
@@ -9,6 +10,18 @@ import '../datasources/fee_ledger_remote_data_source.dart';
 class FeeLedgerRepositoryImpl implements FeeLedgerRepository {
   final FeeLedgerRemoteDataSource remoteDataSource;
   const FeeLedgerRepositoryImpl({required this.remoteDataSource});
+
+  @override
+  Future<Either<Failure, Ledger>> getLedger(int studentCc) async {
+    try {
+      final ledger = await remoteDataSource.getLedger(studentCc);
+      return Right(ledger);
+    } on Failure catch (f) {
+      return Left(f);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 
   @override
   Future<Either<Failure, List<Voucher>>> getStudentVouchers(

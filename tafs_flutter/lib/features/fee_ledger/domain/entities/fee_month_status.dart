@@ -11,6 +11,9 @@ class FeeMonthStatus extends Equatable {
   final String status;
   final DateTime? feeDate;
 
+  final double? voucherTotal;
+  final int? voucherId;
+
   const FeeMonthStatus({
     required this.academicYear,
     required this.targetMonth,
@@ -21,6 +24,8 @@ class FeeMonthStatus extends Equatable {
     required this.runningOutstandingBalance,
     required this.status,
     this.feeDate,
+    this.voucherTotal,
+    this.voucherId,
   });
 
   @override
@@ -34,5 +39,7 @@ class FeeMonthStatus extends Equatable {
     runningOutstandingBalance,
     status,
     feeDate,
+    voucherTotal,
+    voucherId,
   ];
 }

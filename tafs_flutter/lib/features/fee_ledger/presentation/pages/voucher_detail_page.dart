@@ -139,6 +139,11 @@ class _StatusHeader extends StatelessWidget {
         statusIcon = Icons.timelapse_rounded;
         statusText = 'Partial';
         break;
+      case 'VOID':
+        statusColor = Colors.grey;
+        statusIcon = Icons.cancel_outlined;
+        statusText = 'Cancelled';
+        break;
       default:
         statusColor = AppTheme.accent;
         statusIcon = Icons.receipt_long_outlined;
@@ -304,12 +309,38 @@ class _FeeBreakdown extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  head.feeType,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
+                Row(
+                  children: [
+                    if (head.isArrear)
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Text(
+                          'ARREARS',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red.shade900,
+                          ),
+                        ),
+                      ),
+                    Text(
+                      head.feeType,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: AppTheme.textMain,
+                      ),
+                    ),
+                  ],
                 ),
                 if (head.discountAmount > 0)
                   Padding(

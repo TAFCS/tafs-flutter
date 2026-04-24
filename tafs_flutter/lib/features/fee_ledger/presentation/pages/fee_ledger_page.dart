@@ -108,23 +108,24 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final month = months[index];
-                        final monthVouchers = vouchers
-                            .where(
-                              (v) {
-                                final directMatch =
-                                    v.academicYear == month.academicYear &&
-                                    v.month == month.targetMonth;
+                        final monthVouchers = vouchers.where((v) {
+                          // A voucher belongs to a month only if it has a primary (non-arrear) fee head for it
+                          final belongsToMonth = v.heads.any(
+                            (h) =>
+                                h.academicYear == month.academicYear &&
+                                h.targetMonth == month.targetMonth &&
+                                !h.isArrear,
+                          );
 
-                                if (directMatch) return true;
+                          if (!belongsToMonth) return false;
 
-                                return v.heads.any(
-                                  (h) =>
-                                      h.academicYear == month.academicYear &&
-                                      h.targetMonth == month.targetMonth,
-                                );
-                              },
-                            )
-                            .toList();
+                          // Rule: Don't show VOID challans unless they have some payment activity
+                          if (v.status == 'VOID') {
+                            return v.totalPaid > 0;
+                          }
+
+                          return true;
+                        }).toList();
 
                         return _MonthCard(
                           month: month,
@@ -349,8 +350,9 @@ class _MonthCard extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   _Metric(
-                    label: 'Month Total',
-                    value: 'Rs. ${fmt.format(month.totalAmount)}',
+                    label: 'Challan Amount',
+                    value:
+                        'Rs. ${fmt.format((month.voucherTotal ?? 0) > 0 ? month.voucherTotal! : month.totalAmount)}',
                   ),
                   _Metric(
                     label: 'Paid',
@@ -359,8 +361,9 @@ class _MonthCard extends StatelessWidget {
                   ),
                   _Metric(
                     label: 'Outstanding',
-                    value: 'Rs. ${fmt.format(month.outstandingBalance)}',
-                    valueColor: month.outstandingBalance > 0
+                    value:
+                        'Rs. ${fmt.format((month.voucherTotal ?? 0) > 0 ? (month.voucherTotal! - month.totalPaid) : month.outstandingBalance)}',
+                    valueColor: (month.voucherTotal ?? month.outstandingBalance) > 0
                         ? Colors.red
                         : Colors.green,
                   ),
@@ -514,13 +517,13 @@ class _FeeMonthDetailPage extends StatelessWidget {
                 const SizedBox(height: 12),
                 _DetailRow('Status', month.status.replaceAll('_', ' ')),
                 _DetailRow(
-                  'Month Total',
-                  'Rs. ${fmt.format(month.totalAmount)}',
-                ),
+                    'Challan Total',
+                    'Rs. ${fmt.format((month.voucherTotal ?? 0) > 0 ? month.voucherTotal! : month.totalAmount)}',
+                  ),
                 _DetailRow('Paid', 'Rs. ${fmt.format(month.totalPaid)}'),
                 _DetailRow(
                   'Outstanding',
-                  'Rs. ${fmt.format(month.outstandingBalance)}',
+                  'Rs. ${fmt.format((month.voucherTotal ?? 0) > 0 ? (month.voucherTotal! - month.totalPaid) : month.outstandingBalance)}',
                 ),
                 _DetailRow(
                   'Running Outstanding',
@@ -530,25 +533,27 @@ class _FeeMonthDetailPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () => _resolveAndOpen(context),
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            label: const Text('Download Challan'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
+          if (month.status != 'PARTIALLY_PAID') ...[
+            ElevatedButton.icon(
+              onPressed: () => _resolveAndOpen(context),
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              label: const Text('Download Challan'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          ElevatedButton.icon(
-            onPressed: () => _resolveAndOpen(context),
-            icon: const Icon(Icons.payment_rounded),
-            label: const Text('Pay Now'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
+            const SizedBox(height: 10),
+            ElevatedButton.icon(
+              onPressed: () => _resolveAndOpen(context),
+              icon: const Icon(Icons.payment_rounded),
+              label: const Text('Pay Now'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 10),
           OutlinedButton.icon(
             onPressed: () {
@@ -650,6 +655,8 @@ class _VoucherCard extends StatelessWidget {
         return Colors.red;
       case 'PARTIALLY_PAID':
         return Colors.orange;
+      case 'VOID':
+        return Colors.grey;
       default:
         return AppTheme.accent;
     }
@@ -731,6 +738,15 @@ class _VoucherCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
+                'Bill Month: ${voucher.month != null ? _monthLabel(voucher.month!) : "N/A"}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textMuted,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
                 'Due: ${dateFmt.format(voucher.dueDate)}',
                 style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
               ),
@@ -799,4 +815,23 @@ class _ErrorView extends StatelessWidget {
       ),
     );
   }
+}
+
+String _monthLabel(int month) {
+  const labels = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
+  ];
+  if (month < 1 || month > 12) return 'Unknown';
+  return labels[month - 1];
 }

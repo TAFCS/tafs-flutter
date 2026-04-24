@@ -11,21 +11,34 @@ class VoucherHeadDto extends VoucherHead {
     required super.discountAmount,
     super.academicYear,
     super.targetMonth,
+    super.isArrear,
+    super.isSurcharge,
   });
 
   factory VoucherHeadDto.fromJson(Map<String, dynamic> json) {
     final fee = json['student_fees'] as Map<String, dynamic>? ?? {};
     final feeType = fee['fee_types'] as Map<String, dynamic>? ?? {};
+
     return VoucherHeadDto(
       id: (json['id'] as int?) ?? 0,
-      feeType: feeType['description'] as String? ?? 'Fee',
-      netAmount: _toDouble(json['net_amount']),
-      amountDeposited: _toDouble(json['amount_deposited']),
+      feeType: (json['description'] as String?) ??
+          (feeType['description'] as String?) ??
+          'Fee',
+      netAmount: _toDouble(json['netAmount'] ?? json['net_amount']),
+      amountDeposited: _toDouble(
+        json['amountDeposited'] ?? json['amount_deposited'],
+      ),
       balance: _toDouble(json['balance']),
-      discountLabel: json['discount_label'] as String?,
-      discountAmount: _toDouble(json['discount_amount']),
-      academicYear: fee['academic_year'] as String?,
-      targetMonth: fee['target_month'] as int?,
+      discountLabel: (json['discountLabel'] as String?) ??
+          (json['discount_label'] as String?),
+      discountAmount: _toDouble(
+        json['discountAmount'] ?? json['discount_amount'],
+      ),
+      academicYear: (json['academic_year'] as String?) ??
+          (fee['academic_year'] as String?),
+      targetMonth: (json['target_month'] as int?) ?? (fee['target_month'] as int?),
+      isArrear: (json['isArrear'] as bool?) ?? (json['is_arrear'] as bool?) ?? false,
+      isSurcharge: (json['isSurcharge'] as bool?) ?? (json['is_surcharge'] as bool?) ?? false,
     );
   }
 }

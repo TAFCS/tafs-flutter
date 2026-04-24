@@ -6,6 +6,7 @@ import '../../auth/presentation/bloc/auth_state.dart';
 import '../../auth/presentation/login_page.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/student_switcher_sheet.dart';
+import 'widgets/student_app_bar.dart';
 import 'widgets/live_ledger_card.dart';
 import 'widgets/communication_feed.dart';
 import '../../../../core/widgets/student_profile_card.dart';
@@ -81,104 +82,78 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
           }
           return Scaffold(
             drawer: AppDrawer(student: student),
-            appBar: AppBar(
-              backgroundColor: AppTheme.surface1,
-              foregroundColor: AppTheme.textMain,
-              elevation: 0,
-              centerTitle: false,
-              title: GestureDetector(
-                onTap: () => _showStudentSwitcher(context),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+            appBar: StudentAppBar(student: student),
+            body: RefreshIndicator(
+              onRefresh: () async {
+                context
+                    .read<FeeSummaryBloc>()
+                    .add(FeeSummaryLoadRequested(student.cc));
+                context
+                    .read<FeeLedgerBloc>()
+                    .add(FeeLedgerLoadRequested(student.cc));
+                // Add a small delay to make the refresh indicator visible
+                await Future.delayed(const Duration(milliseconds: 500));
+              },
+              color: AppTheme.primary,
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const StudentProfileCard(),
+                      const SizedBox(height: 16),
+                      // Welcome Banner
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              AppTheme.primary,
+                              Color(0xFF1B436D)
+                            ], // Darker Denim
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              student.fullName,
+                              '${student.className} - ${student.section}',
                               style: const TextStyle(
-                                fontSize: 18,
+                                color: AppTheme.textOnPrimary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Welcome to TAFS!',
+                              style: TextStyle(
+                                color: AppTheme.textOnPrimary,
+                                fontSize: 24,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.arrow_drop_down,
-                                color: AppTheme.primary),
                           ],
                         ),
-                        Text(
-                          '${student.grNumber ?? 'GR-XXXX'} • ${student.campus ?? 'Main Campus'}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppTheme.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            body: SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const StudentProfileCard(),
-                    const SizedBox(height: 16),
-                    // Welcome Banner
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            AppTheme.primary,
-                            Color(0xFF1B436D)
-                          ], // Darker Denim
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${student.className} - ${student.section}',
-                            style: const TextStyle(
-                              color: AppTheme.textOnPrimary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Welcome to TAFS!',
-                            style: TextStyle(
-                              color: AppTheme.textOnPrimary,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 24),
+                      // Live Ledger
+                      LiveLedgerCard(
+                        studentCc: student.cc,
+                        studentName: student.fullName,
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    // Live Ledger
-                    LiveLedgerCard(
-                      studentCc: student.cc,
-                      studentName: student.fullName,
-                    ),
-                    const SizedBox(height: 32),
-                    // Communication Feed
-                    const CommunicationFeed(),
-                    const SizedBox(height: 16),
-                  ],
+                      const SizedBox(height: 32),
+                      // Communication Feed
+                      const CommunicationFeed(),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
             ),

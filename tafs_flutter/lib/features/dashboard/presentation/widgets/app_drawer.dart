@@ -7,7 +7,11 @@ import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../auth/presentation/bloc/selected_student_cubit.dart';
 import '../../../fee_ledger/presentation/pages/fee_ledger_page.dart';
+import '../../../fee_ledger/presentation/pages/student_profile_page.dart';
 import '../../../profile/presentation/family_profile_page.dart';
+import '../../../fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
+import '../../../fee_ledger/presentation/bloc/fee_ledger_event.dart';
+import '../../../fee_ledger/presentation/bloc/fee_ledger_state.dart';
 
 class AppDrawer extends StatelessWidget {
   final Student student;
@@ -38,10 +42,21 @@ class AppDrawer extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 30,
                   backgroundColor: AppTheme.surface1,
-                  child: Icon(Icons.person, color: AppTheme.primary, size: 36),
+                  backgroundImage: (authState is AuthAuthenticated)
+                      ? (authState.parent.photographUrl != null
+                          ? NetworkImage(authState.parent.photographUrl!)
+                          : (authState.parent.guardians.isNotEmpty && authState.parent.guardians.first.photographUrl != null
+                              ? NetworkImage(authState.parent.guardians.first.photographUrl!)
+                              : null))
+                      : null,
+                  child: (authState is! AuthAuthenticated || 
+                          (authState.parent.photographUrl == null && 
+                           (authState.parent.guardians.isEmpty || authState.parent.guardians.first.photographUrl == null)))
+                      ? const Icon(Icons.person, color: AppTheme.primary, size: 36)
+                      : null,
                 ),
                 const SizedBox(height: 16),
                 const Text(
@@ -218,3 +233,4 @@ class AppDrawer extends StatelessWidget {
     );
   }
 }
+

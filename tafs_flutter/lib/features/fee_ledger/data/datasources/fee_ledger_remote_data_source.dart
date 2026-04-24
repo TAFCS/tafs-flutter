@@ -2,12 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../../core/error/failures.dart';
 import '../models/fee_month_status_dto.dart';
+import '../models/ledger_response_dto.dart';
 import '../models/voucher_dto.dart';
 import '../models/voucher_resolution_dto.dart';
 
 abstract class FeeLedgerRemoteDataSource {
   Future<List<VoucherDto>> getStudentVouchers(int studentCc);
   Future<List<FeeMonthStatusDto>> getStudentFeeMonths(int studentCc);
+  Future<LedgerResponseDto> getLedger(int studentCc);
   Future<VoucherResolutionDto> resolveVoucherForMonth({
     required int studentCc,
     required String academicYear,
@@ -21,6 +23,25 @@ class FeeLedgerRemoteDataSourceImpl implements FeeLedgerRemoteDataSource {
       'Challan not yet generated — please contact the school office.';
 
   FeeLedgerRemoteDataSourceImpl(this.dio);
+  
+  @override
+  Future<LedgerResponseDto> getLedger(int studentCc) async {
+    final baseUrl =
+        dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+    try {
+      final response = await dio.get(
+        '$baseUrl/app/student/$studentCc/ledger',
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return LedgerResponseDto.fromJson(response.data as Map<String, dynamic>);
+      }
+      throw const ServerFailure('Failed to load ledger');
+    } on DioException catch (e) {
+      throw ServerFailure(e.message ?? 'Network error');
+    } catch (e) {
+      throw ServerFailure(e.toString());
+    }
+  }
 
   @override
   Future<List<VoucherDto>> getStudentVouchers(int studentCc) async {

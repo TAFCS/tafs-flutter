@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/fee_month_status.dart';
+import '../../domain/entities/ledger.dart';
 import '../../domain/entities/voucher.dart';
 
 abstract class FeeLedgerState extends Equatable {
@@ -24,6 +25,15 @@ class FeeLedgerLoaded extends FeeLedgerState {
 
   @override
   List<Object?> get props => [months, vouchers];
+}
+
+class LedgerLoaded extends FeeLedgerState {
+  final Ledger ledger;
+  final List<Voucher> vouchers; // Keep vouchers for backward compatibility if needed
+  const LedgerLoaded({required this.ledger, required this.vouchers});
+
+  @override
+  List<Object?> get props => [ledger, vouchers];
 }
 
 class FeeLedgerError extends FeeLedgerState {

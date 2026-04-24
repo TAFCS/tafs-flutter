@@ -14,3 +14,11 @@ class FeeLedgerLoadRequested extends FeeLedgerEvent {
   @override
   List<Object?> get props => [studentCc];
 }
+
+class LedgerLoadRequested extends FeeLedgerEvent {
+  final int studentCc;
+  const LedgerLoadRequested(this.studentCc);
+
+  @override
+  List<Object?> get props => [studentCc];
+}

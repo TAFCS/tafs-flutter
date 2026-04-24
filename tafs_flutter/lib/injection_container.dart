@@ -16,6 +16,7 @@ import 'features/fee_ledger/data/repositories/fee_summary_repository_impl.dart';
 import 'features/fee_ledger/domain/usecases/get_student_fee_months_usecase.dart';
 import 'features/fee_ledger/domain/usecases/get_student_vouchers_usecase.dart';
 import 'features/fee_ledger/domain/usecases/get_fee_summary_usecase.dart';
+import 'features/fee_ledger/domain/usecases/get_ledger_usecase.dart';
 import 'features/fee_ledger/domain/usecases/resolve_voucher_for_month_usecase.dart';
 import 'features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
@@ -63,6 +64,7 @@ class InjectionContainer {
       feeLedgerRepository,
     );
     final getFeeSummaryUseCase = GetFeeSummaryUseCase(feeSummaryRepository);
+    final getLedgerUseCase = GetLedgerUseCase(feeLedgerRepository);
 
     // BLoCs
     authBloc = AuthBloc(
@@ -74,6 +76,7 @@ class InjectionContainer {
       getStudentFeeMonths: getStudentFeeMonthsUseCase,
       getStudentVouchers: getStudentVouchersUseCase,
       resolveVoucherForMonthUseCase: resolveVoucherForMonthUseCase,
+      getLedger: getLedgerUseCase,
     );
 
     feeSummaryBloc = FeeSummaryBloc(getFeeSummary: getFeeSummaryUseCase);
