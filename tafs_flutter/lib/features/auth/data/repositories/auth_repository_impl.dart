@@ -58,4 +58,37 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(CacheFailure('Failed to get cached user'));
     }
   }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> verifyCnic(String cnic) async {
+    try {
+      final result = await remoteDataSource.verifyCnic(cnic);
+      return Right(result);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Parent>> registerParent(
+    String cnic,
+    String email,
+    String password,
+  ) async {
+    try {
+      final parentDto = await remoteDataSource.registerParent(
+        cnic,
+        email,
+        password,
+      );
+      await localDataSource.cacheParent(parentDto);
+      return Right(parentDto);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }
