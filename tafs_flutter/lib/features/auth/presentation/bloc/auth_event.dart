@@ -20,3 +20,33 @@ class AuthLoginRequested extends AuthEvent {
 }
 
 class AuthLogoutRequested extends AuthEvent {}
+
+// ─── Signup Events ────────────────────────────────────────────────────────
+
+class AuthVerifyCnicRequested extends AuthEvent {
+  final String cnic;
+
+  const AuthVerifyCnicRequested({required this.cnic});
+
+  @override
+  List<Object> get props => [cnic];
+}
+
+class AuthRegisterRequested extends AuthEvent {
+  final String cnic;
+  final String email;
+  final String password;
+
+  const AuthRegisterRequested({
+    required this.cnic,
+    required this.email,
+    required this.password,
+  });
+
+  @override
+  List<Object> get props => [cnic, email, password];
+}
+
+class AuthSignupResetRequested extends AuthEvent {
+  const AuthSignupResetRequested();
+}
