@@ -15,6 +15,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<AuthLoginRequested>(_onAuthLoginRequested);
     on<AuthLogoutRequested>(_onAuthLogoutRequested);
+    on<AuthVerifyCnicRequested>(_onVerifyCnicRequested);
+    on<AuthRegisterRequested>(_onRegisterRequested);
+    on<AuthSignupResetRequested>(_onSignupResetRequested);
   }
 
   Future<void> _onAuthCheckRequested(
@@ -40,7 +43,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     final result = await loginUseCase(event.username, event.password);
-    
+
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (parent) => emit(AuthAuthenticated(parent)),
@@ -53,5 +56,53 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     await repository.logout();
     emit(AuthUnauthenticated());
+  }
+
+  // ─── Signup handlers ───────────────────────────────────────────────────────
+
+  Future<void> _onVerifyCnicRequested(
+    AuthVerifyCnicRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(SignupCnicVerifying());
+    final result = await repository.verifyCnic(event.cnic);
+
+    result.fold(
+      (failure) => emit(SignupCnicInvalid(failure.message)),
+      (response) {
+        if (response['exists'] == true) {
+          emit(SignupCnicValid(
+            cnic: event.cnic,
+            guardianName: response['guardianName'] ?? 'Guardian',
+          ));
+        } else {
+          emit(SignupCnicInvalid(response['message'] ?? 'CNIC not found'));
+        }
+      },
+    );
+  }
+
+  Future<void> _onRegisterRequested(
+    AuthRegisterRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(SignupRegistering());
+    final result = await repository.registerParent(
+      event.cnic,
+      event.email,
+      event.password,
+    );
+
+    result.fold(
+      (failure) => emit(AuthError(failure.message)),
+      (parent) => emit(SignupSuccess(parent)),
+    );
+  }
+
+  Future<void> _onSignupResetRequested(
+    AuthSignupResetRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(SignupInitial());
   }
 }
