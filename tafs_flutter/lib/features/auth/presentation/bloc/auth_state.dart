@@ -3,7 +3,7 @@ import '../../domain/entities/parent.dart';
 
 abstract class AuthState extends Equatable {
   const AuthState();
-  
+
   @override
   List<Object?> get props => [];
 }
@@ -30,4 +30,40 @@ class AuthError extends AuthState {
 
   @override
   List<Object> get props => [message];
+}
+
+// ─── Signup States ────────────────────────────────────────────────────────
+
+class SignupInitial extends AuthState {}
+
+class SignupCnicVerifying extends AuthState {}
+
+class SignupCnicValid extends AuthState {
+  final String cnic;
+  final String guardianName;
+
+  const SignupCnicValid({required this.cnic, required this.guardianName});
+
+  @override
+  List<Object> get props => [cnic, guardianName];
+}
+
+class SignupCnicInvalid extends AuthState {
+  final String message;
+
+  const SignupCnicInvalid(this.message);
+
+  @override
+  List<Object> get props => [message];
+}
+
+class SignupRegistering extends AuthState {}
+
+class SignupSuccess extends AuthState {
+  final Parent parent;
+
+  const SignupSuccess(this.parent);
+
+  @override
+  List<Object> get props => [parent];
 }
