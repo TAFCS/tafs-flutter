@@ -9,6 +9,7 @@ import 'bloc/auth_event.dart';
 import 'bloc/auth_state.dart';
 import '../../dashboard/presentation/main_dashboard_page.dart';
 import 'bloc/selected_student_cubit.dart';
+import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -144,6 +145,27 @@ class _LoginPageState extends State<LoginPage> {
                         text: 'Log In',
                         isLoading: isLoading,
                         onPressed: _login,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text("Don't have an account? "),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SignupPage(),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              'Sign Up',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
