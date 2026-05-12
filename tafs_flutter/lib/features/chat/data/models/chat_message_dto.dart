@@ -6,11 +6,13 @@ class ChatMessageDto extends ChatMessage {
     required super.conversationId,
     required super.senderType,
     super.senderId,
+    super.senderName,
     required super.messageType,
     required super.content,
     super.mediaMetadata,
     required super.isRead,
     required super.createdAt,
+    super.isAnnouncement,
   });
 
   factory ChatMessageDto.fromJson(Map<String, dynamic> json) {
@@ -19,11 +21,13 @@ class ChatMessageDto extends ChatMessage {
       conversationId: json['conversation_id'] as String,
       senderType: _parseSenderType(json['sender_type'] as String),
       senderId: json['sender_id'] as String?,
+      senderName: json['sender_name'] as String?,
       messageType: _parseMessageType(json['message_type'] as String),
       content: json['content'] as String,
       mediaMetadata: json['media_metadata'] as Map<String, dynamic>?,
       isRead: json['is_read'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
+      isAnnouncement: json['is_announcement'] as bool? ?? false,
     );
   }
 
@@ -33,11 +37,13 @@ class ChatMessageDto extends ChatMessage {
       'conversation_id': conversationId,
       'sender_type': senderType.name.toUpperCase(),
       'sender_id': senderId,
+      'sender_name': senderName,
       'message_type': messageType.name.toUpperCase(),
       'content': content,
       'media_metadata': mediaMetadata,
       'is_read': isRead,
       'created_at': createdAt.toIso8601String(),
+      'is_announcement': isAnnouncement,
     };
   }
 

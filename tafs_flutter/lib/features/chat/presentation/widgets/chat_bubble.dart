@@ -26,74 +26,120 @@ class ChatBubble extends StatelessWidget {
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: const EdgeInsets.all(4),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
-        ),
-        decoration: BoxDecoration(
-          color: isMe ? theme.primaryColor : Colors.white,
-          borderRadius: BorderRadius.circular(16).copyWith(
-            bottomLeft: Radius.circular(isMe ? 16 : 0),
-            bottomRight: Radius.circular(isMe ? 0 : 16),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (message.mediaMetadata?['replyTo'] != null)
-              _buildReplyPreview(context, message.mediaMetadata!['replyTo']),
-            _buildContent(context),
+      child: Column(
+        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          if (!isMe && message.isAnnouncement)
             Padding(
-              padding: const EdgeInsets.only(right: 8, bottom: 4, left: 8),
+              padding: const EdgeInsets.only(left: 12, bottom: 4),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Icon(Icons.campaign, size: 14, color: theme.primaryColor),
+                  const SizedBox(width: 4),
                   Text(
-                    DateFormat('hh:mm a').format(message.createdAt),
+                    'TAFS Support',
                     style: TextStyle(
                       fontSize: 10,
-                      color: isMe ? Colors.white70 : Colors.black45,
+                      fontWeight: FontWeight.bold,
+                      color: theme.primaryColor,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                  if (isMe) ...[
-                    const SizedBox(width: 4),
-                    if (message.status == MessageStatus.sending)
-                      const SizedBox(
-                        width: 10,
-                        height: 10,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
-                        ),
-                      )
-                    else if (message.status == MessageStatus.error)
-                      const Icon(
-                        Icons.error_outline,
-                        size: 14,
-                        color: Colors.redAccent,
-                      )
-                    else
-                      Icon(
-                        message.isRead ? Icons.done_all : Icons.done,
-                        size: 14,
-                        color: message.isRead ? Colors.blueAccent : Colors.white70,
+                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'OFFICIAL',
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w900,
+                        color: theme.primaryColor,
                       ),
-                  ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          ],
-        ),
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+            padding: const EdgeInsets.all(4),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.75,
+            ),
+            decoration: BoxDecoration(
+              color: isMe 
+                  ? theme.primaryColor 
+                  : (message.isAnnouncement ? theme.primaryColor.withOpacity(0.05) : Colors.white),
+              borderRadius: BorderRadius.circular(16).copyWith(
+                bottomLeft: Radius.circular(isMe ? 16 : 0),
+                bottomRight: Radius.circular(isMe ? 0 : 16),
+              ),
+              border: !isMe && message.isAnnouncement 
+                  ? Border.all(color: theme.primaryColor.withOpacity(0.2), width: 1)
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (message.mediaMetadata?['replyTo'] != null)
+                  _buildReplyPreview(context, message.mediaMetadata!['replyTo']),
+                _buildContent(context),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8, bottom: 4, left: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        DateFormat('hh:mm a').format(message.createdAt),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isMe ? Colors.white70 : Colors.black45,
+                        ),
+                      ),
+                      if (isMe) ...[
+                        const SizedBox(width: 4),
+                        if (message.status == MessageStatus.sending)
+                          const SizedBox(
+                            width: 10,
+                            height: 10,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                            ),
+                          )
+                        else if (message.status == MessageStatus.error)
+                          const Icon(
+                            Icons.error_outline,
+                            size: 14,
+                            color: Colors.redAccent,
+                          )
+                        else
+                          Icon(
+                            message.isRead ? Icons.done_all : Icons.done,
+                            size: 14,
+                            color: message.isRead ? Colors.blueAccent : Colors.white70,
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
