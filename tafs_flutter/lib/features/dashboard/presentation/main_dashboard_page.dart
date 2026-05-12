@@ -13,6 +13,11 @@ import '../../fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import '../../fee_ledger/presentation/bloc/fee_ledger_event.dart';
 import '../../fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import '../../fee_ledger/presentation/bloc/fee_summary_event.dart';
+import '../../chat/presentation/pages/chat_page.dart';
+import '../../chat/presentation/bloc/chat_bloc.dart';
+import '../../chat/presentation/bloc/chat_state.dart';
+import '../../chat/domain/entities/chat_message.dart';
+import '../../../core/services/in_app_notification_service.dart';
 
 class MainDashboardPage extends StatefulWidget {
   const MainDashboardPage({super.key});
@@ -44,13 +49,45 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<SelectedStudentCubit, Student?>(
-      listener: (context, student) {
-        if (student != null) {
-          context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
-          context.read<FeeLedgerBloc>().add(FeeLedgerLoadRequested(student.cc));
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<SelectedStudentCubit, Student?>(
+          listener: (context, student) {
+            if (student != null) {
+              context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
+              context.read<FeeLedgerBloc>().add(FeeLedgerLoadRequested(student.cc));
+            }
+          },
+        ),
+        BlocListener<ChatBloc, ChatState>(
+          listenWhen: (previous, current) {
+            // Only trigger on new messages that were just received
+            if (previous is ChatLoaded && current is ChatLoaded) {
+              return current.messages.length > previous.messages.length &&
+                  current.messages.first.senderType == ChatSenderType.admin;
+            }
+            return false;
+          },
+          listener: (context, state) {
+            if (state is ChatLoaded && state.messages.isNotEmpty) {
+              final latest = state.messages.first;
+              
+              // Show in-app notification
+              InAppNotificationService.show(
+                context: context,
+                title: 'TAFS Support',
+                message: latest.content,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ChatPage()),
+                  );
+                },
+              );
+            }
+          },
+        ),
+      ],
       child: BlocBuilder<SelectedStudentCubit, Student?>(
         builder: (context, student) {
           if (student == null) {
