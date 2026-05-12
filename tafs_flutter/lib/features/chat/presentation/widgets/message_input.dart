@@ -251,129 +251,206 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Premium Reply Preview
         if (widget.replyingTo != null)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
-              border: Border(left: BorderSide(color: Theme.of(context).primaryColor, width: 4)),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
             child: Row(
               children: [
+                Container(
+                  width: 4,
+                  height: 35,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         widget.replyingTo!.senderType == ChatSenderType.guardian ? 'You' : 'TAFS Support',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor, fontSize: 12),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: Theme.of(context).primaryColor,
+                          fontSize: 12,
+                          letterSpacing: 0.3,
+                        ),
                       ),
+                      const SizedBox(height: 2),
                       Text(
                         widget.replyingTo!.messageType == ChatMessageType.text 
                           ? widget.replyingTo!.content 
                           : '[${widget.replyingTo!.messageType.name.toUpperCase()}]',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, size: 20, color: Colors.grey),
+                  icon: Icon(Icons.close_rounded, size: 20, color: Colors.grey[400]),
                   onPressed: widget.onCancelReply,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
               ],
             ),
           ),
+
+        // Main Input Bar
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
           decoration: BoxDecoration(
             color: Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withOpacity(0.03),
                 blurRadius: 20,
-                offset: const Offset(0, -4),
+                offset: const Offset(0, -5),
               ),
             ],
           ),
           child: SafeArea(
             child: Row(
               children: [
-                if (!_isRecording)
-                  IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.add_rounded, color: Theme.of(context).primaryColor, size: 28),
-                    ),
-                    onPressed: _showMediaMenu,
-                  ),
+                // Unified Pill Container
                 Expanded(
-                  child: Stack(
-                    alignment: Alignment.centerLeft,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: Colors.grey[200]!),
-                        ),
-                        child: TextField(
-                          controller: _controller,
-                          enabled: !_isRecording,
-                          style: const TextStyle(fontSize: 15),
-                          decoration: InputDecoration(
-                            hintText: _isRecording ? '' : 'Type a message...',
-                            hintStyle: TextStyle(color: Colors.grey[500]),
-                            border: InputBorder.none,
-                          ),
-                          onSubmitted: (_) => _sendMessage(),
-                        ),
-                      ),
-                      if (_isRecording)
-                        Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.circular(28),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.circle, color: Colors.red, size: 10),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _formatDuration(_recordDuration),
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  child: Container(
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(27),
+                      border: Border.all(color: Colors.grey[200]!, width: 1),
+                    ),
+                    child: Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [
+                        Row(
+                          children: [
+                            if (!_isRecording)
+                              Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: _showMediaMenu,
+                                  borderRadius: BorderRadius.circular(27),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Icon(
+                                      Icons.add_circle_outline_rounded,
+                                      color: Theme.of(context).primaryColor,
+                                      size: 28,
+                                    ),
+                                  ),
                                 ),
-                                const Spacer(),
-                                AnimatedOpacity(
-                                  duration: const Duration(milliseconds: 500),
-                                  opacity: 0.6,
-                                  child: Row(
+                              ),
+                            Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.only(left: _isRecording ? 16 : 0),
+                                child: TextField(
+                                  controller: _controller,
+                                  enabled: !_isRecording,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: -0.2,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: _isRecording ? '' : 'Type a message...',
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey[400],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                                  ),
+                                  onSubmitted: (_) => _sendMessage(),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // Recording UI Overlay
+                        if (_isRecording)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(27),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Row(
+                                children: [
+                                  TweenAnimationBuilder<double>(
+                                    tween: Tween(begin: 0.0, end: 1.0),
+                                    duration: const Duration(milliseconds: 600),
+                                    builder: (context, value, child) {
+                                      return Opacity(
+                                        opacity: 0.5 + (value * 0.5),
+                                        child: Transform.scale(
+                                          scale: 0.8 + (value * 0.4),
+                                          child: const Icon(Icons.circle, color: Colors.red, size: 12),
+                                        ),
+                                      );
+                                    },
+                                    onEnd: () => setState(() {}), // Trigger rebuild for pulse loop
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    _formatDuration(_recordDuration),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 16,
+                                      fontFeatures: [FontFeature.tabularFigures()],
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Row(
                                     children: [
                                       Text(
                                         'Slide to cancel',
-                                        style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                                        style: TextStyle(
+                                          color: Colors.grey[500],
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                      const Icon(Icons.chevron_left_rounded, size: 20),
+                                      const SizedBox(width: 4),
+                                      Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: Colors.grey[400]),
                                     ],
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
+                
+                // Action Button (Send/Mic)
                 GestureDetector(
                   onLongPressStart: (_) => _isTextEmpty ? _startRecording() : null,
                   onLongPressMoveUpdate: (details) {
@@ -383,31 +460,53 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                       });
                       if (_dragPosition < _cancelThreshold) {
                         _stopRecording(cancel: true);
+                        HapticFeedback.lightImpact();
                       }
                     }
                   },
                   onLongPressEnd: (_) => _isRecording ? _stopRecording() : null,
-                  onTap: _isTextEmpty ? null : _sendMessage,
+                  onTap: () {
+                    if (_isTextEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Hold to record voice note'),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    } else {
+                      _sendMessage();
+                    }
+                  },
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.all(12),
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.elasticOut,
+                    width: 54,
+                    height: 54,
                     decoration: BoxDecoration(
                       color: _isRecording ? Colors.red : Theme.of(context).primaryColor,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
                           color: (_isRecording ? Colors.red : Theme.of(context).primaryColor).withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
                         ),
                       ],
                     ),
-                    child: Icon(
-                      _isRecording 
-                        ? Icons.mic_rounded 
-                        : (_isTextEmpty ? Icons.mic_rounded : Icons.send_rounded),
-                      color: Colors.white,
-                      size: 24,
+                    child: Center(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          _isRecording 
+                            ? Icons.mic_rounded 
+                            : (_isTextEmpty ? Icons.mic_rounded : Icons.send_rounded),
+                          key: ValueKey(_isRecording || _isTextEmpty),
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                      ),
                     ),
                   ),
                 ),

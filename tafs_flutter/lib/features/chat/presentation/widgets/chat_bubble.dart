@@ -448,6 +448,7 @@ class _VoiceNotePlayer extends StatefulWidget {
 
 class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
   late AudioPlayer _audioPlayer;
+  bool _isSourceSet = false;
   bool _isPlaying = false;
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
@@ -457,9 +458,6 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
     super.initState();
     _audioPlayer = AudioPlayer();
     
-    // Set source immediately to fetch duration
-    _initPlayer();
-
     _audioPlayer.onDurationChanged.listen((d) {
       if (mounted) setState(() => _duration = d);
     });
@@ -478,27 +476,26 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
     });
   }
 
-  Future<void> _initPlayer() async {
-    try {
-      await _audioPlayer.setSource(UrlSource(widget.url));
-    } catch (e) {
-      debugPrint('Error preloading audio: $e');
-    }
-  }
-
   @override
   void dispose() {
+    _audioPlayer.stop();
     _audioPlayer.dispose();
     super.dispose();
   }
 
   void _togglePlay() async {
     try {
+      if (!_isSourceSet) {
+        await _audioPlayer.setSource(UrlSource(widget.url));
+        _isSourceSet = true;
+      }
+
       if (_isPlaying) {
         await _audioPlayer.pause();
       } else {
         await _audioPlayer.resume();
       }
+      
       if (mounted) setState(() => _isPlaying = !_isPlaying);
     } catch (e) {
       debugPrint('Audio playback error: $e');
