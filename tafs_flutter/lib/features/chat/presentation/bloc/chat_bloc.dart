@@ -79,11 +79,18 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   void _onMessageReceived(ChatMessageReceived event, Emitter<ChatState> emit) {
     if (state is ChatLoaded) {
       final currentState = state as ChatLoaded;
+
+      // Prevent duplicate: if a real message with this ID already exists, skip.
+      if (currentState.messages.any((m) => m.id == event.message.id)) return;
       
-      // Remove optimistic message if it matches the incoming one
+      // Remove optimistic placeholder:
+      // Strategy 1: Match by tempId embedded in the incoming message's metadata.
+      final incomingTempId = event.message.mediaMetadata?['tempId'] as String?;
+      
       final filteredMessages = currentState.messages.where((m) {
-        if (m.status == MessageStatus.sending && m.content == event.message.content) {
-          return false;
+        if (m.status == MessageStatus.sending) {
+          if (incomingTempId != null && m.id == incomingTempId) return false;
+          if (incomingTempId == null && m.content == event.message.content && m.content.isNotEmpty) return false;
         }
         return true;
       }).toList();

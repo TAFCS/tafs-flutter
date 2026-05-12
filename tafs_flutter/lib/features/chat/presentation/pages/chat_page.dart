@@ -61,6 +61,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Row(
           children: [
@@ -128,6 +129,7 @@ class _ChatPageState extends State<ChatPage> {
                     itemScrollController: _itemScrollController,
                     reverse: true,
                     itemCount: clusters.length,
+                    padding: const EdgeInsets.only(bottom: 16),
                     itemBuilder: (context, index) {
                       final item = clusters[index];
                       final allImageUrls = state.messages

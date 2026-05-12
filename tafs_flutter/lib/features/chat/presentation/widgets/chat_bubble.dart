@@ -31,34 +31,51 @@ class ChatBubble extends StatelessWidget {
         children: [
           if (!isMe && message.isAnnouncement)
             Padding(
-              padding: const EdgeInsets.only(left: 12, bottom: 4),
+              padding: const EdgeInsets.only(left: 16, bottom: 6, top: 4),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.campaign, size: 14, color: theme.primaryColor),
-                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.campaign_rounded, size: 14, color: theme.primaryColor),
+                  ),
+                  const SizedBox(width: 8),
                   Text(
                     'TAFS Support',
                     style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
                       color: theme.primaryColor,
-                      letterSpacing: 0.5,
+                      letterSpacing: 0.2,
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: theme.primaryColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
+                      gradient: LinearGradient(
+                        colors: [theme.primaryColor, theme.primaryColor.withOpacity(0.8)],
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.primaryColor.withOpacity(0.3),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: Text(
+                    child: const Text(
                       'OFFICIAL',
                       style: TextStyle(
                         fontSize: 8,
                         fontWeight: FontWeight.w900,
-                        color: theme.primaryColor,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
@@ -66,27 +83,42 @@ class ChatBubble extends StatelessWidget {
               ),
             ),
           Container(
-            margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
-            padding: const EdgeInsets.all(4),
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.75,
+            margin: EdgeInsets.only(
+              top: 2,
+              bottom: 2,
+              left: isMe ? 64 : 12,
+              right: isMe ? 12 : 64,
             ),
+            padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
-              color: isMe 
-                  ? theme.primaryColor 
-                  : (message.isAnnouncement ? theme.primaryColor.withOpacity(0.05) : Colors.white),
-              borderRadius: BorderRadius.circular(16).copyWith(
-                bottomLeft: Radius.circular(isMe ? 16 : 0),
-                bottomRight: Radius.circular(isMe ? 0 : 16),
+              gradient: isMe 
+                  ? LinearGradient(
+                      colors: [theme.primaryColor, theme.primaryColor.withOpacity(0.9)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : (message.isAnnouncement 
+                      ? LinearGradient(
+                          colors: [Colors.white, theme.primaryColor.withOpacity(0.05)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null),
+              color: !isMe && !message.isAnnouncement ? Colors.white : null,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(20),
+                topRight: const Radius.circular(20),
+                bottomLeft: Radius.circular(isMe ? 20 : 4),
+                bottomRight: Radius.circular(isMe ? 4 : 20),
               ),
               border: !isMe && message.isAnnouncement 
-                  ? Border.all(color: theme.primaryColor.withOpacity(0.2), width: 1)
+                  ? Border.all(color: theme.primaryColor.withOpacity(0.15), width: 1)
                   : null,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -98,39 +130,40 @@ class ChatBubble extends StatelessWidget {
                   _buildReplyPreview(context, message.mediaMetadata!['replyTo']),
                 _buildContent(context),
                 Padding(
-                  padding: const EdgeInsets.only(right: 8, bottom: 4, left: 8),
+                  padding: const EdgeInsets.only(right: 12, bottom: 6, left: 12, top: 2),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        DateFormat('hh:mm a').format(message.createdAt),
+                        DateFormat('h:mm a').format(message.createdAt),
                         style: TextStyle(
                           fontSize: 10,
-                          color: isMe ? Colors.white70 : Colors.black45,
+                          fontWeight: FontWeight.bold,
+                          color: isMe ? Colors.white.withOpacity(0.7) : Colors.black38,
                         ),
                       ),
                       if (isMe) ...[
                         const SizedBox(width: 4),
                         if (message.status == MessageStatus.sending)
-                          const SizedBox(
+                          SizedBox(
                             width: 10,
                             height: 10,
                             child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                              strokeWidth: 1.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.7)),
                             ),
                           )
                         else if (message.status == MessageStatus.error)
                           const Icon(
-                            Icons.error_outline,
+                            Icons.error_outline_rounded,
                             size: 14,
-                            color: Colors.redAccent,
+                            color: Colors.white,
                           )
                         else
                           Icon(
-                            message.isRead ? Icons.done_all : Icons.done,
+                            message.isRead ? Icons.done_all_rounded : Icons.done_rounded,
                             size: 14,
-                            color: message.isRead ? Colors.blueAccent : Colors.white70,
+                            color: message.isRead ? Colors.blue[200] : Colors.white.withOpacity(0.7),
                           ),
                       ],
                     ],
@@ -479,57 +512,80 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          onPressed: _togglePlay,
-          icon: Icon(
-            _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-            color: widget.isMe ? Colors.white : Colors.black87,
-            size: 32,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _togglePlay,
+              customBorder: const CircleBorder(),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: widget.isMe ? Colors.white.withOpacity(0.2) : Theme.of(context).primaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                  color: widget.isMe ? Colors.white : Theme.of(context).primaryColor,
+                  size: 28,
+                ),
+              ),
+            ),
           ),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-        ),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 120,
-              height: 20,
-              child: SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  trackHeight: 2,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 4),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
-                  activeTrackColor: widget.isMe ? Colors.white : Colors.black87,
-                  inactiveTrackColor: widget.isMe ? Colors.white24 : Colors.black12,
-                  thumbColor: widget.isMe ? Colors.white : Colors.black87,
-                ),
-                child: Slider(
-                  value: _position.inMilliseconds.toDouble(),
-                  max: _duration.inMilliseconds.toDouble() > 0 
-                      ? _duration.inMilliseconds.toDouble() 
-                      : 0.1,
-                  onChanged: (value) {
-                    _audioPlayer.seek(Duration(milliseconds: value.toInt()));
-                  },
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 140,
+                height: 24,
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 3,
+                    thumbShape: RoundSliderThumbShape(
+                      enabledThumbRadius: 6,
+                      elevation: 4,
+                      pressedElevation: 8,
+                    ),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                    activeTrackColor: widget.isMe ? Colors.white : Theme.of(context).primaryColor,
+                    inactiveTrackColor: widget.isMe ? Colors.white.withOpacity(0.3) : Colors.grey[300],
+                    thumbColor: widget.isMe ? Colors.white : Theme.of(context).primaryColor,
+                    trackShape: const RoundedRectSliderTrackShape(),
+                  ),
+                  child: Slider(
+                    value: _position.inMilliseconds.toDouble(),
+                    max: _duration.inMilliseconds.toDouble() > 0 
+                        ? _duration.inMilliseconds.toDouble() 
+                        : 0.1,
+                    onChanged: (value) {
+                      _audioPlayer.seek(Duration(milliseconds: value.toInt()));
+                    },
+                  ),
                 ),
               ),
-            ),
-            Text(
-              '${_printDuration(_position)} / ${_printDuration(_duration)}',
-              style: TextStyle(
-                fontSize: 8,
-                color: widget.isMe ? Colors.white70 : Colors.black45,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  '${_printDuration(_position)} / ${_printDuration(_duration)}',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    color: widget.isMe ? Colors.white.withOpacity(0.8) : Colors.black45,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
     );
   }
 
