@@ -40,18 +40,14 @@ class NotificationBanner extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
+                color: Colors.white,
                 shape: BoxShape.circle,
-                image: iconUrl != null
-                    ? DecorationImage(
-                        image: NetworkImage(iconUrl!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
+                border: Border.all(color: Colors.grey.shade100),
+                image: const DecorationImage(
+                  image: AssetImage('assets/logo.png'),
+                  fit: BoxFit.contain,
+                ),
               ),
-              child: iconUrl == null
-                  ? const Icon(Icons.chat_bubble_rounded, color: AppTheme.primary)
-                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(

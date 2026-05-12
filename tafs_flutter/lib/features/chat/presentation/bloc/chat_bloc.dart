@@ -21,11 +21,14 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<ChatLeft>(_onChatLeft);
   }
 
+  bool isUserInChat = false;
+
   int _calculateUnread(List<ChatMessage> messages) {
     return messages.where((m) => !m.isRead && m.senderType == ChatSenderType.admin).length;
   }
 
   void _onChatEntered(ChatEntered event, Emitter<ChatState> emit) {
+    isUserInChat = true;
     repository.enterChat();
     repository.markAsRead();
     
@@ -45,6 +48,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   }
 
   void _onChatLeft(ChatLeft event, Emitter<ChatState> emit) {
+    isUserInChat = false;
     repository.leaveChat();
   }
 
@@ -73,7 +77,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         hasReachedMax: messages.length < 50,
         unreadCount: _calculateUnread(messages),
       ));
-      repository.markAsRead();
+      // Only mark as read if we're starting IN the chat (unlikely for global start)
+      if (isUserInChat) {
+        repository.markAsRead();
+      }
     } catch (e) {
       emit(ChatError(e.toString()));
     }
@@ -114,8 +121,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         unreadCount: _calculateUnread(updatedMessages),
       ));
       
-      // If we are already in the chat, mark as read immediately
-      repository.markAsRead();
+      // ONLY mark as read if we are actually in the chat screen
+      if (isUserInChat) {
+        repository.markAsRead();
+      }
     }
   }
 
