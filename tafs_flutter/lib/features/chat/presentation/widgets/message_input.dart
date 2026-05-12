@@ -10,7 +10,7 @@ import '../../domain/entities/chat_message.dart';
 class MessageInput extends StatefulWidget {
   final ChatMessage? replyingTo;
   final VoidCallback onCancelReply;
-  final Function(String content, ChatMessageType type, File? file, ChatMessage? replyTo) onSend;
+  final Function(String content, ChatMessageType type, File? file, ChatMessage? replyTo, Map<String, dynamic>? metadata) onSend;
 
   const MessageInput({
     super.key, 
@@ -35,6 +35,13 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
   int _recordDuration = 0;
   
   final _picker = ImagePicker();
+  List<File> _selectedFiles = [];
+
+  void _removeSelectedFile(int index) {
+    setState(() {
+      _selectedFiles.removeAt(index);
+    });
+  }
 
   @override
   void initState() {
@@ -55,16 +62,20 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
   }
 
   Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      widget.onSend('', ChatMessageType.image, File(image.path), widget.replyingTo);
+    final List<XFile> images = await _picker.pickMultiImage();
+    if (images.isNotEmpty) {
+      setState(() {
+        _selectedFiles.addAll(images.map((image) => File(image.path)));
+      });
     }
   }
 
   Future<void> _takePhoto() async {
     final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
     if (photo != null) {
-      widget.onSend('', ChatMessageType.image, File(photo.path), widget.replyingTo);
+      setState(() {
+        _selectedFiles.add(File(photo.path));
+      });
     }
   }
 
@@ -72,9 +83,13 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'],
+      allowMultiple: true,
     );
-    if (result != null && result.files.single.path != null) {
-      widget.onSend('', ChatMessageType.document, File(result.files.single.path!), widget.replyingTo);
+    
+    if (result != null) {
+      setState(() {
+        _selectedFiles.addAll(result.paths.whereType<String>().map((path) => File(path)));
+      });
     }
   }
 
@@ -229,14 +244,40 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
     });
     
     if (!cancel && path != null) {
-      widget.onSend('', ChatMessageType.voice, File(path), widget.replyingTo);
+      widget.onSend('', ChatMessageType.voice, File(path), widget.replyingTo, null);
     }
   }
 
   void _sendMessage() {
-    if (_controller.text.trim().isNotEmpty) {
-      widget.onSend(_controller.text.trim(), ChatMessageType.text, null, widget.replyingTo);
+    final text = _controller.text.trim();
+    
+    // Send pending files first
+    if (_selectedFiles.isNotEmpty) {
+      final batchId = _selectedFiles.where((f) => _getFileType(f) == ChatMessageType.image).length > 1 
+          ? 'batch-${DateTime.now().millisecondsSinceEpoch}' 
+          : null;
+
+      for (final file in _selectedFiles) {
+        final type = _getFileType(file);
+        final metadata = <String, dynamic>{};
+        if (batchId != null && type == ChatMessageType.image) {
+          metadata['batchId'] = batchId;
+        }
+        
+        widget.onSend('', type, file, widget.replyingTo, metadata);
+      }
+      setState(() {
+        _selectedFiles = [];
+      });
+    }
+
+    // Send text if not empty
+    if (text.isNotEmpty) {
+      widget.onSend(text, ChatMessageType.text, null, widget.replyingTo, null);
       _controller.clear();
+      setState(() {
+        _isTextEmpty = true;
+      });
     }
   }
 
@@ -332,38 +373,95 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
             ],
           ),
           child: SafeArea(
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Unified Pill Container
-                Expanded(
-                  child: Container(
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(27),
-                      border: Border.all(color: Colors.grey[200]!, width: 1),
-                    ),
-                    child: Stack(
-                      alignment: Alignment.centerLeft,
-                      children: [
-                        Row(
-                          children: [
-                            if (!_isRecording)
-                              Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: _showMediaMenu,
-                                  borderRadius: BorderRadius.circular(27),
+                if (_selectedFiles.isNotEmpty)
+                  Container(
+                    height: 80,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      itemCount: _selectedFiles.length,
+                      itemBuilder: (context, index) {
+                        final file = _selectedFiles[index];
+                        final isImage = _getFileType(file) == ChatMessageType.image;
+                        
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Stack(
+                            children: [
+                              Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey[300]!),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(11),
+                                  child: isImage 
+                                    ? Image.file(file, fit: BoxFit.cover)
+                                    : Center(
+                                        child: Icon(Icons.description_rounded, color: Colors.blue[400], size: 32),
+                                      ),
+                                ),
+                              ),
+                              Positioned(
+                                top: -2,
+                                right: -2,
+                                child: GestureDetector(
+                                  onTap: () => _removeSelectedFile(index),
                                   child: Container(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Icon(
-                                      Icons.add_circle_outline_rounded,
-                                      color: Theme.of(context).primaryColor,
-                                      size: 28,
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
                                     ),
+                                    child: const Icon(Icons.close, color: Colors.white, size: 14),
                                   ),
                                 ),
                               ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                Row(
+                  children: [
+                    // Unified Pill Container
+                    Expanded(
+                      child: Container(
+                        height: 54,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(27),
+                          border: Border.all(color: Colors.grey[200]!, width: 1),
+                        ),
+                        child: Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [
+                            Row(
+                              children: [
+                                if (!_isRecording)
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: _showMediaMenu,
+                                      borderRadius: BorderRadius.circular(27),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(12),
+                                        child: Icon(
+                                          Icons.add_circle_outline_rounded,
+                                          color: Theme.of(context).primaryColor,
+                                          size: 28,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                             Expanded(
                               child: TextField(
                                 controller: _controller,
@@ -385,7 +483,7 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                                   enabledBorder: InputBorder.none,
                                   focusedBorder: InputBorder.none,
                                   isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  contentPadding: const EdgeInsets.fromLTRB(4, 14, 16, 14),
                                 ),
                                 onSubmitted: (_) => _sendMessage(),
                               ),
@@ -468,7 +566,7 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                   },
                   onLongPressEnd: (_) => _isRecording ? _stopRecording() : null,
                   onTap: () {
-                    if (_isTextEmpty) {
+                    if (_isTextEmpty && _selectedFiles.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Hold to record voice note'),
@@ -503,8 +601,8 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                         child: Icon(
                           _isRecording 
                             ? Icons.mic_rounded 
-                            : (_isTextEmpty ? Icons.mic_rounded : Icons.send_rounded),
-                          key: ValueKey(_isRecording || _isTextEmpty),
+                            : (_isTextEmpty && _selectedFiles.isEmpty ? Icons.mic_rounded : Icons.send_rounded),
+                          key: ValueKey(_isRecording || (_isTextEmpty && _selectedFiles.isEmpty)),
                           color: Colors.white,
                           size: 26,
                         ),
@@ -514,9 +612,19 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                 ),
               ],
             ),
-          ),
+          ],
         ),
-      ],
-    );
+      ),
+    ),
+  ],
+);
+}
+
+  ChatMessageType _getFileType(File file) {
+    final extension = file.path.split('.').last.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(extension)) {
+      return ChatMessageType.image;
+    }
+    return ChatMessageType.document;
   }
 }

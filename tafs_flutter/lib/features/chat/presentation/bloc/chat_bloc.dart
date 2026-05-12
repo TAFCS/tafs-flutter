@@ -121,13 +121,17 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       final tempId = 'temp-${DateTime.now().millisecondsSinceEpoch}';
       
       // Create optimistic message
+      final metadata = <String, dynamic>{};
+      if (event.mediaMetadata != null) metadata.addAll(event.mediaMetadata!);
+      if (event.file != null) metadata['localPath'] = event.file!.path;
+
       final optimisticMessage = ChatMessage(
         id: tempId,
         conversationId: currentState.messages.isNotEmpty ? currentState.messages.first.conversationId : '',
         senderType: ChatSenderType.guardian,
         messageType: event.type,
         content: event.content,
-        mediaMetadata: event.mediaMetadata,
+        mediaMetadata: metadata,
         isRead: false,
         createdAt: DateTime.now(),
         status: MessageStatus.sending,

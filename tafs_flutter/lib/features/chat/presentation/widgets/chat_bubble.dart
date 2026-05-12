@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/chat_message.dart';
+import 'dart:io';
 import 'package:intl/intl.dart';
 
 class ChatBubble extends StatelessWidget {
@@ -230,12 +231,11 @@ class ChatBubble extends StatelessWidget {
               const SizedBox(width: 8),
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: Image.network(
+                child: _renderImage(
                   replyTo['content'],
                   width: 40,
                   height: 40,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.image, size: 20),
                 ),
               ),
             ],
@@ -278,16 +278,9 @@ class ChatBubble extends StatelessWidget {
               onTap: () => onImageTap(imageUrl),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.network(
+                child: _renderImage(
                   imageUrl,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const SizedBox(
-                      width: 200,
-                      height: 200,
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  },
+                  localPath: message.mediaMetadata?['localPath'],
                 ),
               ),
             ),
@@ -408,12 +401,14 @@ class ChatBubble extends StatelessWidget {
           crossAxisSpacing: 2,
           children: messages.map((m) {
             final url = m.mediaMetadata?['url'] ?? m.content;
+            final localPath = m.mediaMetadata?['localPath'];
             return GestureDetector(
               onTap: () => onImageTap(url),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: Image.network(
+                child: _renderImage(
                   url,
+                  localPath: localPath,
                   fit: BoxFit.cover,
                 ),
               ),
@@ -432,6 +427,47 @@ class ChatBubble extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _renderImage(String url, {String? localPath, double? width, double? height, BoxFit fit = BoxFit.contain}) {
+    if (localPath != null && File(localPath).existsSync()) {
+      return Image.file(
+        File(localPath),
+        width: width,
+        height: height,
+        fit: fit,
+      );
+    }
+    
+    if (url.isEmpty) {
+      return Container(
+        width: width ?? 200,
+        height: height ?? 200,
+        color: Colors.grey[200],
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+
+    return Image.network(
+      url,
+      width: width,
+      height: height,
+      fit: fit,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return SizedBox(
+          width: width ?? 200,
+          height: height ?? 200,
+          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        );
+      },
+      errorBuilder: (_, __, ___) => Container(
+        width: width ?? 200,
+        height: height ?? 200,
+        color: Colors.grey[100],
+        child: const Icon(Icons.broken_image_rounded, color: Colors.grey),
+      ),
     );
   }
 }

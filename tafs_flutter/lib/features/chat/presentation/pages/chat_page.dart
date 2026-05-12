@@ -239,16 +239,18 @@ class _ChatPageState extends State<ChatPage> {
                 MessageInput(
                   replyingTo: _replyingTo,
                   onCancelReply: () => setState(() => _replyingTo = null),
-                  onSend: (content, type, file, replyTo) {
-                    Map<String, dynamic>? metadata;
+                  onSend: (content, type, file, replyTo, metadata) {
+                    final fullMetadata = <String, dynamic>{};
+                    if (metadata != null) {
+                      fullMetadata.addAll(metadata);
+                    }
+                    
                     if (replyTo != null) {
-                      metadata = {
-                        'replyTo': {
-                          'id': replyTo.id,
-                          'content': replyTo.content,
-                          'senderName': replyTo.senderType == ChatSenderType.guardian ? 'You' : 'TAFS Support',
-                          'type': replyTo.messageType.name,
-                        }
+                      fullMetadata['replyTo'] = {
+                        'id': replyTo.id,
+                        'content': replyTo.content,
+                        'senderName': replyTo.senderType == ChatSenderType.guardian ? 'You' : 'TAFS Support',
+                        'type': replyTo.messageType.name,
                       };
                     }
 
@@ -256,7 +258,7 @@ class _ChatPageState extends State<ChatPage> {
                           content: content,
                           type: type,
                           file: file,
-                          mediaMetadata: metadata,
+                          mediaMetadata: fullMetadata.isNotEmpty ? fullMetadata : null,
                         ));
                     setState(() => _replyingTo = null);
                   },
