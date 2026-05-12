@@ -452,6 +452,8 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
   bool _isPlaying = false;
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
+  static AudioPlayer? _activePlayer;
+  static String? _activeUrl;
 
   @override
   void initState() {
@@ -466,11 +468,23 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
       if (mounted) setState(() => _position = p);
     });
 
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = state == PlayerState.playing;
+        });
+      }
+    });
+
     _audioPlayer.onPlayerComplete.listen((_) {
       if (mounted) {
         setState(() {
           _isPlaying = false;
           _position = Duration.zero;
+          if (_activePlayer == _audioPlayer) {
+            _activePlayer = null;
+            _activeUrl = null;
+          }
         });
       }
     });
@@ -478,13 +492,21 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
 
   @override
   void dispose() {
-    _audioPlayer.stop();
+    if (_activePlayer == _audioPlayer) {
+      _activePlayer = null;
+      _activeUrl = null;
+    }
     _audioPlayer.dispose();
     super.dispose();
   }
 
   void _togglePlay() async {
     try {
+      if (_activePlayer != null && _activePlayer != _audioPlayer) {
+        await _activePlayer!.pause();
+        // The other player's state listener will update its UI
+      }
+
       if (!_isSourceSet) {
         await _audioPlayer.setSource(UrlSource(widget.url));
         _isSourceSet = true;
@@ -492,18 +514,17 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
 
       if (_isPlaying) {
         await _audioPlayer.pause();
+        _activePlayer = null;
+        _activeUrl = null;
       } else {
+        _activePlayer = _audioPlayer;
+        _activeUrl = widget.url;
         await _audioPlayer.resume();
       }
       
-      if (mounted) setState(() => _isPlaying = !_isPlaying);
+      if (mounted) setState(() => _isPlaying = _audioPlayer.state == PlayerState.playing);
     } catch (e) {
       debugPrint('Audio playback error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not play audio. Format might not be supported.')),
-        );
-      }
     }
   }
 

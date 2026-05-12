@@ -365,27 +365,29 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                                 ),
                               ),
                             Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.only(left: _isRecording ? 16 : 0),
-                                child: TextField(
-                                  controller: _controller,
-                                  enabled: !_isRecording,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: -0.2,
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText: _isRecording ? '' : 'Type a message...',
-                                    hintStyle: TextStyle(
-                                      color: Colors.grey[400],
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                                  ),
-                                  onSubmitted: (_) => _sendMessage(),
+                              child: TextField(
+                                controller: _controller,
+                                enabled: !_isRecording,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: -0.2,
+                                  color: Colors.black87,
                                 ),
+                                decoration: InputDecoration(
+                                  hintText: _isRecording ? '' : 'Type a message...',
+                                  hintStyle: TextStyle(
+                                    color: Colors.grey[400],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  filled: false,
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                ),
+                                onSubmitted: (_) => _sendMessage(),
                               ),
                             ),
                           ],

@@ -9,6 +9,7 @@ import '../widgets/message_input.dart';
 import '../widgets/full_screen_image_viewer.dart';
 import '../widgets/swipe_to_reply.dart';
 import '../../domain/repositories/chat_repository.dart';
+import 'package:intl/intl.dart';
 import '../../domain/entities/chat_message.dart';
 
 class ChatPage extends StatefulWidget {
@@ -58,18 +59,47 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  String _formatDateSeparator(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final msgDate = DateTime(date.year, date.month, date.day);
+
+    if (msgDate == today) return 'TODAY';
+    if (msgDate == yesterday) return 'YESTERDAY';
+    return DateFormat('MMMM d, yyyy').format(date).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: const Row(
+        title: Row(
           children: [
-            CircleAvatar(
-              backgroundColor: Colors.blue,
-              child: Icon(Icons.school, color: Colors.white),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey[100]!, width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/logo.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -129,7 +159,7 @@ class _ChatPageState extends State<ChatPage> {
                     itemScrollController: _itemScrollController,
                     reverse: true,
                     itemCount: clusters.length,
-                    padding: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.only(bottom: 24),
                     itemBuilder: (context, index) {
                       final item = clusters[index];
                       final allImageUrls = state.messages
@@ -139,28 +169,69 @@ class _ChatPageState extends State<ChatPage> {
                           .reversed
                           .toList();
 
-                      return SwipeToReply(
-                        onReply: () {
-                          setState(() {
-                            _replyingTo = item is List<ChatMessage> ? item.first : item as ChatMessage;
-                          });
-                        },
-                        child: ChatBubble(
-                          messages: item is List<ChatMessage> ? item : [item as ChatMessage],
-                          onReplyTap: (id) => _scrollToMessage(clusters, id),
-                          onImageTap: (url) {
-                            final imageIndex = allImageUrls.indexOf(url);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => FullScreenImageViewer(
-                                  imageUrls: allImageUrls,
-                                  initialIndex: imageIndex >= 0 ? imageIndex : 0,
+                      final message = item is List<ChatMessage> ? item.first : item as ChatMessage;
+                      bool showDateSeparator = false;
+                      if (index == clusters.length - 1) {
+                        showDateSeparator = true;
+                      } else {
+                        final nextItem = clusters[index + 1];
+                        final nextMessage = nextItem is List<ChatMessage> ? nextItem.first : nextItem as ChatMessage;
+                        if (message.createdAt.day != nextMessage.createdAt.day ||
+                            message.createdAt.month != nextMessage.createdAt.month ||
+                            message.createdAt.year != nextMessage.createdAt.year) {
+                          showDateSeparator = true;
+                        }
+                      }
+
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (showDateSeparator)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[200],
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    _formatDateSeparator(message.createdAt),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.grey[600],
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          SwipeToReply(
+                            onReply: () {
+                              setState(() {
+                                _replyingTo = item is List<ChatMessage> ? item.first : item as ChatMessage;
+                              });
+                            },
+                            child: ChatBubble(
+                              messages: item is List<ChatMessage> ? item : [item as ChatMessage],
+                              onReplyTap: (id) => _scrollToMessage(clusters, id),
+                              onImageTap: (url) {
+                                final imageIndex = allImageUrls.indexOf(url);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => FullScreenImageViewer(
+                                      imageUrls: allImageUrls,
+                                      initialIndex: imageIndex >= 0 ? imageIndex : 0,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       );
                     },
                   ),
