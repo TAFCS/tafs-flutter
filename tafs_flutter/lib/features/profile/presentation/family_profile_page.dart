@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -6,11 +7,37 @@ import '../../auth/domain/entities/parent.dart';
 import '../../auth/domain/entities/student.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
 import '../../auth/presentation/bloc/auth_state.dart';
+import '../../auth/presentation/bloc/auth_event.dart';
 import '../../auth/presentation/bloc/selected_student_cubit.dart';
 import 'widgets/student_profile_loader.dart';
+import 'edit_guardian_page.dart';
 
-class FamilyProfilePage extends StatelessWidget {
+class FamilyProfilePage extends StatefulWidget {
   const FamilyProfilePage({super.key});
+
+  @override
+  State<FamilyProfilePage> createState() => _FamilyProfilePageState();
+}
+
+class _FamilyProfilePageState extends State<FamilyProfilePage> {
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start periodic refresh every 15 seconds while this page is open
+    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      if (mounted) {
+        context.read<AuthBloc>().add(AuthRefreshRequested());
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,9 +74,16 @@ class FamilyProfilePage extends StatelessWidget {
 
           return BlocBuilder<SelectedStudentCubit, Student?>(
             builder: (context, activeStudent) {
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
+              return RefreshIndicator(
+                onRefresh: () async {
+                  context.read<AuthBloc>().add(AuthRefreshRequested());
+                  // Wait a short bit to ensure the user sees the refresh action
+                  await Future.delayed(const Duration(milliseconds: 800));
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(), // Important for RefreshIndicator
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _ParentHeaderCard(parent: parent),
@@ -94,11 +128,12 @@ class FamilyProfilePage extends StatelessWidget {
                     ),
                   ],
                 ),
-              );
-            },
-          );
+              ),
+            ); // RefreshIndicator close
+          },
+        ); // inner BlocBuilder close
         },
-      ),
+      ), // outer BlocBuilder close
     );
   }
 }
@@ -517,6 +552,28 @@ class _GuardianCard extends StatelessWidget {
               Icons.location_on_outlined,
               'Home Address',
               guardian.address ?? 'N/A',
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditGuardianPage(guardian: guardian),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.edit_note_rounded),
+              label: const Text('Edit Profile'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
             const SizedBox(height: 24),
           ],

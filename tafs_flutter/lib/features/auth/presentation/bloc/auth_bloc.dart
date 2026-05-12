@@ -1,10 +1,11 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hydrated_bloc/hydrated_bloc.dart';
+import '../../data/models/parent_dto.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/parent_login_usecase.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
-class AuthBloc extends Bloc<AuthEvent, AuthState> {
+class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
   final ParentLoginUseCase loginUseCase;
   final AuthRepository repository;
 
@@ -18,8 +19,38 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthVerifyCnicRequested>(_onVerifyCnicRequested);
     on<AuthRegisterRequested>(_onRegisterRequested);
     on<AuthSignupResetRequested>(_onSignupResetRequested);
+    on<AuthRefreshRequested>(_onAuthRefreshRequested);
   }
 
+  // ─── HydratedBloc serialization ────────────────────────────────────────────
+  // Only persist AuthAuthenticated. All transient / signup states return null,
+  // meaning hydrated_bloc falls back to the initial state (AuthInitial).
+
+  @override
+  Map<String, dynamic>? toJson(AuthState state) {
+    if (state is AuthAuthenticated) {
+      return (state.parent as ParentDto).toJson();
+    }
+    return null;
+  }
+
+  @override
+  AuthState? fromJson(Map<String, dynamic> json) {
+    try {
+      final parent = ParentDto.fromJson(json);
+      if (parent.accessToken.isEmpty || parent.refreshToken.isEmpty) {
+        return null;
+      }
+      return AuthAuthenticated(parent);
+    } catch (_) {
+      // Any deserialization error → start fresh (show login)
+      return null;
+    }
+  }
+
+  // ─── Event handlers ────────────────────────────────────────────────────────
+
+  /// Still kept so other parts of the code can trigger a manual check.
   Future<void> _onAuthCheckRequested(
     AuthCheckRequested event,
     Emitter<AuthState> emit,
@@ -37,13 +68,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
+  Future<void> _onAuthRefreshRequested(
+    AuthRefreshRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final result = await repository.refreshProfile();
+    result.fold(
+      (failure) => null, // Keep existing state on failure
+      (parent) => emit(AuthAuthenticated(parent)),
+    );
+  }
+
   Future<void> _onAuthLoginRequested(
     AuthLoginRequested event,
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
     final result = await loginUseCase(event.username, event.password);
-
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (parent) => emit(AuthAuthenticated(parent)),
@@ -55,6 +96,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     await repository.logout();
+    await clear(); // Wipe hydrated_bloc disk cache so restart shows login
     emit(AuthUnauthenticated());
   }
 
@@ -66,7 +108,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(SignupCnicVerifying());
     final result = await repository.verifyCnic(event.cnic);
-
     result.fold(
       (failure) => emit(SignupCnicInvalid(failure.message)),
       (response) {
@@ -92,7 +133,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       event.email,
       event.password,
     );
-
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (parent) => emit(SignupSuccess(parent)),

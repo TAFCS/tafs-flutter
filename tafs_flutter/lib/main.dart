@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:hydrated_bloc/hydrated_bloc.dart';
+import 'package:path_provider/path_provider.dart';
+
 import 'core/theme/app_theme.dart';
-import 'features/auth/presentation/login_page.dart';
+import 'features/auth/presentation/auth_gate.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
@@ -11,9 +14,17 @@ import 'injection_container.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+  await dotenv.load(fileName: '.env');
+
+  // ── Initialize HydratedBloc storage ───────────────────────────────────────
+  // hydrated_bloc v11 recommends getTemporaryDirectory() on mobile.
+  final storageDir = await getTemporaryDirectory();
+  HydratedBloc.storage = await HydratedStorage.build(
+    storageDirectory: HydratedStorageDirectory(storageDir.path),
+  );
+
   InjectionContainer.init();
-  
+
   runApp(const MyApp());
 }
 
@@ -25,22 +36,22 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
-          create: (context) => InjectionContainer.authBloc,
+          create: (_) => InjectionContainer.authBloc,
         ),
         BlocProvider<FeeLedgerBloc>(
-          create: (context) => InjectionContainer.feeLedgerBloc,
+          create: (_) => InjectionContainer.feeLedgerBloc,
         ),
         BlocProvider<FeeSummaryBloc>(
-          create: (context) => InjectionContainer.feeSummaryBloc,
+          create: (_) => InjectionContainer.feeSummaryBloc,
         ),
         BlocProvider<SelectedStudentCubit>(
-          create: (context) => InjectionContainer.selectedStudentCubit,
+          create: (_) => InjectionContainer.selectedStudentCubit,
         ),
       ],
       child: MaterialApp(
         title: 'TAFS Parent Portal',
         theme: AppTheme.lightTheme,
-        home: const LoginPage(),
+        home: const AuthGate(),
         debugShowCheckedModeBanner: false,
       ),
     );

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../dashboard/presentation/main_dashboard_page.dart';
 import '../../auth/domain/entities/student.dart';
 import '../../auth/presentation/bloc/selected_student_cubit.dart';
 
@@ -43,12 +42,6 @@ class StudentSelectionPage extends StatelessWidget {
             child: InkWell(
               onTap: () {
                 context.read<SelectedStudentCubit>().select(student);
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const MainDashboardPage(),
-                  ),
-                );
               },
               borderRadius: BorderRadius.circular(14),
               child: Padding(

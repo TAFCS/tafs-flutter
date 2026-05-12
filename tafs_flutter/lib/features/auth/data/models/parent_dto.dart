@@ -1,4 +1,5 @@
 import '../../domain/entities/parent.dart';
+import '../../domain/entities/student.dart';
 import 'student_dto.dart';
 
 class ParentDto extends Parent {
@@ -53,6 +54,28 @@ class ParentDto extends Parent {
         'refreshToken': refreshToken,
       },
     };
+  }
+
+  ParentDto copyWith({
+    int? id,
+    String? username,
+    String? householdName,
+    List<Student>? students,
+    List<FamilyGuardian>? guardians,
+    String? accessToken,
+    String? refreshToken,
+    String? photographUrl,
+  }) {
+    return ParentDto(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      householdName: householdName ?? this.householdName,
+      students: students ?? this.students,
+      guardians: guardians ?? this.guardians,
+      accessToken: accessToken ?? this.accessToken,
+      refreshToken: refreshToken ?? this.refreshToken,
+      photographUrl: photographUrl ?? this.photographUrl,
+    );
   }
 }
 

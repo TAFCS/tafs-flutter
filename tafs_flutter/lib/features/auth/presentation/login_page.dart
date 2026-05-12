@@ -3,12 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../profile/presentation/student_selection_page.dart';
 import 'bloc/auth_bloc.dart';
 import 'bloc/auth_event.dart';
 import 'bloc/auth_state.dart';
-import '../../dashboard/presentation/main_dashboard_page.dart';
-import 'bloc/selected_student_cubit.dart';
 import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -44,35 +41,9 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AuthBloc, AuthState>(
+      // AuthGate handles routing on AuthAuthenticated; LoginPage only shows errors.
       listener: (context, state) {
-        if (state is AuthAuthenticated) {
-          // If a student list exists, select the first linked student. (Mocking switching)
-          // Typically we would either go to StudentSelectionPage or default to Dashboard.
-          // The API provides `students` list.
-          final students = state.parent.students;
-          if (students.length > 1) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => StudentSelectionPage(students: students),
-              ),
-            );
-          } else if (students.length == 1) {
-            context.read<SelectedStudentCubit>().select(students.first);
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const MainDashboardPage(),
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('No students linked to this account.'),
-              ),
-            );
-          }
-        } else if (state is AuthError) {
+        if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),

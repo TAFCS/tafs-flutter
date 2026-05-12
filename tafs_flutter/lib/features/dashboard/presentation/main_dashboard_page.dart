@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../auth/presentation/bloc/auth_bloc.dart';
-import '../../auth/presentation/bloc/auth_state.dart';
-import '../../auth/presentation/login_page.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/student_switcher_sheet.dart';
 import 'widgets/student_app_bar.dart';
@@ -47,32 +44,13 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocListener(
-      listeners: [
-        BlocListener<AuthBloc, AuthState>(
-          listener: (context, state) {
-            if (state is AuthUnauthenticated) {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
-                (route) => false,
-              );
-            }
-          },
-        ),
-        BlocListener<SelectedStudentCubit, Student?>(
-          listener: (context, student) {
-            if (student != null) {
-              context
-                  .read<FeeSummaryBloc>()
-                  .add(FeeSummaryLoadRequested(student.cc));
-              context
-                  .read<FeeLedgerBloc>()
-                  .add(FeeLedgerLoadRequested(student.cc));
-            }
-          },
-        ),
-      ],
+    return BlocListener<SelectedStudentCubit, Student?>(
+      listener: (context, student) {
+        if (student != null) {
+          context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
+          context.read<FeeLedgerBloc>().add(FeeLedgerLoadRequested(student.cc));
+        }
+      },
       child: BlocBuilder<SelectedStudentCubit, Student?>(
         builder: (context, student) {
           if (student == null) {

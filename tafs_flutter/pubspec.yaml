@@ -47,6 +47,7 @@ dependencies:
   open_filex: ^4.7.0
   permission_handler: ^12.0.1
   flutter_file_dialog: ^3.0.2
+  hydrated_bloc: ^11.0.0
 
 dev_dependencies:
   flutter_test:

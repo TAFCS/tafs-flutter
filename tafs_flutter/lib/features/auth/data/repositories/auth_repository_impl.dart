@@ -91,4 +91,28 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, Parent>> refreshProfile() async {
+    try {
+      final cached = await localDataSource.getCachedParent();
+      if (cached == null) {
+        return Left(CacheFailure('No cached user found. Please login again.'));
+      }
+
+      final parentDto = await remoteDataSource.getProfile(cached.accessToken);
+      
+      // Merge with existing refresh token since remote getProfile doesn't provide it
+      final updatedParent = parentDto.copyWith(
+        refreshToken: cached.refreshToken,
+      );
+
+      await localDataSource.cacheParent(updatedParent);
+      return Right(updatedParent);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }
