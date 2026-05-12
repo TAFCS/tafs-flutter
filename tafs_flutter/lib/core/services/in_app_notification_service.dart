@@ -35,14 +35,6 @@ class InAppNotificationService {
     );
 
     overlay.insert(_currentEntry!);
-    
-    // Auto-dismiss after 4 seconds
-    Future.delayed(const Duration(seconds: 4), () {
-      if (_currentEntry != null) {
-        _currentEntry?.remove();
-        _currentEntry = null;
-      }
-    });
   }
 }
 
@@ -68,6 +60,7 @@ class _NotificationWrapper extends StatefulWidget {
 class _NotificationWrapperState extends State<_NotificationWrapper> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _offsetAnimation;
+  bool _isDismissing = false;
 
   @override
   void initState() {
@@ -78,14 +71,29 @@ class _NotificationWrapperState extends State<_NotificationWrapper> with SingleT
     );
 
     _offsetAnimation = Tween<Offset>(
-      begin: const Offset(0.0, -1.0),
+      begin: const Offset(0.0, -1.2),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _controller,
       curve: Curves.easeOutBack,
+      reverseCurve: Curves.easeInBack,
     ));
 
     _controller.forward();
+
+    // Auto-dismiss after 4 seconds
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted && !_isDismissing) {
+        _dismiss();
+      }
+    });
+  }
+
+  Future<void> _dismiss() async {
+    if (_isDismissing) return;
+    setState(() => _isDismissing = true);
+    await _controller.reverse();
+    widget.onDismiss();
   }
 
   @override
@@ -104,11 +112,19 @@ class _NotificationWrapperState extends State<_NotificationWrapper> with SingleT
         color: Colors.transparent,
         child: SlideTransition(
           position: _offsetAnimation,
-          child: NotificationBanner(
-            title: widget.title,
-            message: widget.message,
-            iconUrl: widget.iconUrl,
-            onTap: widget.onTap,
+          child: Dismissible(
+            key: UniqueKey(),
+            direction: DismissDirection.up,
+            onDismissed: (_) => widget.onDismiss(),
+            child: NotificationBanner(
+              title: widget.title,
+              message: widget.message,
+              iconUrl: widget.iconUrl,
+              onTap: () async {
+                await _dismiss();
+                widget.onTap();
+              },
+            ),
           ),
         ),
       ),

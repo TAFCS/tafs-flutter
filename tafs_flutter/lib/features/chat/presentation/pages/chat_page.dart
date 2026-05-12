@@ -59,7 +59,8 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  String _formatDateSeparator(DateTime date) {
+  String _formatDateSeparator(DateTime dateUtc) {
+    final date = dateUtc.toLocal();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
@@ -201,9 +202,11 @@ class _ChatPageState extends State<ChatPage> {
                       } else {
                         final nextItem = clusters[index + 1];
                         final nextMessage = nextItem is List<ChatMessage> ? nextItem.first : nextItem as ChatMessage;
-                        if (message.createdAt.day != nextMessage.createdAt.day ||
-                            message.createdAt.month != nextMessage.createdAt.month ||
-                            message.createdAt.year != nextMessage.createdAt.year) {
+                        final currentLocal = message.createdAt.toLocal();
+                        final nextLocal = nextMessage.createdAt.toLocal();
+                        if (currentLocal.day != nextLocal.day ||
+                            currentLocal.month != nextLocal.month ||
+                            currentLocal.year != nextLocal.year) {
                           showDateSeparator = true;
                         }
                       }
