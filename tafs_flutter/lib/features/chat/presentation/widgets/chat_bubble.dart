@@ -25,6 +25,13 @@ class ChatBubble extends StatelessWidget {
     final isMe = message.senderType == ChatSenderType.guardian;
     final theme = Theme.of(context);
 
+    final borderRadius = BorderRadius.only(
+      topLeft: const Radius.circular(20),
+      topRight: const Radius.circular(20),
+      bottomLeft: Radius.circular(isMe ? 20 : 4),
+      bottomRight: Radius.circular(isMe ? 4 : 20),
+    );
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
@@ -90,7 +97,6 @@ class ChatBubble extends StatelessWidget {
               left: isMe ? 64 : 12,
               right: isMe ? 12 : 64,
             ),
-            padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               gradient: isMe 
                   ? LinearGradient(
@@ -106,12 +112,7 @@ class ChatBubble extends StatelessWidget {
                         )
                       : null),
               color: !isMe && !message.isAnnouncement ? Colors.white : null,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(20),
-                topRight: const Radius.circular(20),
-                bottomLeft: Radius.circular(isMe ? 20 : 4),
-                bottomRight: Radius.circular(isMe ? 4 : 20),
-              ),
+              borderRadius: borderRadius,
               border: !isMe && message.isAnnouncement 
                   ? Border.all(color: theme.primaryColor.withOpacity(0.15), width: 1)
                   : null,
@@ -123,18 +124,20 @@ class ChatBubble extends StatelessWidget {
                 ),
               ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (message.mediaMetadata?['replyTo'] != null)
-                  _buildReplyPreview(context, message.mediaMetadata!['replyTo']),
-                _buildContent(context),
-                Padding(
-                  padding: const EdgeInsets.only(right: 12, bottom: 6, left: 12, top: 2),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+            child: ClipRRect(
+              borderRadius: borderRadius,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (message.mediaMetadata?['replyTo'] != null)
+                    _buildReplyPreview(context, message.mediaMetadata!['replyTo']),
+                  _buildContent(context),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12, bottom: 8, left: 12, top: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                       Text(
                         DateFormat('h:mm a').format(message.createdAt),
                         style: TextStyle(
@@ -173,10 +176,11 @@ class ChatBubble extends StatelessWidget {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildReplyPreview(BuildContext context, Map<String, dynamic> replyTo) {
     final isMe = messages.first.senderType == ChatSenderType.guardian;
@@ -395,6 +399,7 @@ class ChatBubble extends StatelessWidget {
       children: [
         GridView.count(
           shrinkWrap: true,
+          padding: EdgeInsets.zero,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 2,
           mainAxisSpacing: 2,
@@ -404,13 +409,10 @@ class ChatBubble extends StatelessWidget {
             final localPath = m.mediaMetadata?['localPath'];
             return GestureDetector(
               onTap: () => onImageTap(url),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: _renderImage(
-                  url,
-                  localPath: localPath,
-                  fit: BoxFit.cover,
-                ),
+              child: _renderImage(
+                url,
+                localPath: localPath,
+                fit: BoxFit.cover,
               ),
             );
           }).toList(),
@@ -496,6 +498,11 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
     super.initState();
     _audioPlayer = AudioPlayer();
     
+    // Set source immediately to fetch duration
+    _audioPlayer.setSource(UrlSource(widget.url)).then((_) {
+      if (mounted) setState(() => _isSourceSet = true);
+    });
+    
     _audioPlayer.onDurationChanged.listen((d) {
       if (mounted) setState(() => _duration = d);
     });
@@ -541,11 +548,6 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
       if (_activePlayer != null && _activePlayer != _audioPlayer) {
         await _activePlayer!.pause();
         // The other player's state listener will update its UI
-      }
-
-      if (!_isSourceSet) {
-        await _audioPlayer.setSource(UrlSource(widget.url));
-        _isSourceSet = true;
       }
 
       if (_isPlaying) {
