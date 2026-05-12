@@ -38,6 +38,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
   @override
   Future<String> uploadMedia(File file) async {
+    print('Chat: Uploading media: ${file.path}');
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(
         file.path,
@@ -45,8 +46,17 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       ),
     });
 
-    final response = await dio.post('/chat/media', data: formData);
-    return response.data['url'] as String;
+    try {
+      final response = await dio.post('/chat/media', data: formData);
+      print('Chat: Upload successful: ${response.data['url']}');
+      return response.data['url'] as String;
+    } catch (e) {
+      print('Chat: Upload failed: $e');
+      if (e is DioException) {
+        print('Chat: Response data: ${e.response?.data}');
+      }
+      rethrow;
+    }
   }
 
   @override
