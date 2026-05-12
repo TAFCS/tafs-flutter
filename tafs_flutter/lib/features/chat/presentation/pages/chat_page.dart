@@ -23,6 +23,7 @@ class _ChatPageState extends State<ChatPage> {
   late ChatBloc _chatBloc;
   ChatMessage? _replyingTo;
   final ItemScrollController _itemScrollController = ItemScrollController();
+  final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
 
   @override
   void initState() {
@@ -74,39 +75,33 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true,
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey[100]!, width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/logo.png',
-                  fit: BoxFit.contain,
-                ),
-              ),
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.grey[100],
+              backgroundImage: const AssetImage('assets/logo.png'),
             ),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'TAFS Support',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
                 ),
                 Row(
                   children: [
@@ -114,25 +109,18 @@ class _ChatPageState extends State<ChatPage> {
                       width: 6,
                       height: 6,
                       decoration: const BoxDecoration(
-                        color: Color(0xFF22C55E), // Vibrant Green
+                        color: Colors.green,
                         shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0x6622C55E),
-                            blurRadius: 4,
-                            spreadRadius: 1,
-                          ),
-                        ],
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
                     const Text(
                       'ONLINE',
                       style: TextStyle(
+                        color: Colors.green,
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF22C55E),
-                        letterSpacing: 1.0,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
@@ -143,160 +131,158 @@ class _ChatPageState extends State<ChatPage> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.info_outline),
+            icon: Icon(Icons.info_outline, color: Colors.grey[600]),
             onPressed: () {},
           ),
         ],
       ),
-      body: BlocBuilder<ChatBloc, ChatState>(
-        builder: (context, state) {
-          if (state is ChatInitial || state is ChatLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (state is ChatError) {
-            return Center(child: Text('Error: ${state.message}'));
-          }
-
-          if (state is ChatLoaded) {
-            final clusters = <dynamic>[];
-            for (int i = 0; i < state.messages.length; i++) {
-              final msg = state.messages[i];
-              if (msg.messageType == ChatMessageType.image) {
-                final group = [msg];
-                while (i + 1 < state.messages.length &&
-                    state.messages[i + 1].messageType == ChatMessageType.image &&
-                    state.messages[i + 1].senderType == msg.senderType &&
-                    state.messages[i + 1].mediaMetadata?['batchId'] == msg.mediaMetadata?['batchId'] &&
-                    msg.mediaMetadata?['batchId'] != null) {
-                  group.add(state.messages[i + 1]);
-                  i++;
-                }
-                clusters.add(group);
-              } else {
-                clusters.add(msg);
-              }
-            }
-
-            return Column(
-              children: [
-                Expanded(
-                  child: ScrollablePositionedList.builder(
-                    itemScrollController: _itemScrollController,
-                    reverse: true,
-                    itemCount: clusters.length,
-                    padding: const EdgeInsets.only(bottom: 24),
-                    itemBuilder: (context, index) {
-                      final item = clusters[index];
-                      final allImageUrls = state.messages
-                          .where((m) => m.messageType == ChatMessageType.image)
-                          .map((m) => m.mediaMetadata?['url'] as String? ?? m.content)
-                          .toList()
-                          .reversed
-                          .toList();
-
-                      final message = item is List<ChatMessage> ? item.first : item as ChatMessage;
-                      bool showDateSeparator = false;
-                      if (index == clusters.length - 1) {
-                        showDateSeparator = true;
-                      } else {
-                        final nextItem = clusters[index + 1];
-                        final nextMessage = nextItem is List<ChatMessage> ? nextItem.first : nextItem as ChatMessage;
-                        final currentLocal = message.createdAt.toLocal();
-                        final nextLocal = nextMessage.createdAt.toLocal();
-                        if (currentLocal.day != nextLocal.day ||
-                            currentLocal.month != nextLocal.month ||
-                            currentLocal.year != nextLocal.year) {
-                          showDateSeparator = true;
+      body: Stack(
+        children: [
+          // Watermark Background
+          Center(
+            child: Opacity(
+              opacity: 0.05,
+              child: Image.asset(
+                'assets/logo.png',
+                width: MediaQuery.of(context).size.width * 0.7,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          Column(
+            children: [
+              Expanded(
+                child: BlocBuilder<ChatBloc, ChatState>(
+                  builder: (context, state) {
+                    if (state is ChatInitial || state is ChatLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (state is ChatLoaded) {
+                      final clusters = <dynamic>[];
+                      for (int i = 0; i < state.messages.length; i++) {
+                        final msg = state.messages[i];
+                        if (msg.messageType == ChatMessageType.image) {
+                          final group = [msg];
+                          while (i + 1 < state.messages.length &&
+                              state.messages[i + 1].messageType == ChatMessageType.image &&
+                              state.messages[i + 1].senderType == msg.senderType &&
+                              state.messages[i + 1].mediaMetadata?['batchId'] == msg.mediaMetadata?['batchId'] &&
+                              msg.mediaMetadata?['batchId'] != null) {
+                            group.add(state.messages[i + 1]);
+                            i++;
+                          }
+                          clusters.add(group);
+                        } else {
+                          clusters.add(msg);
                         }
                       }
 
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (showDateSeparator)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 20),
-                              child: Center(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[200],
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    _formatDateSeparator(message.createdAt),
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.grey[600],
-                                      letterSpacing: 0.5,
+                      return ScrollablePositionedList.builder(
+                        itemScrollController: _itemScrollController,
+                        itemPositionsListener: _itemPositionsListener,
+                        padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                        itemCount: clusters.length,
+                        reverse: true,
+                        itemBuilder: (context, index) {
+                          final item = clusters[index];
+                          final allImageUrls = state.messages
+                              .where((m) => m.messageType == ChatMessageType.image)
+                              .map((m) => m.mediaMetadata?['url'] as String? ?? m.content)
+                              .toList()
+                              .reversed
+                              .toList();
+
+                          final message = item is List<ChatMessage> ? item.first : item as ChatMessage;
+                          bool showDateSeparator = false;
+                          if (index == clusters.length - 1) {
+                            showDateSeparator = true;
+                          } else {
+                            final nextItem = clusters[index + 1];
+                            final nextMessage = nextItem is List<ChatMessage> ? nextItem.first : nextItem as ChatMessage;
+                            final currentLocal = message.createdAt.toLocal();
+                            final nextLocal = nextMessage.createdAt.toLocal();
+                            if (currentLocal.day != nextLocal.day ||
+                                currentLocal.month != nextLocal.month ||
+                                currentLocal.year != nextLocal.year) {
+                              showDateSeparator = true;
+                            }
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 24.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (showDateSeparator)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 20),
+                                    child: Center(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[200],
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          _formatDateSeparator(message.createdAt),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w900,
+                                            color: Colors.grey[600],
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ),
                                     ),
+                                  ),
+                                SwipeToReply(
+                                  onReply: () {
+                                    setState(() {
+                                      _replyingTo = item is List<ChatMessage> ? item.first : item as ChatMessage;
+                                    });
+                                  },
+                                  child: ChatBubble(
+                                    messages: item is List<ChatMessage> ? item : [item as ChatMessage],
+                                    onReplyTap: (id) => _scrollToMessage(clusters, id),
+                                    onImageTap: (url) {
+                                      final imageIndex = allImageUrls.indexOf(url);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => FullScreenImageViewer(
+                                            imageUrls: allImageUrls,
+                                            initialIndex: imageIndex >= 0 ? imageIndex : 0,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
-                          SwipeToReply(
-                            onReply: () {
-                              setState(() {
-                                _replyingTo = item is List<ChatMessage> ? item.first : item as ChatMessage;
-                              });
-                            },
-                            child: ChatBubble(
-                              messages: item is List<ChatMessage> ? item : [item as ChatMessage],
-                              onReplyTap: (id) => _scrollToMessage(clusters, id),
-                              onImageTap: (url) {
-                                final imageIndex = allImageUrls.indexOf(url);
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => FullScreenImageViewer(
-                                      imageUrls: allImageUrls,
-                                      initialIndex: imageIndex >= 0 ? imageIndex : 0,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
+                          );
+                        },
                       );
-                    },
-                  ),
-                ),
-                MessageInput(
-                  replyingTo: _replyingTo,
-                  onCancelReply: () => setState(() => _replyingTo = null),
-                  onSend: (content, type, file, replyTo, metadata) {
-                    final fullMetadata = <String, dynamic>{};
-                    if (metadata != null) {
-                      fullMetadata.addAll(metadata);
                     }
-                    
-                    if (replyTo != null) {
-                      fullMetadata['replyTo'] = {
-                        'id': replyTo.id,
-                        'content': replyTo.content,
-                        'senderName': replyTo.senderType == ChatSenderType.guardian ? 'You' : 'TAFS Support',
-                        'type': replyTo.messageType.name,
-                      };
-                    }
-
-                    context.read<ChatBloc>().add(ChatMessageSent(
-                          content: content,
-                          type: type,
-                          file: file,
-                          mediaMetadata: fullMetadata.isNotEmpty ? fullMetadata : null,
-                        ));
-                    setState(() => _replyingTo = null);
+                    return const Center(child: Text('Something went wrong'));
                   },
                 ),
-              ],
-            );
-          }
-
-          return const SizedBox.shrink();
-        },
+              ),
+              MessageInput(
+                replyingTo: _replyingTo,
+                onCancelReply: () => setState(() => _replyingTo = null),
+                onSend: (content, type, file, replyTo, metadata) {
+                  context.read<ChatBloc>().add(ChatMessageSent(
+                    content: content,
+                    type: type,
+                    file: file,
+                    mediaMetadata: metadata,
+                  ));
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

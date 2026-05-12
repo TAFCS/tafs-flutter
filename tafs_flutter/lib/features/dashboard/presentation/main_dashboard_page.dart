@@ -72,7 +72,9 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
             if (state is ChatLoaded && state.messages.isNotEmpty) {
               final latest = state.messages.first;
               
-              // Show in-app notification
+              // Only show in-app notification if user is NOT in the chat page
+              if (context.read<ChatBloc>().isUserInChat) return;
+              
               InAppNotificationService.show(
                 context: context,
                 title: 'TAFS Support',
