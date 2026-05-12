@@ -3,12 +3,13 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/widgets.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/repositories/chat_repository.dart';
 import '../models/chat_message_dto.dart';
 import '../../../auth/data/datasources/auth_local_data_source.dart';
 
-class ChatRepositoryImpl implements ChatRepository {
+class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   final Dio dio;
   final AuthLocalDataSource localDataSource;
   final String baseUrl;
@@ -56,10 +57,16 @@ class ChatRepositoryImpl implements ChatRepository {
     final socketUrl = baseUrl.replaceAll('/api/v1', '');
     
     _socket = io.io(socketUrl, io.OptionBuilder()
-      .setTransports(['websocket'])
+      .setTransports(['websocket', 'polling'])
       .setAuth({'token': cached.accessToken})
       .enableAutoConnect()
+      .setReconnectionDelay(1000)
+      .setReconnectionDelayMax(5000)
+      .setRandomizationFactor(0.5)
       .build());
+
+    // Register lifecycle observer
+    WidgetsBinding.instance.addObserver(this);
 
     _socket!.onConnect((_) async {
       print('Connected to Chat Socket');
@@ -115,8 +122,19 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   void disconnect() {
+    WidgetsBinding.instance.removeObserver(this);
     _socket?.disconnect();
     _socket = null;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_socket != null && !_socket!.connected) {
+        print('Chat: App resumed, enforcing socket connection...');
+        _socket!.connect();
+      }
+    }
   }
 
   @override
