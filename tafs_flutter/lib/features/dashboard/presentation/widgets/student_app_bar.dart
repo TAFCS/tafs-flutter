@@ -56,7 +56,7 @@ class StudentAppBar extends StatelessWidget implements PreferredSizeWidget {
           builder: (context, state) {
             int unreadCount = 0;
             if (state is ChatLoaded) {
-              unreadCount = state.messages.where((m) => !m.isRead && m.senderType == ChatSenderType.admin).length;
+              unreadCount = state.unreadCount;
             }
             return Stack(
               children: [

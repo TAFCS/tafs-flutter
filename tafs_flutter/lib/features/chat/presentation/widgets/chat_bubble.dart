@@ -134,53 +134,54 @@ class ChatBubble extends StatelessWidget {
                     _buildReplyPreview(context, message.mediaMetadata!['replyTo']),
                   _buildContent(context),
                   Padding(
-                    padding: const EdgeInsets.only(right: 12, bottom: 8, left: 12, top: 4),
+                    padding: const EdgeInsets.only(right: 12, bottom: 8, left: 12, top: 0),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                      Text(
-                        DateFormat('h:mm a').format(message.createdAt),
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: isMe ? Colors.white.withOpacity(0.7) : Colors.black38,
-                        ),
-                      ),
-                      if (isMe) ...[
-                        const SizedBox(width: 4),
-                        if (message.status == MessageStatus.sending)
-                          SizedBox(
-                            width: 10,
-                            height: 10,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 1.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.7)),
-                            ),
-                          )
-                        else if (message.status == MessageStatus.error)
-                          const Icon(
-                            Icons.error_outline_rounded,
-                            size: 14,
-                            color: Colors.white,
-                          )
-                        else
-                          Icon(
-                            message.isRead ? Icons.done_all_rounded : Icons.done_rounded,
-                            size: 14,
-                            color: message.isRead ? Colors.blue[200] : Colors.white.withOpacity(0.7),
+                        Text(
+                          DateFormat('h:mm a').format(message.createdAt),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isMe ? Colors.white.withOpacity(0.7) : Colors.black38,
                           ),
+                        ),
+                        if (isMe) ...[
+                          const SizedBox(width: 4),
+                          if (message.status == MessageStatus.sending)
+                            SizedBox(
+                              width: 10,
+                              height: 10,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.7)),
+                              ),
+                            )
+                          else if (message.status == MessageStatus.error)
+                            const Icon(
+                              Icons.error_outline_rounded,
+                              size: 14,
+                              color: Colors.white,
+                            )
+                          else
+                            Icon(
+                              message.isRead ? Icons.done_all_rounded : Icons.done_rounded,
+                              size: 14,
+                              color: message.isRead ? Colors.blue[200] : Colors.white.withOpacity(0.7),
+                            ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   Widget _buildReplyPreview(BuildContext context, Map<String, dynamic> replyTo) {
     final isMe = messages.first.senderType == ChatSenderType.guardian;
@@ -260,12 +261,13 @@ class ChatBubble extends StatelessWidget {
     switch (message.messageType) {
       case ChatMessageType.text:
         return Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Text(
             message.content,
             style: TextStyle(
               color: isMe ? Colors.white : Colors.black87,
-              fontSize: 15,
+              fontSize: 16,
+              height: 1.3,
             ),
           ),
         );

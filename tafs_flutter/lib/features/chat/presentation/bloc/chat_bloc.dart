@@ -21,6 +21,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<ChatLeft>(_onChatLeft);
   }
 
+  int _calculateUnread(List<ChatMessage> messages) {
+    return messages.where((m) => !m.isRead && m.senderType == ChatSenderType.admin).length;
+  }
+
   void _onChatEntered(ChatEntered event, Emitter<ChatState> emit) {
     repository.enterChat();
     repository.markAsRead();
@@ -33,7 +37,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         }
         return m;
       }).toList();
-      emit(currentState.copyWith(messages: updatedMessages));
+      emit(currentState.copyWith(
+        messages: updatedMessages,
+        unreadCount: 0,
+      ));
     }
   }
 
@@ -61,7 +68,11 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
     try {
       final messages = await repository.getChatHistory();
-      emit(ChatLoaded(messages: messages, hasReachedMax: messages.length < 50));
+      emit(ChatLoaded(
+        messages: messages, 
+        hasReachedMax: messages.length < 50,
+        unreadCount: _calculateUnread(messages),
+      ));
       repository.markAsRead();
     } catch (e) {
       emit(ChatError(e.toString()));
@@ -72,7 +83,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     if (state is ChatLoaded) {
       final currentState = state as ChatLoaded;
       final updatedMessages = currentState.messages.where((m) => m.id != event.messageId).toList();
-      emit(currentState.copyWith(messages: updatedMessages));
+      emit(currentState.copyWith(
+        messages: updatedMessages,
+        unreadCount: _calculateUnread(updatedMessages),
+      ));
     }
   }
 
@@ -84,7 +98,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       if (currentState.messages.any((m) => m.id == event.message.id)) return;
       
       // Remove optimistic placeholder:
-      // Strategy 1: Match by tempId embedded in the incoming message's metadata.
       final incomingTempId = event.message.mediaMetadata?['tempId'] as String?;
       
       final filteredMessages = currentState.messages.where((m) {
@@ -96,7 +109,12 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       }).toList();
 
       final updatedMessages = [event.message, ...filteredMessages];
-      emit(currentState.copyWith(messages: updatedMessages));
+      emit(currentState.copyWith(
+        messages: updatedMessages,
+        unreadCount: _calculateUnread(updatedMessages),
+      ));
+      
+      // If we are already in the chat, mark as read immediately
       repository.markAsRead();
     }
   }
@@ -105,13 +123,13 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     if (state is ChatLoaded) {
       final currentState = state as ChatLoaded;
       final List<ChatMessage> updatedMessages = currentState.messages.map<ChatMessage>((m) {
-        // If the admin read our messages, mark our messages as read
-        if (m.senderType == ChatSenderType.guardian) {
-          return m.copyWith(isRead: true);
-        }
-        return m;
+        // If someone (admin or another of our devices) read messages, update our UI
+        return m.copyWith(isRead: true);
       }).toList();
-      emit(currentState.copyWith(messages: updatedMessages));
+      emit(currentState.copyWith(
+        messages: updatedMessages,
+        unreadCount: 0,
+      ));
     }
   }
 

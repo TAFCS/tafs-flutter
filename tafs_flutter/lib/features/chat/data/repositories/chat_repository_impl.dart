@@ -142,6 +142,13 @@ class ChatRepositoryImpl implements ChatRepository {
     final cached = await localDataSource.getCachedParent();
     if (cached == null) return;
 
+    // Use REST for more reliability than socket during connection handshake
+    try {
+      await dio.post('/chat/mark-read');
+    } catch (e) {
+      print('Error marking as read via REST: $e');
+    }
+
     _socket?.emit('markAsRead', {
       'familyId': cached.id,
       'role': 'GUARDIAN',
