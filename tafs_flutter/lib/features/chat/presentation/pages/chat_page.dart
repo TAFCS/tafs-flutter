@@ -19,8 +19,22 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
+  late ChatBloc _chatBloc;
   ChatMessage? _replyingTo;
   final ItemScrollController _itemScrollController = ItemScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _chatBloc = context.read<ChatBloc>();
+    _chatBloc.add(ChatEntered());
+  }
+
+  @override
+  void dispose() {
+    _chatBloc.add(ChatLeft());
+    super.dispose();
+  }
 
   void _scrollToMessage(List<dynamic> clusters, String messageId) {
     int index = -1;

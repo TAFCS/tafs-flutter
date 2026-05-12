@@ -66,22 +66,23 @@ class ChatRepositoryImpl implements ChatRepository {
       
       // Register FCM Token
       try {
-        // Request permissions for iOS
-        if (Platform.isIOS) {
-          await FirebaseMessaging.instance.requestPermission(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
-        }
-
+        // Request permissions
+        await FirebaseMessaging.instance.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        
         final fcmToken = await FirebaseMessaging.instance.getToken();
         if (fcmToken != null) {
+          print('FCM: Registering token for family ${cached.id}: ${fcmToken.substring(0, 10)}...');
           _socket!.emit('registerFcmToken', {
             'familyId': cached.id,
             'token': fcmToken,
             'deviceType': Platform.isAndroid ? 'ANDROID' : 'IOS',
           });
+        } else {
+          print('FCM: Token is null');
         }
       } catch (e) {
         if (e.toString().contains('apns-token-not-set')) {
@@ -145,6 +146,20 @@ class ChatRepositoryImpl implements ChatRepository {
       'familyId': cached.id,
       'role': 'GUARDIAN',
     });
+  }
+
+  @override
+  void enterChat() async {
+    final cached = await localDataSource.getCachedParent();
+    if (cached == null) return;
+    _socket?.emit('enterChat', {'familyId': cached.id});
+  }
+
+  @override
+  void leaveChat() async {
+    final cached = await localDataSource.getCachedParent();
+    if (cached == null) return;
+    _socket?.emit('leaveChat', {'familyId': cached.id});
   }
 
   @override

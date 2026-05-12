@@ -53,3 +53,7 @@ class ChatMessageDeleted extends ChatEvent {
   @override
   List<Object?> get props => [messageId];
 }
+
+class ChatEntered extends ChatEvent {}
+
+class ChatLeft extends ChatEvent {}

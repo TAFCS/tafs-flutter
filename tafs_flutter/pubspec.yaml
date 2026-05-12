@@ -57,6 +57,7 @@ dependencies:
   firebase_core: ^4.8.0
   photo_view: ^0.15.0
   scrollable_positioned_list: ^0.3.8
+  flutter_local_notifications: ^18.0.1
 
 dev_dependencies:
   flutter_test:

@@ -17,6 +17,28 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<ChatMessageSent>(_onMessageSent);
     on<ChatHistoryLoaded>(_onHistoryLoaded);
     on<ChatMessageDeleted>(_onMessageDeleted);
+    on<ChatEntered>(_onChatEntered);
+    on<ChatLeft>(_onChatLeft);
+  }
+
+  void _onChatEntered(ChatEntered event, Emitter<ChatState> emit) {
+    repository.enterChat();
+    repository.markAsRead();
+    
+    if (state is ChatLoaded) {
+      final currentState = state as ChatLoaded;
+      final List<ChatMessage> updatedMessages = currentState.messages.map<ChatMessage>((m) {
+        if (m.senderType == ChatSenderType.admin) {
+          return m.copyWith(isRead: true);
+        }
+        return m;
+      }).toList();
+      emit(currentState.copyWith(messages: updatedMessages));
+    }
+  }
+
+  void _onChatLeft(ChatLeft event, Emitter<ChatState> emit) {
+    repository.leaveChat();
   }
 
   Future<void> _onChatStarted(ChatStarted event, Emitter<ChatState> emit) async {
@@ -75,19 +97,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   void _onMessagesRead(ChatMessagesRead event, Emitter<ChatState> emit) {
     if (state is ChatLoaded) {
       final currentState = state as ChatLoaded;
-      final updatedMessages = currentState.messages.map((m) {
+      final List<ChatMessage> updatedMessages = currentState.messages.map<ChatMessage>((m) {
+        // If the admin read our messages, mark our messages as read
         if (m.senderType == ChatSenderType.guardian) {
-          return ChatMessage(
-            id: m.id,
-            conversationId: m.conversationId,
-            senderType: m.senderType,
-            senderId: m.senderId,
-            messageType: m.messageType,
-            content: m.content,
-            mediaMetadata: m.mediaMetadata,
-            isRead: true,
-            createdAt: m.createdAt,
-          );
+          return m.copyWith(isRead: true);
         }
         return m;
       }).toList();

@@ -12,6 +12,8 @@ abstract class ChatRepository {
     Map<String, dynamic>? metadata,
   });
   void markAsRead();
+  void enterChat();
+  void leaveChat();
   Stream<ChatMessage> get onMessageReceived;
   Stream<void> get onMessagesRead;
   Stream<String> get onMessageDeleted;

@@ -33,6 +33,10 @@ class ChatMessage extends Equatable {
 
   ChatMessage copyWith({
     String? id,
+    String? content,
+    ChatMessageType? messageType,
+    Map<String, dynamic>? mediaMetadata,
+    bool? isRead,
     MessageStatus? status,
   }) {
     return ChatMessage(
@@ -40,10 +44,10 @@ class ChatMessage extends Equatable {
       conversationId: conversationId,
       senderType: senderType,
       senderId: senderId,
-      messageType: messageType,
-      content: content,
-      mediaMetadata: mediaMetadata,
-      isRead: isRead,
+      messageType: messageType ?? this.messageType,
+      content: content ?? this.content,
+      mediaMetadata: mediaMetadata ?? this.mediaMetadata,
+      isRead: isRead ?? this.isRead,
       createdAt: createdAt,
       status: status ?? this.status,
     );

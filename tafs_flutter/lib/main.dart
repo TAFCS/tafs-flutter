@@ -4,8 +4,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 
+import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/auth_gate.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
@@ -16,11 +18,24 @@ import 'features/chat/presentation/bloc/chat_bloc.dart';
 import 'features/chat/presentation/bloc/chat_event.dart';
 import 'injection_container.dart';
 
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print('Handling background message: ${message.messageId}');
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize Notifications
+  final notificationService = NotificationService();
+  await notificationService.initialize();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  notificationService.setupInteractions();
+
   await dotenv.load(fileName: '.env');
 
   // ── Initialize HydratedBloc storage ───────────────────────────────────────
