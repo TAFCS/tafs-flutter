@@ -1,0 +1,67 @@
+import '../../domain/entities/chat_message.dart';
+
+class ChatMessageDto extends ChatMessage {
+  const ChatMessageDto({
+    required super.id,
+    required super.conversationId,
+    required super.senderType,
+    super.senderId,
+    required super.messageType,
+    required super.content,
+    super.mediaMetadata,
+    required super.isRead,
+    required super.createdAt,
+  });
+
+  factory ChatMessageDto.fromJson(Map<String, dynamic> json) {
+    return ChatMessageDto(
+      id: json['id'] as String,
+      conversationId: json['conversation_id'] as String,
+      senderType: _parseSenderType(json['sender_type'] as String),
+      senderId: json['sender_id'] as String?,
+      messageType: _parseMessageType(json['message_type'] as String),
+      content: json['content'] as String,
+      mediaMetadata: json['media_metadata'] as Map<String, dynamic>?,
+      isRead: json['is_read'] as bool? ?? false,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'conversation_id': conversationId,
+      'sender_type': senderType.name.toUpperCase(),
+      'sender_id': senderId,
+      'message_type': messageType.name.toUpperCase(),
+      'content': content,
+      'media_metadata': mediaMetadata,
+      'is_read': isRead,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+
+  static ChatSenderType _parseSenderType(String type) {
+    switch (type.toUpperCase()) {
+      case 'ADMIN':
+        return ChatSenderType.admin;
+      case 'GUARDIAN':
+      default:
+        return ChatSenderType.guardian;
+    }
+  }
+
+  static ChatMessageType _parseMessageType(String type) {
+    switch (type.toUpperCase()) {
+      case 'IMAGE':
+        return ChatMessageType.image;
+      case 'VOICE':
+        return ChatMessageType.voice;
+      case 'DOCUMENT':
+        return ChatMessageType.document;
+      case 'TEXT':
+      default:
+        return ChatMessageType.text;
+    }
+  }
+}

@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/auth_gate.dart';
@@ -10,10 +12,15 @@ import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import 'features/auth/presentation/bloc/selected_student_cubit.dart';
+import 'features/chat/presentation/bloc/chat_bloc.dart';
+import 'features/chat/presentation/bloc/chat_event.dart';
 import 'injection_container.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await dotenv.load(fileName: '.env');
 
   // ── Initialize HydratedBloc storage ───────────────────────────────────────
@@ -46,6 +53,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<SelectedStudentCubit>(
           create: (_) => InjectionContainer.selectedStudentCubit,
+        ),
+        BlocProvider<ChatBloc>(
+          create: (_) => InjectionContainer.chatBloc..add(ChatStarted()),
         ),
       ],
       child: MaterialApp(

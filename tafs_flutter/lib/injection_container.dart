@@ -21,16 +21,23 @@ import 'features/fee_ledger/domain/usecases/resolve_voucher_for_month_usecase.da
 import 'features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import 'features/auth/presentation/bloc/selected_student_cubit.dart';
+import 'features/chat/data/repositories/chat_repository_impl.dart';
+import 'features/chat/domain/repositories/chat_repository.dart';
+import 'features/chat/presentation/bloc/chat_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class InjectionContainer {
   static late final AuthBloc authBloc;
   static late final FeeLedgerBloc feeLedgerBloc;
   static late final FeeSummaryBloc feeSummaryBloc;
   static late final SelectedStudentCubit selectedStudentCubit;
+  static late final ChatBloc chatBloc;
 
   static void init() {
     // Core
-    final dio = Dio();
+    final dio = Dio(BaseOptions(
+      baseUrl: dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080/api/v1',
+    ));
     const secureStorage = FlutterSecureStorage();
 
     final localDataSource = AuthLocalDataSourceImpl(secureStorage);
@@ -50,6 +57,12 @@ class InjectionContainer {
     final feeSummaryRemoteDataSource = FeeSummaryRemoteDataSourceImpl(dio);
     final feeSummaryRepository = FeeSummaryRepositoryImpl(
       remoteDataSource: feeSummaryRemoteDataSource,
+    );
+
+    final chatRepository = ChatRepositoryImpl(
+      dio: dio,
+      localDataSource: localDataSource,
+      baseUrl: dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080/api/v1',
     );
 
     // Use cases
@@ -82,6 +95,8 @@ class InjectionContainer {
     feeSummaryBloc = FeeSummaryBloc(getFeeSummary: getFeeSummaryUseCase);
 
     selectedStudentCubit = SelectedStudentCubit();
+
+    chatBloc = ChatBloc(repository: chatRepository);
 
     // ── Dio interceptors ───────────────────────────────────────────────────
     // Must be registered after authBloc so the TokenInterceptor callback
