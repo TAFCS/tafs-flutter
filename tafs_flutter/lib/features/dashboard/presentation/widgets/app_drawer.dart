@@ -7,11 +7,7 @@ import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../auth/presentation/bloc/selected_student_cubit.dart';
 import '../../../fee_ledger/presentation/pages/fee_ledger_page.dart';
-import '../../../fee_ledger/presentation/pages/student_profile_page.dart';
 import '../../../profile/presentation/family_profile_page.dart';
-import '../../../fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
-import '../../../fee_ledger/presentation/bloc/fee_ledger_event.dart';
-import '../../../fee_ledger/presentation/bloc/fee_ledger_state.dart';
 
 class AppDrawer extends StatelessWidget {
   final Student student;
@@ -27,96 +23,118 @@ class AppDrawer extends StatelessWidget {
     }
 
     return Drawer(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.navy,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.zero,
+      ),
       child: Column(
         children: [
+          // Premium Header
           Container(
             padding: const EdgeInsets.only(
-              top: 64,
-              bottom: 24,
-              left: 16,
-              right: 16,
+              top: 80,
+              bottom: 32,
+              left: 24,
+              right: 24,
             ),
             width: double.infinity,
-            color: AppTheme.primary,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppTheme.navy,
+                  AppTheme.navy.withValues(alpha: 0.8),
+                ],
+              ),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: AppTheme.surface1,
-                  backgroundImage: (authState is AuthAuthenticated)
-                      ? (authState.parent.photographUrl != null
-                          ? NetworkImage(authState.parent.photographUrl!)
-                          : (authState.parent.guardians.isNotEmpty && authState.parent.guardians.first.photographUrl != null
-                              ? NetworkImage(authState.parent.guardians.first.photographUrl!)
-                              : null))
-                      : null,
-                  child: (authState is! AuthAuthenticated || 
-                          (authState.parent.photographUrl == null && 
-                           (authState.parent.guardians.isEmpty || authState.parent.guardians.first.photographUrl == null)))
-                      ? const Icon(Icons.person, color: AppTheme.primary, size: 36)
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Parent Profile',
-                  style: TextStyle(
-                    color: Color(0xB3FFFFFF), // 70% white
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.blue300.withValues(alpha: 0.3), width: 2),
+                  ),
+                  child: CircleAvatar(
+                    radius: 32,
+                    backgroundColor: AppTheme.blue100,
+                    backgroundImage: (authState is AuthAuthenticated)
+                        ? (authState.parent.photographUrl != null
+                            ? NetworkImage(authState.parent.photographUrl!)
+                            : (authState.parent.guardians.isNotEmpty && authState.parent.guardians.first.photographUrl != null
+                                ? NetworkImage(authState.parent.guardians.first.photographUrl!)
+                                : null))
+                        : null,
+                    child: (authState is! AuthAuthenticated || 
+                            (authState.parent.photographUrl == null && 
+                             (authState.parent.guardians.isEmpty || authState.parent.guardians.first.photographUrl == null)))
+                        ? const Icon(Icons.person, color: AppTheme.navy, size: 36)
+                        : null,
                   ),
                 ),
+                const SizedBox(height: 20),
                 Text(
                   parentName,
-                  style: const TextStyle(
-                    color: AppTheme.textOnPrimary,
-                    fontSize: 20,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppTheme.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const Text(
-                  'Parent / Guardian',
-                  style: TextStyle(
-                    color: Color(0xB3FFFFFF), // 70% white
-                    fontSize: 14,
+                Text(
+                  'Parent Portal Account',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: AppTheme.white.withValues(alpha: 0.65),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: 12,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white12,
-                    borderRadius: BorderRadius.circular(4),
+                    color: AppTheme.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                    border: Border.all(color: AppTheme.white.withValues(alpha: 0.1)),
                   ),
-                  child: Text(
-                    'Active Student: ${student.fullName}',
-                    style: const TextStyle(color: Colors.white, fontSize: 11),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.school_rounded, color: AppTheme.blue100, size: 14),
+                      const SizedBox(width: 8),
+                      Text(
+                        student.fullName,
+                        style: const TextStyle(color: AppTheme.white, fontSize: 12, fontWeight: FontWeight.w500),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
+          
           Expanded(
             child: BlocBuilder<SelectedStudentCubit, Student?>(
               builder: (context, selectedStudent) {
                 return ListView(
-                  padding: EdgeInsets.zero,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
+                    const SizedBox(height: 12),
                     _buildDrawerItem(
-                      icon: Icons.dashboard,
+                      context: context,
+                      icon: Icons.dashboard_rounded,
                       text: 'Dashboard',
                       onTap: () => Navigator.pop(context),
                       isActive: true,
                     ),
                     _buildDrawerItem(
-                      icon: Icons.account_balance_wallet,
+                      context: context,
+                      icon: Icons.account_balance_wallet_rounded,
                       text: 'Fee Ledger',
                       onTap: () {
-                        Navigator.pop(context); // Close drawer first
+                        Navigator.pop(context);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -130,6 +148,7 @@ class AppDrawer extends StatelessWidget {
                       },
                     ),
                     _buildDrawerItem(
+                      context: context,
                       icon: Icons.family_restroom_rounded,
                       text: 'Family Profile',
                       onTap: () {
@@ -142,55 +161,57 @@ class AppDrawer extends StatelessWidget {
                         );
                       },
                     ),
-                    const Divider(),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
+                      padding: const EdgeInsets.only(left: 16, top: 32, bottom: 8),
                       child: Text(
-                        'FUTURE MODULES',
+                        'RESOURCES',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppTheme.textMuted,
+                          color: AppTheme.white.withValues(alpha: 0.4),
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
+                          letterSpacing: 1.5,
                         ),
                       ),
                     ),
                     _buildDrawerItem(
-                      icon: Icons.calendar_today,
+                      context: context,
+                      icon: Icons.calendar_today_rounded,
                       text: 'Attendance',
                       isPlaceholder: true,
                     ),
                     _buildDrawerItem(
-                      icon: Icons.assessment,
+                      context: context,
+                      icon: Icons.assessment_rounded,
                       text: 'Report Cards',
                       isPlaceholder: true,
                     ),
                     _buildDrawerItem(
-                      icon: Icons.people,
+                      context: context,
+                      icon: Icons.people_alt_rounded,
                       text: 'Staff Directory',
                       isPlaceholder: true,
-                    ),
-                    const Divider(),
-                    _buildDrawerItem(
-                      icon: Icons.logout,
-                      text: 'Logout',
-                      onTap: () {
-                        context.read<AuthBloc>().add(AuthLogoutRequested());
-                      },
                     ),
                   ],
                 );
               },
             ),
           ),
-          const SafeArea(
+          
+          const Divider(color: Colors.white10),
+          _buildDrawerItem(
+            context: context,
+            icon: Icons.logout_rounded,
+            text: 'Logout',
+            onTap: () {
+              context.read<AuthBloc>().add(AuthLogoutRequested());
+            },
+          ),
+          SafeArea(
+            top: false,
             child: Padding(
-              padding: EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(vertical: 20),
               child: Text(
-                'TAFS App Version 1.0.0',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                'v1.0.0',
+                style: TextStyle(color: AppTheme.white.withValues(alpha: 0.3), fontSize: 12),
               ),
             ),
           ),
@@ -200,37 +221,48 @@ class AppDrawer extends StatelessWidget {
   }
 
   Widget _buildDrawerItem({
+    required BuildContext context,
     required IconData icon,
     required String text,
     VoidCallback? onTap,
     bool isActive = false,
     bool isPlaceholder = false,
   }) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: isPlaceholder
-            ? AppTheme.textMuted.withValues(alpha: 0.5)
-            : (isActive ? AppTheme.primary : AppTheme.textMain),
+    final Color textColor = isPlaceholder 
+        ? AppTheme.white.withValues(alpha: 0.3)
+        : (isActive ? AppTheme.white : AppTheme.white.withValues(alpha: 0.65));
+        
+    final Color? bgColor = isActive 
+        ? AppTheme.blue300.withValues(alpha: 0.2)
+        : null;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
       ),
-      title: Text(
-        text,
-        style: TextStyle(
-          color: isPlaceholder
-              ? AppTheme.textMuted.withValues(alpha: 0.5)
-              : (isActive ? AppTheme.primary : AppTheme.textMain),
-          fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+      child: ListTile(
+        dense: true,
+        onTap: isPlaceholder ? null : onTap,
+        leading: Icon(
+          icon,
+          color: textColor,
+          size: 22,
         ),
+        title: Text(
+          text,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: textColor,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+        trailing: isPlaceholder
+            ? Icon(Icons.lock_outline_rounded, size: 14, color: AppTheme.white.withValues(alpha: 0.2))
+            : null,
       ),
-      onTap: isPlaceholder ? null : onTap,
-      trailing: isPlaceholder
-          ? Icon(
-              Icons.lock_outline,
-              size: 16,
-              color: AppTheme.textMuted.withValues(alpha: 0.5),
-            )
-          : null,
     );
   }
 }
+
 

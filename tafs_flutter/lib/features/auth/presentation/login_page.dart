@@ -41,13 +41,16 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AuthBloc, AuthState>(
-      // AuthGate handles routing on AuthAuthenticated; LoginPage only shows errors.
       listener: (context, state) {
         if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
-              backgroundColor: Colors.redAccent,
+              backgroundColor: AppTheme.danger,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              ),
             ),
           );
         }
@@ -57,91 +60,126 @@ class _LoginPageState extends State<LoginPage> {
 
         return Scaffold(
           body: SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Image.asset('assets/logo.png', height: 80),
-                      const SizedBox(height: 32),
-                      Text(
-                        'Welcome to TAFS',
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.primary,
-                            ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Log in to your parent portal',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppTheme.textMuted,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppTheme.space8,
+                          vertical: AppTheme.space10,
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 48),
-                      CustomTextField(
-                        label: 'Email',
-                        hint: 'Enter your email address',
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email address';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      CustomTextField(
-                        label: 'Password',
-                        hint: 'Enter your password',
-                        isPassword: true,
-                        controller: _passwordController,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 40),
-                      CustomButton(
-                        text: 'Log In',
-                        isLoading: isLoading,
-                        onPressed: _login,
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text("Don't have an account? "),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const SignupPage(),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Spacer(flex: 2),
+                              // Logo with subtle shadow
+                              Center(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    boxShadow: AppTheme.shadowSm,
+                                  ),
+                                  child: Image.asset(
+                                    'assets/logo.png',
+                                    height: 100,
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
-                              );
-                            },
-                            child: const Text(
-                              'Sign Up',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
+                              ),
+                              const SizedBox(height: AppTheme.space12),
+                              // Welcome Text
+                              Text(
+                                'Welcome Back',
+                                style: Theme.of(context).textTheme.displayMedium,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: AppTheme.space2),
+                              Text(
+                                'Log in to your parent portal to manage fees and stay updated.',
+                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      color: AppTheme.blue300,
+                                    ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: AppTheme.space12),
+                              // Form Fields
+                              CustomTextField(
+                                label: 'Email Address',
+                                hint: 'e.g. parent@example.com',
+                                controller: _emailController,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter your email address';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: AppTheme.space6),
+                              CustomTextField(
+                                label: 'Password',
+                                hint: '••••••••',
+                                isPassword: true,
+                                controller: _passwordController,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter your password';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: AppTheme.space10),
+                              // Login Button
+                              CustomButton(
+                                text: 'Log In',
+                                isLoading: isLoading,
+                                onPressed: _login,
+                              ),
+                              const SizedBox(height: AppTheme.space6),
+                              // Sign Up Link
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "Don't have an account? ",
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: AppTheme.blue300,
+                                        ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const SignupPage(),
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      'Sign Up',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            color: AppTheme.navy,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Spacer(flex: 3),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ),
         );
@@ -149,3 +187,4 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+

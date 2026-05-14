@@ -25,7 +25,6 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
   @override
   void initState() {
     super.initState();
-    // Start periodic refresh every 15 seconds while this page is open
     _refreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
       if (mounted) {
         context.read<AuthBloc>().add(AuthRefreshRequested());
@@ -42,10 +41,10 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.white,
       appBar: AppBar(
-        backgroundColor: AppTheme.surface1,
-        foregroundColor: AppTheme.textMain,
+        backgroundColor: AppTheme.white,
+        foregroundColor: AppTheme.navy,
         elevation: 0,
         title: const Text(
           'Family Profile',
@@ -55,16 +54,25 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
           if (authState is! AuthAuthenticated) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'Family profile is only available after login.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppTheme.textMuted,
-                    fontWeight: FontWeight.w600,
-                  ),
+                padding: const EdgeInsets.all(AppTheme.space6),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.lock_outline_rounded, size: 64, color: AppTheme.blue100),
+                    const SizedBox(height: AppTheme.space4),
+                    Text(
+                      'Access Restricted',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: AppTheme.space2),
+                    Text(
+                      'Please log in to view your family profile.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppTheme.blue300),
+                    ),
+                  ],
                 ),
               ),
             );
@@ -77,93 +85,104 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
               return RefreshIndicator(
                 onRefresh: () async {
                   context.read<AuthBloc>().add(AuthRefreshRequested());
-                  // Wait a short bit to ensure the user sees the refresh action
                   await Future.delayed(const Duration(milliseconds: 800));
                 },
+                color: AppTheme.navy,
                 child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(), // Important for RefreshIndicator
-                  padding: const EdgeInsets.all(16),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(AppTheme.space5),
                   child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _ParentHeaderCard(parent: parent),
-                    const SizedBox(height: 16),
-                    _ParentDetailsCard(parent: parent),
-                    if (parent.guardians.isNotEmpty) ...[
-                      const SizedBox(height: 20),
-                      const Text(
-                        'Guardians',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textMain,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _ParentHeaderCard(parent: parent),
+                      const SizedBox(height: AppTheme.space6),
+                      Text(
+                        'HOUSEHOLD DETAILS',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: AppTheme.blue300,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
+                      ),
+                      const SizedBox(height: AppTheme.space3),
+                      _ParentDetailsCard(parent: parent),
+                      if (parent.guardians.isNotEmpty) ...[
+                        const SizedBox(height: AppTheme.space6),
+                        Text(
+                          'GUARDIANS',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: AppTheme.blue300,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
+                        ),
+                        const SizedBox(height: AppTheme.space3),
+                        ...parent.guardians.map(
+                          (guardian) => Padding(
+                            padding: const EdgeInsets.only(bottom: AppTheme.space3),
+                            child: _GuardianCard(guardian: guardian),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppTheme.space6),
+                      Text(
+                        'CHILDREN',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: AppTheme.blue300,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
+                      ),
+                      const SizedBox(height: AppTheme.space3),
+                      ...parent.students.map(
+                        (student) => Padding(
+                          padding: const EdgeInsets.only(bottom: AppTheme.space3),
+                          child: _StudentInfoCard(
+                            student: student,
+                            isActive: activeStudent?.cc == student.cc,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      ...parent.guardians.map(
-                        (guardian) => Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _GuardianCard(guardian: guardian),
-                        ),
-                      ),
+                      const SizedBox(height: AppTheme.space10),
                     ],
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Children',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textMain,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    ...parent.students.map(
-                      (student) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _StudentInfoCard(
-                          student: student,
-                          isActive: activeStudent?.cc == student.cc,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ); // RefreshIndicator close
-          },
-        ); // inner BlocBuilder close
+              );
+            },
+          );
         },
-      ), // outer BlocBuilder close
+      ),
     );
   }
 }
 
 class _ParentHeaderCard extends StatelessWidget {
   final Parent parent;
-
   const _ParentHeaderCard({required this.parent});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(AppTheme.space6),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppTheme.primary, Color(0xFF1B436D)],
+          colors: [AppTheme.navy, Color(0xFF1B436D)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        boxShadow: AppTheme.shadowMd,
       ),
       child: Row(
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(16),
+              color: AppTheme.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              border: Border.all(color: AppTheme.white.withValues(alpha: 0.2)),
               image: parent.photographUrl != null
                   ? DecorationImage(
                       image: NetworkImage(parent.photographUrl!),
@@ -172,40 +191,37 @@ class _ParentHeaderCard extends StatelessWidget {
                   : null,
             ),
             child: parent.photographUrl == null
-                ? const Icon(
-                    Icons.family_restroom_rounded,
-                    color: Colors.white,
-                    size: 30,
-                  )
+                ? const Icon(Icons.family_restroom_rounded, color: AppTheme.white, size: 32)
                 : null,
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: AppTheme.space5),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Household',
+                Text(
+                  'Family Household',
                   style: TextStyle(
-                    color: Color(0xB3FFFFFF),
+                    color: AppTheme.white.withValues(alpha: 0.6),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   parent.householdName,
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
+                    color: AppTheme.white,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  parent.username.isNotEmpty ? parent.username : 'No email',
-                  style: const TextStyle(
-                    color: Color(0xD9FFFFFF),
+                  parent.username.isNotEmpty ? parent.username : 'No primary email',
+                  style: TextStyle(
+                    color: AppTheme.white.withValues(alpha: 0.8),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -221,62 +237,42 @@ class _ParentHeaderCard extends StatelessWidget {
 
 class _ParentDetailsCard extends StatelessWidget {
   final Parent parent;
-
   const _ParentDetailsCard({required this.parent});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppTheme.space5),
       decoration: BoxDecoration(
-        color: AppTheme.surface1,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderSubtle),
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.blue100),
       ),
       child: Column(
         children: [
-          _detailRow('Family ID', '#${parent.id}'),
-          const Divider(color: AppTheme.borderSubtle, height: 20),
-          _detailRow(
-            'Guardian Email',
-            parent.username.isNotEmpty ? parent.username : 'Not available',
-          ),
-          const Divider(color: AppTheme.borderSubtle, height: 20),
-          _detailRow('Children Linked', '${parent.students.length}'),
+          _DetailRow(label: 'Family ID', value: '#${parent.id}'),
+          const Divider(height: AppTheme.space4, color: AppTheme.blue100),
+          _DetailRow(label: 'Primary Contact', value: parent.username.isNotEmpty ? parent.username : 'N/A'),
+          const Divider(height: AppTheme.space4, color: AppTheme.blue100),
+          _DetailRow(label: 'Students Linked', value: '${parent.students.length} Total'),
         ],
       ),
     );
   }
+}
 
-  Widget _detailRow(String label, String value) {
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _DetailRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Expanded(
-          flex: 4,
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: AppTheme.textMuted,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          flex: 6,
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              color: AppTheme.textMain,
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-            ),
-          ),
-        ),
+        Text(label, style: const TextStyle(color: AppTheme.blue300, fontSize: 13, fontWeight: FontWeight.w500)),
+        Text(value, style: const TextStyle(color: AppTheme.navy, fontWeight: FontWeight.bold, fontSize: 13)),
       ],
     );
   }
@@ -286,146 +282,76 @@ class _StudentInfoCard extends StatelessWidget {
   final Student student;
   final bool isActive;
 
-  const _StudentInfoCard({
-    required this.student,
-    required this.isActive,
-  });
+  const _StudentInfoCard({required this.student, required this.isActive});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface1,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isActive ? AppTheme.primary : AppTheme.borderSubtle,
-          width: isActive ? 1.3 : 1,
-        ),
-        boxShadow: AppTheme.shadowL1,
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: isActive ? AppTheme.navy : AppTheme.blue100, width: isActive ? 1.5 : 1.0),
+        boxShadow: AppTheme.shadowSm,
       ),
       child: InkWell(
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => StudentProfileLoader(studentCc: student.cc),
-            ),
+            MaterialPageRoute(builder: (context) => StudentProfileLoader(studentCc: student.cc)),
           );
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(AppTheme.space5),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 22,
-                    backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                    radius: 24,
+                    backgroundColor: AppTheme.navy.withValues(alpha: 0.05),
                     backgroundImage: student.photographUrl != null
                         ? NetworkImage(student.photographUrl!)
                         : null,
                     child: student.photographUrl == null
                         ? Text(
-                            student.fullName.isNotEmpty
-                                ? student.fullName[0]
-                                : '?',
-                            style: const TextStyle(
-                              color: AppTheme.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
+                            student.fullName[0],
+                            style: const TextStyle(color: AppTheme.navy, fontWeight: FontWeight.bold),
                           )
                         : null,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppTheme.space4),
                   Expanded(
-                    child: Text(
-                      student.fullName,
-                      style: const TextStyle(
-                        color: AppTheme.textMain,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          student.fullName,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.navy),
+                        ),
+                        Text(
+                          '${student.className ?? "N/A"} • Section ${student.section ?? "N/A"}',
+                          style: TextStyle(color: AppTheme.blue300, fontSize: 12, fontWeight: FontWeight.w500),
+                        ),
+                      ],
                     ),
                   ),
                   if (isActive)
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
+                        color: AppTheme.navy.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusXs),
                       ),
-                      child: const Text(
-                        'ACTIVE',
-                        style: TextStyle(
-                          color: AppTheme.primary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+                      child: const Text('ACTIVE', style: TextStyle(color: AppTheme.navy, fontSize: 10, fontWeight: FontWeight.bold)),
                     ),
-                  const SizedBox(width: 8),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppTheme.textMuted,
-                  ),
+                  const SizedBox(width: AppTheme.space2),
+                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.blue100),
                 ],
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _chip('CC ${student.cc}'),
-                  _chip(
-                    student.grNumber != null ? 'GR ${student.grNumber}' : 'GR -',
-                  ),
-                  _chip(student.academicYear ?? 'Year -'),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                '${student.className ?? 'Class -'} • ${student.section ?? 'Section -'}',
-                style: const TextStyle(
-                  color: AppTheme.textMain,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                student.campus ?? 'Campus not assigned',
-                style: const TextStyle(
-                  color: AppTheme.textMuted,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 12,
-                ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _chip(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderSubtle),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: AppTheme.textMuted,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -434,7 +360,6 @@ class _StudentInfoCard extends StatelessWidget {
 
 class _GuardianCard extends StatelessWidget {
   final FamilyGuardian guardian;
-
   const _GuardianCard({required this.guardian});
 
   void _showGuardianDetails(BuildContext context) {
@@ -442,185 +367,7 @@ class _GuardianCard extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppTheme.background,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.borderSubtle,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 24),
-            CircleAvatar(
-              radius: 45,
-              backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-              backgroundImage: guardian.photographUrl != null
-                  ? NetworkImage(guardian.photographUrl!)
-                  : null,
-              child: guardian.photographUrl == null
-                  ? const Icon(Icons.person, size: 45, color: AppTheme.primary)
-                  : null,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              guardian.name,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textMain,
-              ),
-            ),
-            Text(
-              guardian.relationship.toUpperCase(),
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primary,
-                letterSpacing: 1.2,
-              ),
-            ),
-            if (guardian.isEmergencyContact) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.red.withOpacity(0.3)),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.emergency_rounded, size: 14, color: Colors.red),
-                    SizedBox(width: 6),
-                    Text(
-                      'EMERGENCY CONTACT',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
-            _detailItem(Icons.phone_outlined, 'Phone', guardian.phone ?? 'N/A'),
-            _detailItem(
-              Icons.chat_bubble_outline_rounded,
-              'WhatsApp',
-              guardian.whatsapp ?? 'N/A',
-            ),
-            _detailItem(Icons.email_outlined, 'Email', guardian.email ?? 'N/A'),
-            _detailItem(
-              Icons.badge_outlined,
-              'CNIC',
-              guardian.cnic ?? 'N/A',
-            ),
-            _detailItem(
-              Icons.work_outline,
-              'Occupation',
-              guardian.occupation ?? 'N/A',
-            ),
-            _detailItem(
-              Icons.person_pin_circle_outlined,
-              'Job Position',
-              guardian.jobPosition ?? 'N/A',
-            ),
-            _detailItem(
-              Icons.business_outlined,
-              'Organization',
-              guardian.organization ?? 'N/A',
-            ),
-            _detailItem(
-              Icons.school_outlined,
-              'Education',
-              guardian.education ?? 'N/A',
-            ),
-            _detailItem(
-              Icons.location_on_outlined,
-              'Home Address',
-              guardian.address ?? 'N/A',
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EditGuardianPage(guardian: guardian),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.edit_note_rounded),
-              label: const Text('Edit Profile'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _detailItem(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppTheme.surface1,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 20, color: AppTheme.textMuted),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.textMuted,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppTheme.textMain,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      builder: (context) => _GuardianDetailsSheet(guardian: guardian),
     );
   }
 
@@ -628,88 +375,146 @@ class _GuardianCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface1,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderSubtle),
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.blue100),
       ),
       child: InkWell(
         onTap: () => _showGuardianDetails(context),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(AppTheme.space4),
           child: Row(
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                backgroundColor: AppTheme.navy.withValues(alpha: 0.05),
                 backgroundImage: guardian.photographUrl != null
                     ? NetworkImage(guardian.photographUrl!)
                     : null,
                 child: guardian.photographUrl == null
-                    ? const Icon(Icons.person, color: AppTheme.primary)
+                    ? const Icon(Icons.person_outline, color: AppTheme.navy)
                     : null,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppTheme.space4),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       guardian.name,
-                      style: const TextStyle(
-                        color: AppTheme.textMain,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+                      style: const TextStyle(color: AppTheme.navy, fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                     Text(
                       guardian.relationship,
-                      style: const TextStyle(
-                        color: AppTheme.textMuted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: const TextStyle(color: AppTheme.blue300, fontSize: 12, fontWeight: FontWeight.w500),
                     ),
-                    if (guardian.isEmergencyContact) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.emergency_rounded, 
-                              size: 12, 
-                              color: Colors.red,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'EMERGENCY',
-                              style: TextStyle(
-                                color: Colors.red,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.0,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppTheme.textMuted,
-              ),
+              if (guardian.isEmergencyContact)
+                const Padding(
+                  padding: EdgeInsets.only(right: 8),
+                  child: Icon(Icons.emergency_rounded, color: AppTheme.danger, size: 18),
+                ),
+              const Icon(Icons.chevron_right_rounded, color: AppTheme.blue100),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _GuardianDetailsSheet extends StatelessWidget {
+  final FamilyGuardian guardian;
+  const _GuardianDetailsSheet({required this.guardian});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(AppTheme.space4, 0, AppTheme.space4, AppTheme.space8),
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+        boxShadow: AppTheme.shadowLg,
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppTheme.space6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppTheme.blue100, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: AppTheme.space6),
+            CircleAvatar(
+              radius: 48,
+              backgroundColor: AppTheme.navy.withValues(alpha: 0.05),
+              backgroundImage: guardian.photographUrl != null ? NetworkImage(guardian.photographUrl!) : null,
+              child: guardian.photographUrl == null ? const Icon(Icons.person_outline, size: 48, color: AppTheme.navy) : null,
+            ),
+            const SizedBox(height: AppTheme.space4),
+            Text(guardian.name, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.navy)),
+            Text(guardian.relationship.toUpperCase(), style: const TextStyle(color: AppTheme.blue300, fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 12)),
+            if (guardian.isEmergencyContact) ...[
+              const SizedBox(height: AppTheme.space3),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(color: AppTheme.danger.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AppTheme.radiusFull)),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.emergency_rounded, size: 14, color: AppTheme.danger),
+                  SizedBox(width: 6),
+                  Text('EMERGENCY CONTACT', style: TextStyle(color: AppTheme.danger, fontSize: 10, fontWeight: FontWeight.bold)),
+                ]),
+              ),
+            ],
+            const SizedBox(height: AppTheme.space6),
+            _SheetDetailItem(icon: Icons.phone_rounded, label: 'Phone', value: guardian.phone ?? 'N/A'),
+            _SheetDetailItem(icon: Icons.chat_bubble_rounded, label: 'WhatsApp', value: guardian.whatsapp ?? 'N/A'),
+            _SheetDetailItem(icon: Icons.email_rounded, label: 'Email', value: guardian.email ?? 'N/A'),
+            _SheetDetailItem(icon: Icons.badge_rounded, label: 'CNIC', value: guardian.cnic ?? 'N/A'),
+            _SheetDetailItem(icon: Icons.work_rounded, label: 'Occupation', value: guardian.occupation ?? 'N/A'),
+            _SheetDetailItem(icon: Icons.location_on_rounded, label: 'Address', value: guardian.address ?? 'N/A'),
+            const SizedBox(height: AppTheme.space6),
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => EditGuardianPage(guardian: guardian)));
+                },
+                icon: const Icon(Icons.edit_note_rounded),
+                label: const Text('EDIT PROFILE'),
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.navy, foregroundColor: AppTheme.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusFull))),
+              ),
+            ),
+            const SizedBox(height: AppTheme.space2),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SheetDetailItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _SheetDetailItem({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.space4),
+      child: Row(
+        children: [
+          Container(padding: const EdgeInsets.all(AppTheme.space2), decoration: BoxDecoration(color: AppTheme.navy.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(AppTheme.radiusSm)), child: Icon(icon, size: 18, color: AppTheme.blue300)),
+          const SizedBox(width: AppTheme.space4),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.blue200, fontWeight: FontWeight.bold)),
+            Text(value, style: const TextStyle(fontSize: 14, color: AppTheme.navy, fontWeight: FontWeight.w600)),
+          ])),
+        ],
       ),
     );
   }

@@ -11,20 +11,21 @@ class StudentProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.white,
       appBar: AppBar(
         title: const Text('Student Profile'),
-        backgroundColor: AppTheme.surface1,
-        foregroundColor: AppTheme.textMain,
+        backgroundColor: AppTheme.white,
+        foregroundColor: AppTheme.navy,
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppTheme.space5),
         child: Column(
           children: [
-            _buildProfileHeader(),
-            const SizedBox(height: 24),
+            _buildProfileHeader(context),
+            const SizedBox(height: AppTheme.space6),
             _buildInfoSection(
+              context: context,
               title: 'Academic Details',
               items: [
                 _InfoRow(label: 'Campus', value: student.campus ?? 'N/A'),
@@ -35,8 +36,9 @@ class StudentProfilePage extends StatelessWidget {
                 _InfoRow(label: 'GR Number', value: student.grNumber ?? 'N/A'),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppTheme.space6),
             _buildInfoSection(
+              context: context,
               title: 'Personal Details',
               items: [
                 _InfoRow(
@@ -46,8 +48,9 @@ class StudentProfilePage extends StatelessWidget {
                 _InfoRow(label: 'Gender', value: student.gender ?? 'N/A'),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppTheme.space6),
             _buildInfoSection(
+              context: context,
               title: 'Guardian Information',
               items: student.guardians.map((g) => _InfoRow(
                 label: g.relationship,
@@ -60,74 +63,74 @@ class StudentProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppTheme.space6),
       decoration: BoxDecoration(
-        color: AppTheme.surface1,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: AppTheme.shadowL1,
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+        boxShadow: AppTheme.shadowSm,
+        border: Border.all(color: AppTheme.blue100.withValues(alpha: 0.5)),
       ),
       child: Column(
         children: [
           Hero(
             tag: 'student_photo_${student.cc}',
-            child: CircleAvatar(
-              radius: 50,
-              backgroundColor: AppTheme.primary.withOpacity(0.1),
-              backgroundImage: student.photographUrl != null
-                  ? NetworkImage(student.photographUrl!)
-                  : null,
-              child: student.photographUrl == null
-                  ? const Icon(Icons.person, size: 50, color: AppTheme.primary)
-                  : null,
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppTheme.blue100, width: 3),
+              ),
+              child: CircleAvatar(
+                radius: 50,
+                backgroundColor: AppTheme.blue100.withValues(alpha: 0.3),
+                backgroundImage: student.photographUrl != null
+                    ? NetworkImage(student.photographUrl!)
+                    : null,
+                child: student.photographUrl == null
+                    ? const Icon(Icons.person, size: 50, color: AppTheme.navy)
+                    : null,
+              ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppTheme.space4),
           Text(
             student.fullName,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textMain,
-            ),
+            style: Theme.of(context).textTheme.headlineMedium,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppTheme.space1),
           Text(
             'CC: ${student.cc}',
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppTheme.textMuted,
-              fontWeight: FontWeight.w500,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.blue300,
+                  fontWeight: FontWeight.w500,
+                ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoSection({required String title, required List<_InfoRow> items}) {
+  Widget _buildInfoSection({required BuildContext context, required String title, required List<_InfoRow> items}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 12),
+          padding: const EdgeInsets.only(left: AppTheme.space2, bottom: AppTheme.space3),
           child: Text(
             title.toUpperCase(),
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textMuted,
-              letterSpacing: 1.2,
-            ),
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                ),
           ),
         ),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppTheme.space4),
           decoration: BoxDecoration(
-            color: AppTheme.surface1,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.borderSubtle),
+            color: AppTheme.white,
+            borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+            border: Border.all(color: AppTheme.blue100),
           ),
           child: Column(
             children: items.asMap().entries.map((entry) {
@@ -138,8 +141,8 @@ class StudentProfilePage extends StatelessWidget {
                   item,
                   if (idx < items.length - 1)
                     const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Divider(height: 1, color: AppTheme.borderSubtle),
+                      padding: EdgeInsets.symmetric(vertical: AppTheme.space3),
+                      child: Divider(height: 1, color: AppTheme.blue100),
                     ),
                 ],
               );
@@ -163,29 +166,28 @@ class _InfoRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 100,
+          width: 110,
           child: Text(
             label,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppTheme.textMuted,
-              fontWeight: FontWeight.w500,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.blue300,
+                  fontWeight: FontWeight.w500,
+                ),
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: AppTheme.space4),
         Expanded(
           child: Text(
             value,
             textAlign: TextAlign.end,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppTheme.textMain,
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.navy,
+                  fontWeight: FontWeight.w600,
+                ),
           ),
         ),
       ],
     );
   }
 }
+

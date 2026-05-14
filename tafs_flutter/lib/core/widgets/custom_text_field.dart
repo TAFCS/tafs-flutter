@@ -26,18 +26,18 @@ class CustomTextField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textMain,
+                color: AppTheme.navy,
               ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppTheme.space2),
         TextFormField(
           controller: controller,
           obscureText: isPassword,
           validator: validator,
           keyboardType: keyboardType,
-          style: const TextStyle(color: AppTheme.textMain),
+          style: Theme.of(context).textTheme.bodyLarge,
           decoration: InputDecoration(
             hintText: hint,
           ),
@@ -46,3 +46,4 @@ class CustomTextField extends StatelessWidget {
     );
   }
 }
+

@@ -190,7 +190,7 @@ class _SignupPageState extends State<SignupPage> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.1),
+                          color: AppTheme.navy.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(

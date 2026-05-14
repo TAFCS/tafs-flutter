@@ -77,13 +77,8 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
         final normalizedCurrent = (currentValue ?? '').trim();
         final normalizedNew = newValue.trim();
         
-        // Skip if values are identical
         if (normalizedCurrent == normalizedNew) return;
-        
-        // Specifically ignore '+92' if the original was empty (common prefix issue)
         if (normalizedCurrent.isEmpty && normalizedNew == '+92') return;
-        
-        // Skip if the new value is empty and the current one is also effectively empty
         if (normalizedCurrent.isEmpty && normalizedNew.isEmpty) return;
 
         requestedData[key] = normalizedNew;
@@ -126,8 +121,8 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Request submitted successfully! Admin will review it soon.'),
-              backgroundColor: Colors.green,
+              content: Text('Request submitted! Admin will review it soon.'),
+              backgroundColor: AppTheme.success,
             ),
           );
           Navigator.pop(context);
@@ -137,8 +132,8 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit request: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Text('Failed to submit: ${e.toString()}'),
+            backgroundColor: AppTheme.danger,
           ),
         );
       }
@@ -150,66 +145,117 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.white,
       appBar: AppBar(
-        title: const Text('Edit Profile Request'),
-        backgroundColor: AppTheme.surface1,
-        foregroundColor: AppTheme.textMain,
+        title: const Text('Edit Profile'),
+        backgroundColor: AppTheme.white,
+        foregroundColor: AppTheme.navy,
         elevation: 0,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.navy))
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(AppTheme.space5),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Editing: ${widget.guardian.name}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primary,
+                    Container(
+                      padding: const EdgeInsets.all(AppTheme.space5),
+                      decoration: BoxDecoration(
+                        color: AppTheme.navy.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                        border: Border.all(color: AppTheme.blue100),
+                      ),
+                      child: Row(
+                        children: [
+                          const CircleAvatar(
+                            backgroundColor: AppTheme.navy,
+                            child: Icon(Icons.person_outline, color: AppTheme.white),
+                          ),
+                          const SizedBox(width: AppTheme.space4),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.guardian.name,
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.navy,
+                                      ),
+                                ),
+                                Text(
+                                  'Profile Update Request',
+                                  style: TextStyle(color: AppTheme.blue300, fontSize: 13),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Your changes will be sent to the admin for approval.',
-                      style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                    const SizedBox(height: AppTheme.space6),
+                    Text(
+                      'CONTACT INFORMATION',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: AppTheme.blue200,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
                     ),
-                    const SizedBox(height: 24),
-                    _buildTextField(_phoneController, 'Phone', Icons.phone_outlined),
-                    _buildTextField(_whatsappController, 'WhatsApp', Icons.chat_bubble_outline),
-                    _buildTextField(_emailController, 'Email', Icons.email_outlined),
-                    _buildTextField(_cnicController, 'CNIC', Icons.badge_outlined),
-                    _buildTextField(_occupationController, 'Occupation', Icons.work_outline),
-                    _buildTextField(_jobPositionController, 'Job Position', Icons.person_pin_circle_outlined),
-                    _buildTextField(_organizationController, 'Organization', Icons.business_outlined),
-                    _buildTextField(_educationController, 'Education', Icons.school_outlined),
-                    _buildTextField(_addressController, 'Home Address', Icons.location_on_outlined, maxLines: 3),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppTheme.space4),
+                    _buildTextField(_phoneController, 'Primary Phone', Icons.phone_rounded),
+                    _buildTextField(_whatsappController, 'WhatsApp Number', Icons.chat_bubble_rounded),
+                    _buildTextField(_emailController, 'Email Address', Icons.email_rounded),
+                    const SizedBox(height: AppTheme.space4),
+                    Text(
+                      'PROFESSIONAL DETAILS',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: AppTheme.blue200,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                    ),
+                    const SizedBox(height: AppTheme.space4),
+                    _buildTextField(_occupationController, 'Occupation', Icons.work_rounded),
+                    _buildTextField(_jobPositionController, 'Job Position', Icons.person_pin_rounded),
+                    _buildTextField(_organizationController, 'Organization', Icons.business_rounded),
+                    _buildTextField(_educationController, 'Education Level', Icons.school_rounded),
+                    const SizedBox(height: AppTheme.space4),
+                    Text(
+                      'OTHER INFORMATION',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: AppTheme.blue200,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                    ),
+                    const SizedBox(height: AppTheme.space4),
+                    _buildTextField(_cnicController, 'CNIC Number', Icons.badge_rounded),
+                    _buildTextField(_addressController, 'Home Address', Icons.location_on_rounded, maxLines: 2),
+                    const SizedBox(height: AppTheme.space8),
                     SizedBox(
                       width: double.infinity,
-                      height: 54,
+                      height: 56,
                       child: ElevatedButton(
                         onPressed: _submitRequest,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppTheme.navy,
+                          foregroundColor: AppTheme.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppTheme.radiusFull),
                           ),
-                          elevation: 2,
+                          elevation: 0,
                         ),
                         child: const Text(
-                          'Submit Change Request',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          'SUBMIT CHANGES',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.0),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: AppTheme.space10),
                   ],
                 ),
               ),
@@ -224,28 +270,30 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
     int maxLines = 1,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: AppTheme.space4),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
+        style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.navy),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: AppTheme.primary, size: 20),
+          prefixIcon: Icon(icon, color: AppTheme.blue200, size: 20),
           filled: true,
-          fillColor: AppTheme.surface1,
+          fillColor: AppTheme.white,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppTheme.borderSubtle),
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            borderSide: const BorderSide(color: AppTheme.blue100),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppTheme.borderSubtle),
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            borderSide: const BorderSide(color: AppTheme.blue100),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            borderSide: const BorderSide(color: AppTheme.navy, width: 1.5),
           ),
-          labelStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
+          labelStyle: const TextStyle(color: AppTheme.blue300, fontSize: 13, fontWeight: FontWeight.w500),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );

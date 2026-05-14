@@ -16,72 +16,69 @@ class StudentProfileCard extends StatelessWidget {
         if (student == null) return const SizedBox.shrink();
 
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppTheme.space4),
           decoration: BoxDecoration(
-            color: AppTheme.surface1,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.borderSubtle),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            color: AppTheme.white,
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            border: Border.all(color: AppTheme.blue100),
+            boxShadow: AppTheme.shadowSm,
           ),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                backgroundImage: student.photographUrl != null
-                    ? NetworkImage(student.photographUrl!)
-                    : null,
-                child: student.photographUrl == null
-                    ? Text(
-                        student.fullName[0],
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primary,
-                        ),
-                      )
-                    : null,
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppTheme.blue100, width: 2),
+                ),
+                child: CircleAvatar(
+                  radius: 30,
+                  backgroundColor: AppTheme.blue100.withValues(alpha: 0.3),
+                  backgroundImage: student.photographUrl != null
+                      ? NetworkImage(student.photographUrl!)
+                      : null,
+                  child: student.photographUrl == null
+                      ? Text(
+                          student.fullName[0],
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.navy,
+                          ),
+                        )
+                      : null,
+                ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppTheme.space4),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       student.fullName,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textMain,
-                      ),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.navy,
+                          ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppTheme.space1),
                     Text(
                       '${student.grNumber ?? 'N/A'} • ${student.className ?? ''} - ${student.section ?? ''}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.textMuted,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.blue300,
+                          ),
                     ),
                     Text(
                       student.campus ?? 'Main Campus',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.textMuted,
-                      ),
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: AppTheme.blue200,
+                          ),
                     ),
                   ],
                 ),
               ),
               if (showEditButton)
                 const Icon(Icons.edit_outlined,
-                    color: AppTheme.primary, size: 20),
+                    color: AppTheme.navy, size: 20),
             ],
           ),
         );
@@ -89,3 +86,4 @@ class StudentProfileCard extends StatelessWidget {
     );
   }
 }
+

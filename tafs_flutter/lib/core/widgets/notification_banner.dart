@@ -60,7 +60,7 @@ class NotificationBanner extends StatelessWidget {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: AppTheme.textMain,
+                      color: AppTheme.navy,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -68,9 +68,9 @@ class NotificationBanner extends StatelessWidget {
                     message,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
-                      color: AppTheme.textMuted,
+                      color: AppTheme.blue300,
                     ),
                   ),
                 ],

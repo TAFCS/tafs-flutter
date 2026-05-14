@@ -8,6 +8,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/student_profile_card.dart';
 import '../../domain/entities/voucher.dart';
 
@@ -29,18 +30,18 @@ class VoucherDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.white,
       appBar: AppBar(
         title: Text('Challan #${voucher.id}'),
-        backgroundColor: AppTheme.surface1,
-        foregroundColor: AppTheme.textMain,
+        backgroundColor: AppTheme.white,
+        foregroundColor: AppTheme.navy,
         elevation: 0,
         actions: [
           if (voucher.pdfUrl != null)
             IconButton(
               icon: const Icon(
                 Icons.picture_as_pdf_rounded,
-                color: AppTheme.primary,
+                color: AppTheme.navy,
               ),
               tooltip: 'Challan Options',
               onPressed: () => _showChallanOptions(context),
@@ -48,64 +49,51 @@ class VoucherDetailPage extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppTheme.space5),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Student Header
             const StudentProfileCard(),
-            const SizedBox(height: 24),
-
-            // Status Header
+            const SizedBox(height: AppTheme.space6),
             _StatusHeader(voucher: voucher),
-            const SizedBox(height: 24),
-
-            // Summary Card
+            const SizedBox(height: AppTheme.space6),
             _SummaryCard(voucher: voucher),
-            const SizedBox(height: 24),
-
-            // Fee Items
-            const Text(
-              'Fee Breakdown',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textMain,
-              ),
+            const SizedBox(height: AppTheme.space6),
+            Text(
+              'FEE BREAKDOWN',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppTheme.blue300,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.space3),
             _FeeBreakdown(heads: voucher.heads),
-            const SizedBox(height: 24),
-
-            // Bank Details
+            const SizedBox(height: AppTheme.space6),
             if (voucher.bankInfo != null) ...[
-              const Text(
-                'Payment Instructions',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textMain,
-                ),
+              Text(
+                'PAYMENT INSTRUCTIONS',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppTheme.blue300,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppTheme.space3),
               _BankDetails(bankInfo: voucher.bankInfo!),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppTheme.space8),
             ],
-
-            // Action Buttons
             if (voucher.status != 'PAID')
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Implement Payment Integration
-                  },
-                  icon: const Icon(Icons.payment_rounded),
-                  label: const Text('Pay Now / Generate ID'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
+                height: 54,
+              child: CustomButton(
+                text: 'Pay Now',
+                onPressed: () {
+                  // TODO: Implement Payment Integration
+                },
+                gradient: AppTheme.navyGradient,
+              ),
               ),
           ],
         ),
@@ -127,68 +115,70 @@ class _StatusHeader extends StatelessWidget {
 
     switch (voucher.status) {
       case 'PAID':
-        statusColor = Colors.green;
-        statusIcon = Icons.check_circle_outline;
+        statusColor = AppTheme.success;
+        statusIcon = Icons.check_circle_rounded;
         break;
       case 'OVERDUE':
-        statusColor = Colors.red;
-        statusIcon = Icons.error_outline;
+        statusColor = AppTheme.danger;
+        statusIcon = Icons.error_rounded;
         break;
       case 'PARTIALLY_PAID':
-        statusColor = Colors.orange;
+        statusColor = AppTheme.warning;
         statusIcon = Icons.timelapse_rounded;
-        statusText = 'Partial';
+        statusText = 'PARTIAL';
         break;
       case 'VOID':
-        statusColor = Colors.grey;
-        statusIcon = Icons.cancel_outlined;
-        statusText = 'Cancelled';
+        statusColor = AppTheme.blue200;
+        statusIcon = Icons.cancel_rounded;
+        statusText = 'CANCELLED';
         break;
       default:
-        statusColor = AppTheme.accent;
-        statusIcon = Icons.receipt_long_outlined;
+        statusColor = AppTheme.blue300;
+        statusIcon = Icons.receipt_long_rounded;
     }
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppTheme.space5),
       decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [statusColor.withValues(alpha: 0.1), statusColor.withValues(alpha: 0.02)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         border: Border.all(color: statusColor.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppTheme.space3),
             decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.2),
+              color: statusColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(statusIcon, color: statusColor, size: 28),
+            child: Icon(statusIcon, color: statusColor, size: 24),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppTheme.space4),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   statusText.replaceAll('_', ' '),
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
-                  ),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   voucher.status == 'PAID'
-                      ? 'Fully cleared'
-                      : 'Due by ${dateFmt.format(voucher.dueDate)}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: statusColor.withValues(alpha: 0.8),
-                    fontWeight: FontWeight.w500,
-                  ),
+                      ? 'Payment fully cleared'
+                      : 'Due date: ${dateFmt.format(voucher.dueDate)}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: statusColor.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w500,
+                      ),
                 ),
               ],
             ),
@@ -207,12 +197,12 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0', 'en_US');
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppTheme.space5),
       decoration: BoxDecoration(
-        color: AppTheme.surface1,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: AppTheme.shadowL1,
-        border: Border.all(color: AppTheme.borderSubtle),
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        boxShadow: AppTheme.shadowSm,
+        border: Border.all(color: AppTheme.blue100),
       ),
       child: Column(
         children: [
@@ -223,22 +213,25 @@ class _SummaryCard extends StatelessWidget {
           if (voucher.lateFeeCharge && voucher.isOverdue)
             _SummaryRow(
               label: 'Late Surcharge',
-              value:
-                  'Rs. ${fmt.format(voucher.totalPayableAfterDue - voucher.totalPayableBeforeDue)}',
-              color: Colors.red,
+              value: 'Rs. ${fmt.format(voucher.totalPayableAfterDue - voucher.totalPayableBeforeDue)}',
+              color: AppTheme.danger,
             ),
-          const Divider(height: 24),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppTheme.space3),
+            child: Divider(color: AppTheme.blue100, height: 1),
+          ),
           _SummaryRow(
             label: 'Total Paid',
             value: 'Rs. ${fmt.format(voucher.totalPaid)}',
-            color: Colors.green,
+            color: AppTheme.success,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppTheme.space2),
           _SummaryRow(
             label: 'Outstanding Balance',
             value: 'Rs. ${fmt.format(voucher.totalBalance)}',
             bold: true,
             fontSize: 18,
+            color: AppTheme.navy,
           ),
         ],
       ),
@@ -268,13 +261,13 @@ class _SummaryRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textMuted)),
+          Text(label, style: const TextStyle(color: AppTheme.blue300, fontSize: 13, fontWeight: FontWeight.w500)),
           Text(
             value,
             style: TextStyle(
               fontSize: fontSize,
-              fontWeight: bold ? FontWeight.bold : FontWeight.w600,
-              color: color ?? AppTheme.textMain,
+              fontWeight: bold ? FontWeight.bold : FontWeight.w700,
+              color: color ?? AppTheme.navy,
             ),
           ),
         ],
@@ -292,20 +285,20 @@ class _FeeBreakdown extends StatelessWidget {
     final fmt = NumberFormat('#,##0', 'en_US');
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface1,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderSubtle),
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.blue100),
       ),
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: heads.length,
         separatorBuilder: (_, __) =>
-            const Divider(height: 1, indent: 16, endIndent: 16),
+            const Divider(height: 1, color: AppTheme.blue100),
         itemBuilder: (ctx, i) {
           final head = heads[i];
           return Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppTheme.space4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -313,44 +306,44 @@ class _FeeBreakdown extends StatelessWidget {
                   children: [
                     if (head.isArrear)
                       Container(
-                        margin: const EdgeInsets.only(right: 8),
+                        margin: const EdgeInsets.only(right: AppTheme.space2),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 6,
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.red.shade200),
+                          color: AppTheme.danger.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusXs),
+                          border: Border.all(color: AppTheme.danger.withValues(alpha: 0.2)),
                         ),
-                        child: Text(
+                        child: const Text(
                           'ARREARS',
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 9,
                             fontWeight: FontWeight.bold,
-                            color: Colors.red.shade900,
+                            color: AppTheme.danger,
                           ),
                         ),
                       ),
                     Text(
                       head.feeType,
                       style: const TextStyle(
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.bold,
                         fontSize: 14,
-                        color: AppTheme.textMain,
+                        color: AppTheme.navy,
                       ),
                     ),
                   ],
                 ),
                 if (head.discountAmount > 0)
                   Padding(
-                    padding: const EdgeInsets.only(top: 2),
+                    padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       'Discount: ${head.discountLabel ?? "Applied"} (-Rs. ${fmt.format(head.discountAmount)})',
-                      style: const TextStyle(color: Colors.green, fontSize: 12),
+                      style: const TextStyle(color: AppTheme.success, fontSize: 12, fontWeight: FontWeight.w500),
                     ),
                   ),
-                const SizedBox(height: 10),
+                const SizedBox(height: AppTheme.space4),
                 Row(
                   children: [
                     Expanded(
@@ -363,7 +356,7 @@ class _FeeBreakdown extends StatelessWidget {
                       child: _BreakdownStat(
                         label: 'Deposited',
                         value: 'Rs. ${fmt.format(head.amountDeposited)}',
-                        valueColor: Colors.green.shade700,
+                        valueColor: AppTheme.success,
                       ),
                     ),
                     Expanded(
@@ -371,8 +364,8 @@ class _FeeBreakdown extends StatelessWidget {
                         label: 'Balance',
                         value: 'Rs. ${fmt.format(head.balance)}',
                         valueColor: head.balance > 0
-                            ? Colors.red.shade700
-                            : Colors.green.shade700,
+                            ? AppTheme.danger
+                            : AppTheme.success,
                       ),
                     ),
                   ],
@@ -405,9 +398,10 @@ class _BreakdownStat extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11,
-            color: AppTheme.textMuted,
-            fontWeight: FontWeight.w500,
+            fontSize: 10,
+            color: AppTheme.blue200,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 2),
@@ -415,8 +409,8 @@ class _BreakdownStat extends StatelessWidget {
           value,
           style: TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: valueColor ?? AppTheme.textMain,
+            fontWeight: FontWeight.bold,
+            color: valueColor ?? AppTheme.navy,
           ),
         ),
       ],
@@ -431,14 +425,11 @@ class _BankDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppTheme.space5),
       decoration: BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.borderSubtle,
-          style: BorderStyle.solid,
-        ),
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.blue100),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -448,22 +439,22 @@ class _BankDetails extends StatelessWidget {
               const Icon(
                 Icons.account_balance_rounded,
                 size: 18,
-                color: AppTheme.primary,
+                color: AppTheme.navy,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppTheme.space2),
               Text(
                 bankInfo.bankName,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
+                  color: AppTheme.navy,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppTheme.space4),
           _BankField(label: 'Account Title', value: bankInfo.accountTitle),
           _BankField(
-            label: 'Account Number',
+            label: 'Account No.',
             value: bankInfo.accountNumber,
             canCopy: true,
           ),
@@ -489,31 +480,30 @@ class _BankField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.space1),
       child: Row(
         children: [
           SizedBox(
             width: 100,
             child: Text(
               label,
-              style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+              style: const TextStyle(color: AppTheme.blue300, fontSize: 13, fontWeight: FontWeight.w500),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.navy),
             ),
           ),
           if (canCopy)
-            const Icon(Icons.copy_rounded, size: 14, color: AppTheme.primary),
+            const Icon(Icons.copy_rounded, size: 14, color: AppTheme.blue300),
         ],
       ),
     );
   }
 }
 
-// ─── Challan Options Bottom Sheet ────────────────────────────────────────────
 class _ChallanOptionsSheet extends StatefulWidget {
   final int voucherId;
   final String pdfUrl;
@@ -537,17 +527,13 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
           : await launchUrl(uri, mode: LaunchMode.externalApplication);
 
       if (!launched && mounted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open browser')),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open browser')),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -565,9 +551,7 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Download failed: $e')));
         }
       }
       return;
@@ -656,9 +640,7 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
     } catch (e) {
       setState(() => _isDownloading = false);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Download failed: $e')));
       }
     }
   }
@@ -666,125 +648,112 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+      margin: const EdgeInsets.fromLTRB(AppTheme.space4, 0, AppTheme.space4, AppTheme.space8),
       decoration: BoxDecoration(
-        color: AppTheme.surface1,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.borderSubtle),
-        boxShadow: AppTheme.shadowL2,
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXl),
+        border: Border.all(color: AppTheme.blue100),
+        boxShadow: AppTheme.shadowLg,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
           Container(
             margin: const EdgeInsets.only(top: 12),
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppTheme.borderSubtle,
+              color: AppTheme.blue100,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 20),
-
-          // Icon + Title
+          const SizedBox(height: AppTheme.space5),
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(AppTheme.space4),
             decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.1),
+              color: AppTheme.navy.withValues(alpha: 0.05),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.picture_as_pdf_rounded,
-              color: AppTheme.primary,
+              color: AppTheme.navy,
               size: 32,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppTheme.space3),
           const Text(
-            'Challan PDF',
+            'CHALLAN PDF',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: AppTheme.textMain,
+              color: AppTheme.navy,
+              letterSpacing: 1.1,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppTheme.space1),
           const Text(
-            'How would you like to open this challan?',
-            style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+            'Choose how to open this document',
+            style: TextStyle(fontSize: 13, color: AppTheme.blue300, fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 24),
-
-          // Download progress
+          const SizedBox(height: AppTheme.space6),
           if (_isDownloading)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space6),
               child: Column(
                 children: [
                   LinearProgressIndicator(
                     value: _downloadProgress,
-                    backgroundColor: AppTheme.background,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      AppTheme.primary,
-                    ),
+                    backgroundColor: AppTheme.blue100,
+                    valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.navy),
                     minHeight: 6,
                     borderRadius: BorderRadius.circular(3),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '${(_downloadProgress * 100).toStringAsFixed(0)}% downloaded...',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textMuted,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: AppTheme.blue300, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppTheme.space5),
                 ],
               ),
             ),
-
-          // Action Buttons
           if (!_isDownloading) ...[
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space5),
               child: Row(
                 children: [
-                  // View in Browser
                   Expanded(
                     child: _OptionButton(
                       icon: Icons.open_in_browser_rounded,
-                      label: 'View in Browser',
-                      subtitle: 'Opens in external app',
-                      color: AppTheme.accent,
+                      label: 'View',
+                      subtitle: 'In Browser',
+                      color: AppTheme.blue300,
                       onTap: _viewInBrowser,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  // Download
+                  const SizedBox(width: AppTheme.space3),
                   Expanded(
                     child: _OptionButton(
                       icon: Icons.download_rounded,
                       label: 'Download',
-                      subtitle: 'Save to device',
-                      color: AppTheme.primary,
+                      subtitle: 'To Device',
+                      color: AppTheme.navy,
                       onTap: _downloadToDevice,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTheme.space4),
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text(
-                'Cancel',
-                style: TextStyle(color: AppTheme.textMuted),
+                'CLOSE',
+                style: TextStyle(color: AppTheme.blue300, fontWeight: FontWeight.bold, letterSpacing: 1.0),
               ),
             ),
           ],
-          const SizedBox(height: 8),
+          const SizedBox(height: AppTheme.space2),
         ],
       ),
     );
@@ -808,41 +777,27 @@ class _OptionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: AppTheme.space4),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.25)),
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(height: 10),
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
             Text(
               label,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                color: color,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 14),
             ),
-            const SizedBox(height: 2),
             Text(
               subtitle,
-              style: TextStyle(
-                fontSize: 11,
-                color: color.withValues(alpha: 0.7),
-              ),
+              style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 11),
             ),
           ],
         ),

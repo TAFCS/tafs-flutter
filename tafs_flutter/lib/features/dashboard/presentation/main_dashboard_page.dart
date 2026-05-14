@@ -111,47 +111,42 @@ class _MainDashboardPageState extends State<MainDashboardPage> {
                 // Add a small delay to make the refresh indicator visible
                 await Future.delayed(const Duration(milliseconds: 500));
               },
-              color: AppTheme.primary,
+              color: AppTheme.navy,
               child: SafeArea(
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(AppTheme.space5),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const StudentProfileCard(),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppTheme.space4),
                       // Welcome Banner
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.all(AppTheme.space6),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [
-                              AppTheme.primary,
-                              Color(0xFF1B436D)
-                            ], // Darker Denim
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
+                          gradient: AppTheme.navyGradient,
+                          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                          boxShadow: AppTheme.shadowMd,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${student.className} - ${student.section}',
+                              '${student.className} • Section ${student.section}',
                               style: const TextStyle(
-                                color: AppTheme.textOnPrimary,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
+                                color: AppTheme.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Welcome to TAFS!',
-                              style: TextStyle(
-                                color: AppTheme.textOnPrimary,
+                            const SizedBox(height: AppTheme.space2),
+                            Text(
+                              'Welcome back, ${student.fullName.split(' ').first}!',
+                              style: const TextStyle(
+                                color: AppTheme.white,
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                               ),

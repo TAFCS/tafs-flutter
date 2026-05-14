@@ -35,21 +35,18 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.white,
       appBar: AppBar(
-        title: const Text(
-          'Fee Ledger',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: AppTheme.surface1,
-        foregroundColor: AppTheme.textMain,
+        title: const Text('Fee Ledger'),
+        backgroundColor: AppTheme.white,
+        foregroundColor: AppTheme.navy,
         elevation: 0,
       ),
       body: BlocBuilder<FeeLedgerBloc, FeeLedgerState>(
         builder: (context, state) {
           if (state is FeeLedgerLoading || state is FeeLedgerInitial) {
             return const Center(
-              child: CircularProgressIndicator(color: AppTheme.primary),
+              child: CircularProgressIndicator(color: AppTheme.navy),
             );
           }
 
@@ -84,7 +81,7 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
             return Column(
               children: [
                 const Padding(
-                  padding: EdgeInsets.all(16.0),
+                  padding: EdgeInsets.all(AppTheme.space4),
                   child: StudentProfileCard(),
                 ),
                 _SummaryStrip(
@@ -103,13 +100,12 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
                     },
                     child: ListView.separated(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(AppTheme.space4),
                       itemCount: months.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (_, __) => const SizedBox(height: AppTheme.space3),
                       itemBuilder: (context, index) {
                         final month = months[index];
                         final monthVouchers = vouchers.where((v) {
-                          // A voucher belongs to a month only if it has a primary (non-arrear) fee head for it
                           final belongsToMonth = v.heads.any(
                             (h) =>
                                 h.academicYear == month.academicYear &&
@@ -118,12 +114,9 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
                           );
 
                           if (!belongsToMonth) return false;
-
-                          // Rule: Don't show VOID challans unless they have some payment activity
                           if (v.status == 'VOID') {
                             return v.totalPaid > 0;
                           }
-
                           return true;
                         }).toList();
 
@@ -179,56 +172,46 @@ class _SummaryStrip extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space6, vertical: AppTheme.space5),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppTheme.primary, Color(0xFF1B436D)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: AppTheme.navyGradient,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Student Fee Status (Month-Wise)',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
           Text(
-            'Outstanding: Rs. ${fmt.format(totalOutstanding)}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+            'STUDENT FEE SUMMARY',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppTheme.white.withValues(alpha: 0.6),
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppTheme.space2),
+          Text(
+            'Rs. ${fmt.format(totalOutstanding)}',
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                  color: AppTheme.white,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          Text(
+            'Total Outstanding Balance',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppTheme.white.withValues(alpha: 0.8),
+                ),
+          ),
+          const SizedBox(height: AppTheme.space5),
           Row(
             children: [
-              _StatPill(label: 'Months', value: '$monthsCount'),
-              const SizedBox(width: 8),
               _StatPill(label: 'Charged', value: fmt.format(totalCharged)),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppTheme.space2),
               _StatPill(
                 label: 'Paid',
                 value: fmt.format(totalPaid),
-                green: true,
+                isSuccess: true,
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Running outstanding total: Rs. ${fmt.format(runningOutstanding)}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
           ),
         ],
       ),
@@ -239,31 +222,49 @@ class _SummaryStrip extends StatelessWidget {
 class _StatPill extends StatelessWidget {
   final String label;
   final String value;
-  final bool green;
+  final bool isSuccess;
 
   const _StatPill({
     required this.label,
     required this.value,
-    this.green = false,
+    this.isSuccess = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space3, vertical: AppTheme.space1),
       decoration: BoxDecoration(
-        color: green
-            ? Colors.green.withValues(alpha: 0.25)
-            : Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        '$label: $value',
-        style: TextStyle(
-          color: green ? Colors.greenAccent : Colors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+        color: isSuccess
+            ? AppTheme.success.withValues(alpha: 0.2)
+            : AppTheme.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+        border: Border.all(
+          color: isSuccess 
+              ? AppTheme.success.withValues(alpha: 0.3) 
+              : AppTheme.white.withValues(alpha: 0.2),
         ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label: ',
+            style: TextStyle(
+              color: isSuccess ? AppTheme.white : AppTheme.white.withValues(alpha: 0.7),
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          Text(
+            'Rs. $value',
+            style: const TextStyle(
+              color: AppTheme.white,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -280,35 +281,36 @@ class _MonthCard extends StatelessWidget {
     required this.onTap,
   });
 
-  Color _statusColor(String status) {
+  LinearGradient _statusGradient(String status) {
     switch (status) {
       case 'PAID':
-        return Colors.green;
+        return AppTheme.successGradient;
       case 'PARTIALLY_PAID':
-        return Colors.orange;
+        return AppTheme.warningGradient;
       case 'NOT_ISSUED':
-        return Colors.blueGrey;
+        return LinearGradient(colors: [AppTheme.blue300, AppTheme.blue200]);
       default:
-        return AppTheme.accent;
+        return AppTheme.dangerGradient;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0', 'en_US');
-    final statusColor = _statusColor(month.status);
+    final statusGradient = _statusGradient(month.status);
 
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radiusLg),
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.surface1,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.borderSubtle),
-          boxShadow: AppTheme.shadowL1,
+          color: AppTheme.white,
+          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          border: Border.all(color: AppTheme.blue100),
+          boxShadow: AppTheme.shadowSm,
         ),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(AppTheme.space4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -316,86 +318,84 @@ class _MonthCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      '${month.monthLabel} • ${month.academicYear}',
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textMain,
-                      ),
+                      '${month.monthLabel} ${month.academicYear}',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.navy,
+                          ),
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                      horizontal: AppTheme.space2,
+                      vertical: AppTheme.space1,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(6),
+                      gradient: statusGradient,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                      boxShadow: [
+                        BoxShadow(
+                          color: statusGradient.colors.first.withValues(alpha: 0.3),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Text(
                       month.status.replaceAll('_', ' '),
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                      style: const TextStyle(
+                        color: AppTheme.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 20,
-                runSpacing: 8,
+              const SizedBox(height: AppTheme.space4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _Metric(
-                    label: 'Challan Amount',
-                    value:
-                        'Rs. ${fmt.format((month.voucherTotal ?? 0) > 0 ? month.voucherTotal! : month.totalAmount)}',
+                    label: 'CHALLAN AMOUNT',
+                    value: 'Rs. ${fmt.format((month.voucherTotal ?? 0) > 0 ? month.voucherTotal! : month.totalAmount)}',
                   ),
                   _Metric(
-                    label: 'Paid',
+                    label: 'PAID',
                     value: 'Rs. ${fmt.format(month.totalPaid)}',
-                    valueColor: Colors.green,
+                    valueColor: AppTheme.success,
                   ),
                   _Metric(
-                    label: 'Outstanding',
-                    value:
-                        'Rs. ${fmt.format((month.voucherTotal ?? 0) > 0 ? (month.voucherTotal! - month.totalPaid) : month.outstandingBalance)}',
-                    valueColor: (month.voucherTotal ?? month.outstandingBalance) > 0
-                        ? Colors.red
-                        : Colors.green,
-                  ),
-                  _Metric(
-                    label: 'Running Total',
-                    value: 'Rs. ${fmt.format(month.runningOutstandingBalance)}',
-                    valueColor: AppTheme.primary,
+                    label: 'OUTSTANDING',
+                    value: 'Rs. ${fmt.format((month.voucherTotal ?? 0) > 0 ? (month.voucherTotal! - month.totalPaid) : month.outstandingBalance)}',
+                    valueColor: (month.voucherTotal ?? month.outstandingBalance) > 0 ? AppTheme.danger : AppTheme.success,
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppTheme.space4),
+              const Divider(color: AppTheme.blue100),
+              const SizedBox(height: AppTheme.space2),
               Row(
                 children: [
                   Icon(
                     Icons.receipt_long_rounded,
-                    size: 16,
-                    color: AppTheme.textMuted,
+                    size: 14,
+                    color: AppTheme.blue300,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: AppTheme.space2),
                   Text(
-                    '$challanCount challan(s) linked',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textMuted,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    '$challanCount Linked Challans',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.blue300,
+                          fontWeight: FontWeight.w500,
+                        ),
                   ),
                   const Spacer(),
                   const Icon(
-                    Icons.chevron_right,
-                    color: AppTheme.primary,
-                    size: 18,
+                    Icons.arrow_forward_ios_rounded,
+                    color: AppTheme.navy,
+                    size: 12,
                   ),
                 ],
               ),
@@ -421,16 +421,18 @@ class _Metric extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: AppTheme.blue200,
+                letterSpacing: 0.5,
+              ),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: valueColor ?? AppTheme.textMain,
-          ),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: valueColor ?? AppTheme.navy,
+              ),
         ),
       ],
     );
@@ -486,35 +488,32 @@ class _FeeMonthDetailPage extends StatelessWidget {
     final fmt = NumberFormat('#,##0', 'en_US');
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.white,
       appBar: AppBar(
-        title: Text('${month.monthLabel} • ${month.academicYear}'),
-        backgroundColor: AppTheme.surface1,
-        foregroundColor: AppTheme.textMain,
+        title: Text('${month.monthLabel} ${month.academicYear}'),
+        backgroundColor: AppTheme.white,
+        foregroundColor: AppTheme.navy,
         elevation: 0,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppTheme.space5),
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppTheme.space5),
             decoration: BoxDecoration(
-              color: AppTheme.surface1,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.borderSubtle),
+              color: AppTheme.white,
+              borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+              border: Border.all(color: AppTheme.blue100),
+              boxShadow: AppTheme.shadowSm,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Month Summary',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textMain,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppTheme.space4),
                 _DetailRow('Status', month.status.replaceAll('_', ' ')),
                 _DetailRow(
                     'Challan Total',
@@ -526,51 +525,83 @@ class _FeeMonthDetailPage extends StatelessWidget {
                   'Rs. ${fmt.format((month.voucherTotal ?? 0) > 0 ? (month.voucherTotal! - month.totalPaid) : month.outstandingBalance)}',
                 ),
                 _DetailRow(
-                  'Running Outstanding',
+                  'Running Balance',
                   'Rs. ${fmt.format(month.runningOutstandingBalance)}',
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          if (month.status != 'PARTIALLY_PAID') ...[
-            ElevatedButton.icon(
-              onPressed: () => _resolveAndOpen(context),
-              icon: const Icon(Icons.picture_as_pdf_outlined),
-              label: const Text('Download Challan'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
+          const SizedBox(height: AppTheme.space6),
+          if (month.status != 'PAID') ...[
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: AppTheme.navyGradient,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                  boxShadow: AppTheme.shadowSm,
+                ),
+                child: ElevatedButton.icon(
+                  onPressed: () => _resolveAndOpen(context),
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: const Text('DOWNLOAD CHALLAN'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    foregroundColor: AppTheme.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusFull)),
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 10),
-            ElevatedButton.icon(
-              onPressed: () => _resolveAndOpen(context),
-              icon: const Icon(Icons.payment_rounded),
-              label: const Text('Pay Now'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
+            const SizedBox(height: AppTheme.space3),
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: AppTheme.successGradient,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                  boxShadow: AppTheme.shadowSm,
+                ),
+                child: ElevatedButton.icon(
+                  onPressed: () => _resolveAndOpen(context),
+                  icon: const Icon(Icons.payment_rounded),
+                  label: const Text('PAY NOW'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    foregroundColor: AppTheme.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusFull)),
+                  ),
+                ),
               ),
             ),
           ],
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => _VoucherHistoryPage(
-                    title: 'Challan History • ${month.monthLabel}',
-                    vouchers: vouchers,
+          const SizedBox(height: AppTheme.space3),
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => _VoucherHistoryPage(
+                      title: 'Challan History • ${month.monthLabel}',
+                      vouchers: vouchers,
+                    ),
                   ),
-                ),
-              );
-            },
-            icon: const Icon(Icons.history_rounded),
-            label: const Text('View Voucher History'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
+                );
+              },
+              icon: const Icon(Icons.history_rounded),
+              label: const Text('View Challan History'),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppTheme.navy),
+                foregroundColor: AppTheme.navy,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusFull)),
+              ),
             ),
           ),
         ],
@@ -588,17 +619,17 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppTheme.space2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textMuted)),
+          Text(label, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.blue300)),
           Text(
             value,
-            style: const TextStyle(
-              color: AppTheme.textMain,
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.navy,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
         ],
       ),
@@ -615,27 +646,31 @@ class _VoucherHistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.white,
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: AppTheme.surface1,
-        foregroundColor: AppTheme.textMain,
+        backgroundColor: AppTheme.white,
+        foregroundColor: AppTheme.navy,
         elevation: 0,
       ),
       body: vouchers.isEmpty
           ? Center(
-              child: Text(
-                'No challans available for this period.',
-                style: TextStyle(
-                  color: AppTheme.textMuted.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.history_rounded, size: 64, color: AppTheme.blue100),
+                  const SizedBox(height: AppTheme.space3),
+                  Text(
+                    'No challan history found.',
+                    style: TextStyle(color: AppTheme.blue300, fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
             )
           : ListView.separated(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppTheme.space4),
               itemCount: vouchers.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, __) => const SizedBox(height: AppTheme.space3),
               itemBuilder: (_, i) => _VoucherCard(voucher: vouchers[i]),
             ),
     );
@@ -650,15 +685,15 @@ class _VoucherCard extends StatelessWidget {
   Color get _statusColor {
     switch (voucher.status) {
       case 'PAID':
-        return Colors.green;
+        return AppTheme.success;
       case 'OVERDUE':
-        return Colors.red;
+        return AppTheme.danger;
       case 'PARTIALLY_PAID':
-        return Colors.orange;
+        return AppTheme.warning;
       case 'VOID':
-        return Colors.grey;
+        return AppTheme.blue200;
       default:
-        return AppTheme.accent;
+        return AppTheme.navy;
     }
   }
 
@@ -667,7 +702,7 @@ class _VoucherCard extends StatelessWidget {
     final fmt = NumberFormat('#,##0', 'en_US');
     final dateFmt = DateFormat('dd MMM yyyy');
 
-    return GestureDetector(
+    return InkWell(
       onTap: () {
         Navigator.push(
           context,
@@ -676,15 +711,16 @@ class _VoucherCard extends StatelessWidget {
           ),
         );
       },
+      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.surface1,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.borderSubtle),
-          boxShadow: AppTheme.shadowL1,
+          color: AppTheme.white,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          border: Border.all(color: AppTheme.blue100),
+          boxShadow: AppTheme.shadowSm,
         ),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(AppTheme.space4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -692,63 +728,52 @@ class _VoucherCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Challan #${voucher.id}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: AppTheme.textMain,
-                      ),
+                      'CHALLAN #${voucher.id}',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.navy,
+                          ),
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                      horizontal: AppTheme.space2,
+                      vertical: AppTheme.space1,
                     ),
                     decoration: BoxDecoration(
-                      color: _statusColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(6),
+                      color: _statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                     ),
                     child: Text(
                       voucher.status.replaceAll('_', ' '),
                       style: TextStyle(
                         color: _statusColor,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Net: Rs. ${fmt.format(voucher.totalPayableBeforeDue)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textMain,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Balance: Rs. ${fmt.format(voucher.totalBalance)}',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: voucher.totalBalance > 0 ? Colors.red : Colors.green,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Bill Month: ${voucher.month != null ? _monthLabel(voucher.month!) : "N/A"}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.textMuted,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Due: ${dateFmt.format(voucher.dueDate)}',
-                style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+              const SizedBox(height: AppTheme.space3),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Rs. ${fmt.format(voucher.totalPayableBeforeDue)}',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Due: ${dateFmt.format(voucher.dueDate)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.blue300),
+                      ),
+                    ],
+                  ),
+                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.blue100),
+                ],
               ),
             ],
           ),
@@ -770,12 +795,12 @@ class _NoMonthsView extends StatelessWidget {
           Icon(
             Icons.calendar_month_outlined,
             size: 64,
-            color: AppTheme.textMuted.withValues(alpha: 0.4),
+            color: AppTheme.blue100,
           ),
-          const SizedBox(height: 10),
-          const Text(
-            'No month-wise fee records found',
-            style: TextStyle(color: AppTheme.textMuted, fontSize: 15),
+          const SizedBox(height: AppTheme.space3),
+          Text(
+            'No fee records found',
+            style: TextStyle(color: AppTheme.blue300, fontSize: 16),
           ),
         ],
       ),
@@ -793,45 +818,36 @@ class _ErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppTheme.space6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline_rounded,
-              size: 50,
-              color: Colors.red.withValues(alpha: 0.8),
+            const Icon(Icons.error_outline_rounded, color: AppTheme.danger, size: 64),
+            const SizedBox(height: AppTheme.space4),
+            Text(
+              'Oops! Something went wrong',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppTheme.space2),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppTheme.textMuted),
+              style: TextStyle(color: AppTheme.blue300),
             ),
-            const SizedBox(height: 14),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+            const SizedBox(height: AppTheme.space5),
+            ElevatedButton(
+              onPressed: onRetry,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.navy,
+                foregroundColor: AppTheme.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusFull)),
+              ),
+              child: const Text('Retry'),
+            ),
           ],
         ),
       ),
     );
   }
-}
-
-String _monthLabel(int month) {
-  const labels = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December'
-  ];
-  if (month < 1 || month > 12) return 'Unknown';
-  return labels[month - 1];
 }

@@ -47,10 +47,10 @@ class ChatBubble extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.1),
+                      color: AppTheme.navy.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.campaign_rounded, size: 14, color: AppTheme.primary),
+                    child: Icon(Icons.campaign_rounded, size: 14, color: AppTheme.navy),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -58,7 +58,7 @@ class ChatBubble extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w900,
-                      color: AppTheme.primary,
+                      color: AppTheme.navy,
                       letterSpacing: 0.2,
                     ),
                   ),
@@ -67,12 +67,12 @@ class ChatBubble extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [AppTheme.primary, AppTheme.primary.withOpacity(0.8)],
+                        colors: [AppTheme.navy, AppTheme.navy.withOpacity(0.8)],
                       ),
                       borderRadius: BorderRadius.circular(6),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primary.withOpacity(0.3),
+                          color: AppTheme.navy.withOpacity(0.3),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -99,10 +99,10 @@ class ChatBubble extends StatelessWidget {
               right: isMe ? 12 : 64,
             ),
             decoration: BoxDecoration(
-              color: isMe ? AppTheme.primary : Colors.white,
+              color: isMe ? AppTheme.navy : Colors.white,
               borderRadius: borderRadius,
               border: !isMe && message.isAnnouncement 
-                  ? Border.all(color: AppTheme.primary.withOpacity(0.15), width: 1)
+                  ? Border.all(color: AppTheme.navy.withOpacity(0.15), width: 1)
                   : null,
               boxShadow: [
                 BoxShadow(
@@ -486,16 +486,16 @@ class ChatBubble extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
             margin: const EdgeInsets.symmetric(horizontal: 2),
             decoration: BoxDecoration(
-              color: isMe ? Colors.white.withOpacity(0.2) : AppTheme.primary.withOpacity(0.1),
+              color: isMe ? Colors.white.withOpacity(0.2) : AppTheme.navy.withOpacity(0.1),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: isMe ? Colors.white30 : AppTheme.primary.withOpacity(0.2),
+                color: isMe ? Colors.white30 : AppTheme.navy.withOpacity(0.2),
               ),
             ),
             child: Text(
               '@$name',
               style: TextStyle(
-                color: isMe ? Colors.white : AppTheme.primary,
+                color: isMe ? Colors.white : AppTheme.navy,
                 fontSize: 12,
                 fontWeight: FontWeight.w900,
               ),
@@ -621,12 +621,12 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: widget.isMe ? Colors.white.withOpacity(0.2) : AppTheme.primary.withOpacity(0.1),
+                  color: widget.isMe ? Colors.white.withOpacity(0.2) : AppTheme.navy.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  color: widget.isMe ? Colors.white : AppTheme.primary,
+                  color: widget.isMe ? Colors.white : AppTheme.navy,
                   size: 28,
                 ),
               ),
@@ -649,9 +649,9 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
                       pressedElevation: 8,
                     ),
                     overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                    activeTrackColor: widget.isMe ? Colors.white : AppTheme.primary,
+                    activeTrackColor: widget.isMe ? Colors.white : AppTheme.navy,
                     inactiveTrackColor: widget.isMe ? Colors.white.withOpacity(0.3) : Colors.grey[300],
-                    thumbColor: widget.isMe ? Colors.white : AppTheme.primary,
+                    thumbColor: widget.isMe ? Colors.white : AppTheme.navy,
                     trackShape: const RoundedRectSliderTrackShape(),
                   ),
                   child: Slider(

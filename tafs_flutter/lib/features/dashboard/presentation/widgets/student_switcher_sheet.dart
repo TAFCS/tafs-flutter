@@ -19,73 +19,85 @@ class StudentSwitcherSheet extends StatelessWidget {
     final siblings = authState.parent.students;
 
     return Container(
-      padding: const EdgeInsets.all(24.0),
-      decoration: const BoxDecoration(
-        color: AppTheme.surface1,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      padding: const EdgeInsets.fromLTRB(AppTheme.space6, AppTheme.space3, AppTheme.space6, AppTheme.space10),
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppTheme.radiusXl)),
+        boxShadow: AppTheme.shadowLg,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: AppTheme.space5),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.blue100,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Switch Student',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textMain,
-                    ),
+                style: Theme.of(context).textTheme.headlineMedium,
               ),
               IconButton(
-                icon: const Icon(Icons.close),
+                icon: const Icon(Icons.close_rounded, color: AppTheme.blue300),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppTheme.space4),
           ...siblings.map((student) {
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12.0),
-              color: AppTheme.surface1,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppTheme.borderSubtle),
+            return Container(
+              margin: const EdgeInsets.only(bottom: AppTheme.space3),
+              decoration: BoxDecoration(
+                color: AppTheme.white,
+                borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                border: Border.all(color: AppTheme.blue100),
+                boxShadow: AppTheme.shadowSm,
               ),
               child: ListTile(
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                leading: CircleAvatar(
-                  backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                  backgroundImage: student.photographUrl != null
-                      ? NetworkImage(student.photographUrl!)
-                      : null,
-                  child: student.photographUrl == null
-                      ? Text(
-                          student.fullName[0],
-                          style: const TextStyle(
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      : null,
+                    const EdgeInsets.symmetric(horizontal: AppTheme.space4, vertical: AppTheme.space2),
+                leading: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.blue100, width: 2),
+                  ),
+                  child: CircleAvatar(
+                    backgroundColor: AppTheme.blue100.withValues(alpha: 0.3),
+                    backgroundImage: student.photographUrl != null
+                        ? NetworkImage(student.photographUrl!)
+                        : null,
+                    child: student.photographUrl == null
+                        ? Text(
+                            student.fullName[0],
+                            style: const TextStyle(
+                              color: AppTheme.navy,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
                 title: Text(
                   student.fullName,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, color: AppTheme.textMain),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
                   '${student.className} - ${student.section}\n${student.grNumber} • ${student.campus}',
-                  style:
-                      const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.blue300),
                 ),
                 isThreeLine: true,
                 onTap: () {
                   context.read<SelectedStudentCubit>().select(student);
-                  // Trigger reloads for the newly selected student
                   context
                       .read<FeeSummaryBloc>()
                       .add(FeeSummaryLoadRequested(student.cc));
@@ -102,3 +114,4 @@ class StudentSwitcherSheet extends StatelessWidget {
     );
   }
 }
+

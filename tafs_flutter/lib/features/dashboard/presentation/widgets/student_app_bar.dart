@@ -39,15 +39,15 @@ class StudentAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     if (student == null) {
       return AppBar(
-        backgroundColor: AppTheme.surface1,
+        backgroundColor: AppTheme.white,
         elevation: 0,
         title: const Text('Loading...'),
       );
     }
 
     return AppBar(
-      backgroundColor: AppTheme.surface1,
-      foregroundColor: AppTheme.textMain,
+      backgroundColor: AppTheme.white,
+      foregroundColor: AppTheme.navy,
       elevation: 0,
       centerTitle: false,
       actions: [
@@ -119,7 +119,7 @@ class StudentAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.arrow_drop_down, color: AppTheme.primary),
+                    const Icon(Icons.arrow_drop_down, color: AppTheme.navy),
                   ],
                 ),
                 Text(
@@ -127,7 +127,7 @@ class StudentAppBar extends StatelessWidget implements PreferredSizeWidget {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppTheme.textMuted,
+                    color: AppTheme.blue300,
                   ),
                 ),
               ],

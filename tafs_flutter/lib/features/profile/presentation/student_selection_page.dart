@@ -11,140 +11,139 @@ class StudentSelectionPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Image.asset('assets/logo.png', height: 32),
-            const SizedBox(width: 12),
-            const Text('Select Student'),
-          ],
-        ),
-        backgroundColor: AppTheme.surface1,
-        foregroundColor: AppTheme.textMain,
-        elevation: 0,
-        centerTitle: false,
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: students.length,
-        itemBuilder: (context, index) {
-          final student = students[index];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16.0),
-            decoration: BoxDecoration(
-              color: AppTheme.surface1,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.borderSubtle),
-              boxShadow: AppTheme.shadowL1,
+      backgroundColor: AppTheme.white,
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(AppTheme.space6, AppTheme.space12, AppTheme.space6, AppTheme.space8),
+            decoration: const BoxDecoration(
+              gradient: AppTheme.navyGradient,
             ),
-            child: InkWell(
-              onTap: () {
-                context.read<SelectedStudentCubit>().select(student);
-              },
-              borderRadius: BorderRadius.circular(14),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    // Student Photo
-                    CircleAvatar(
-                      backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                      radius: 32,
-                      backgroundImage: student.photographUrl != null
-                          ? NetworkImage(student.photographUrl!)
-                          : null,
-                      child: student.photographUrl == null
-                          ? Text(
-                              student.fullName.isNotEmpty
-                                  ? student.fullName[0]
-                                  : '?',
-                              style: const TextStyle(
-                                color: AppTheme.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 24,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 14),
-                    // Student Details
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                const Text(
+                  'Student Selection',
+                  style: TextStyle(
+                    color: AppTheme.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.space2),
+                Text(
+                  'Please select a profile to continue to the dashboard.',
+                  style: TextStyle(
+                    color: AppTheme.white.withValues(alpha: 0.8),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(AppTheme.space6),
+              itemCount: students.length,
+              itemBuilder: (context, index) {
+                final student = students[index];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: AppTheme.space4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.white,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                    border: Border.all(color: AppTheme.blue100),
+                    boxShadow: AppTheme.shadowSm,
+                  ),
+                  child: InkWell(
+                    onTap: () => context.read<SelectedStudentCubit>().select(student),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppTheme.space5),
+                      child: Row(
                         children: [
-                          Text(
-                            student.fullName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 17,
-                              color: AppTheme.textMain,
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppTheme.blue100, width: 2),
+                            ),
+                            child: CircleAvatar(
+                              radius: 32,
+                              backgroundColor: AppTheme.navy.withValues(alpha: 0.05),
+                              backgroundImage: student.photographUrl != null
+                                  ? NetworkImage(student.photographUrl!)
+                                  : null,
+                              child: student.photographUrl == null
+                                  ? Text(
+                                      student.fullName[0],
+                                      style: const TextStyle(
+                                        color: AppTheme.navy,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 22,
+                                      ),
+                                    )
+                                  : null,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${student.className ?? 'Class -'} • ${student.section ?? '-'}',
-                            style: const TextStyle(
-                              color: AppTheme.textMain,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
+                          const SizedBox(width: AppTheme.space5),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  student.fullName,
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.navy,
+                                      ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${student.className ?? "N/A"} • Section ${student.section ?? "N/A"}',
+                                  style: const TextStyle(
+                                    color: AppTheme.blue300,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.school_rounded, size: 12, color: AppTheme.blue200),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        student.campus ?? 'No Campus Assigned',
+                                        style: const TextStyle(color: AppTheme.blue200, fontSize: 11),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            student.campus ?? 'Campus not assigned',
-                            style: const TextStyle(
-                              color: AppTheme.textMuted,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.navy.withValues(alpha: 0.05),
+                              shape: BoxShape.circle,
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 4,
-                            children: [
-                              _chip('CC ${student.cc}'),
-                              if (student.grNumber != null)
-                                _chip('GR ${student.grNumber}'),
-                              if (student.academicYear != null)
-                                _chip(student.academicYear!),
-                            ],
+                            child: const Icon(Icons.chevron_right_rounded, size: 20, color: AppTheme.navy),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: AppTheme.textMuted,
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _chip(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderSubtle),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: AppTheme.textMuted,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -73,18 +73,24 @@ class _AuthGateState extends State<AuthGate> {
 
           // AuthInitial / AuthLoading — branded splash
           return Scaffold(
-            backgroundColor: AppTheme.background,
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset('assets/logo.png', height: 80),
-                  const SizedBox(height: 24),
-                  const CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppTheme.primary,
-                  ),
-                ],
+            body: Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                gradient: AppTheme.navyGradient,
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Image.asset('assets/logo.png', height: 80, color: Colors.white),
+                    SizedBox(height: 24),
+                    CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppTheme.white,
+                    ),
+                  ],
+                ),
               ),
             ),
           );
