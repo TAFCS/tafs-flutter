@@ -14,11 +14,13 @@ import 'voucher_detail_page.dart';
 class FeeLedgerPage extends StatefulWidget {
   final int studentCc;
   final String studentName;
+  final bool showAppBar;
 
   const FeeLedgerPage({
     super.key,
     required this.studentCc,
     required this.studentName,
+    this.showAppBar = true,
   });
 
   @override
@@ -36,12 +38,14 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.white,
-      appBar: AppBar(
-        title: const Text('Fee Ledger'),
-        backgroundColor: AppTheme.white,
-        foregroundColor: AppTheme.navy,
-        elevation: 0,
-      ),
+      appBar: widget.showAppBar
+          ? AppBar(
+              title: const Text('Fee Ledger'),
+              backgroundColor: AppTheme.white,
+              foregroundColor: AppTheme.navy,
+              elevation: 0,
+            )
+          : null,
       body: BlocBuilder<FeeLedgerBloc, FeeLedgerState>(
         builder: (context, state) {
           if (state is FeeLedgerLoading || state is FeeLedgerInitial) {
@@ -80,10 +84,11 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
 
             return Column(
               children: [
-                const Padding(
-                  padding: EdgeInsets.all(AppTheme.space4),
-                  child: StudentProfileCard(),
-                ),
+                if (widget.showAppBar)
+                  const Padding(
+                    padding: EdgeInsets.all(AppTheme.space4),
+                    child: StudentProfileCard(),
+                  ),
                 _SummaryStrip(
                   totalCharged: totalCharged,
                   totalPaid: totalPaid,

@@ -8,7 +8,7 @@ import '../../auth/presentation/bloc/auth_event.dart';
 import '../../auth/presentation/bloc/auth_state.dart';
 import '../../auth/presentation/bloc/selected_student_cubit.dart';
 import '../../auth/presentation/login_page.dart';
-import '../../dashboard/presentation/main_dashboard_page.dart';
+import '../../dashboard/presentation/main_shell_page.dart';
 import '../../profile/presentation/student_selection_page.dart';
 
 /// AuthGate is the app root widget.
@@ -62,7 +62,7 @@ class _AuthGateState extends State<AuthGate> {
                   return StudentSelectionPage(students: students);
                 }
 
-                return const MainDashboardPage();
+                return const MainShellPage();
               },
             );
           }

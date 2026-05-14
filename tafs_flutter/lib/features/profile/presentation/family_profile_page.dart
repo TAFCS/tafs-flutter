@@ -13,7 +13,8 @@ import 'widgets/student_profile_loader.dart';
 import 'edit_guardian_page.dart';
 
 class FamilyProfilePage extends StatefulWidget {
-  const FamilyProfilePage({super.key});
+  final bool showAppBar;
+  const FamilyProfilePage({super.key, this.showAppBar = true});
 
   @override
   State<FamilyProfilePage> createState() => _FamilyProfilePageState();
@@ -42,15 +43,17 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.white,
-      appBar: AppBar(
-        backgroundColor: AppTheme.white,
-        foregroundColor: AppTheme.navy,
-        elevation: 0,
-        title: const Text(
-          'Family Profile',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-      ),
+      appBar: widget.showAppBar
+          ? AppBar(
+              backgroundColor: AppTheme.white,
+              foregroundColor: AppTheme.navy,
+              elevation: 0,
+              title: const Text(
+                'Family Profile',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            )
+          : null,
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
           if (authState is! AuthAuthenticated) {
@@ -144,6 +147,26 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                         ),
                       ),
                       const SizedBox(height: AppTheme.space10),
+                      if (!widget.showAppBar) ...[
+                        const Divider(color: AppTheme.blue100),
+                        const SizedBox(height: AppTheme.space3),
+                        Center(
+                          child: TextButton.icon(
+                            onPressed: () =>
+                                context.read<AuthBloc>().add(AuthLogoutRequested()),
+                            icon: const Icon(Icons.logout_rounded,
+                                size: 16, color: AppTheme.blue300),
+                            label: const Text(
+                              'Log out',
+                              style: TextStyle(
+                                  color: AppTheme.blue300,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.space5),
+                      ],
                     ],
                   ),
                 ),

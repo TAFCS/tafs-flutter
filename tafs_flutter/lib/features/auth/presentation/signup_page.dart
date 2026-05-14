@@ -7,7 +7,7 @@ import '../../profile/presentation/student_selection_page.dart';
 import 'bloc/auth_bloc.dart';
 import 'bloc/auth_event.dart';
 import 'bloc/auth_state.dart';
-import '../../dashboard/presentation/main_dashboard_page.dart';
+import '../../dashboard/presentation/main_shell_page.dart';
 import 'bloc/selected_student_cubit.dart';
 
 class SignupPage extends StatefulWidget {
@@ -102,7 +102,7 @@ class _SignupPageState extends State<SignupPage> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => const MainDashboardPage(),
+                builder: (context) => const MainShellPage(),
               ),
             );
           } else {

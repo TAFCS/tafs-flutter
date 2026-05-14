@@ -1,177 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
-import 'widgets/app_drawer.dart';
-import 'widgets/student_switcher_sheet.dart';
-import 'widgets/student_app_bar.dart';
-import 'widgets/live_ledger_card.dart';
-import 'widgets/communication_feed.dart';
-import '../../../../core/widgets/student_profile_card.dart';
 import '../../auth/domain/entities/student.dart';
 import '../../auth/presentation/bloc/selected_student_cubit.dart';
 import '../../fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import '../../fee_ledger/presentation/bloc/fee_ledger_event.dart';
 import '../../fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import '../../fee_ledger/presentation/bloc/fee_summary_event.dart';
-import '../../chat/presentation/pages/chat_page.dart';
-import '../../chat/presentation/bloc/chat_bloc.dart';
-import '../../chat/presentation/bloc/chat_state.dart';
-import '../../chat/domain/entities/chat_message.dart';
-import '../../../core/services/in_app_notification_service.dart';
+import 'widgets/communication_feed.dart';
+import 'widgets/live_ledger_card.dart';
 
-class MainDashboardPage extends StatefulWidget {
-  const MainDashboardPage({super.key});
+class HomeTabBody extends StatelessWidget {
+  final VoidCallback onSwitchToFees;
 
-  @override
-  State<MainDashboardPage> createState() => _MainDashboardPageState();
-}
-
-class _MainDashboardPageState extends State<MainDashboardPage> {
-  @override
-  void initState() {
-    super.initState();
-    // Initial fetch for the already selected student
-    final student = context.read<SelectedStudentCubit>().state;
-    if (student != null) {
-      context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
-      context.read<FeeLedgerBloc>().add(FeeLedgerLoadRequested(student.cc));
-    }
-  }
-
-  void _showStudentSwitcher(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const StudentSwitcherSheet(),
-    );
-  }
+  const HomeTabBody({super.key, required this.onSwitchToFees});
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocListener(
-      listeners: [
-        BlocListener<SelectedStudentCubit, Student?>(
-          listener: (context, student) {
-            if (student != null) {
-              context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
-              context.read<FeeLedgerBloc>().add(FeeLedgerLoadRequested(student.cc));
-            }
+    return BlocBuilder<SelectedStudentCubit, Student?>(
+      builder: (context, student) {
+        if (student == null) return const SizedBox.shrink();
+        return RefreshIndicator(
+          onRefresh: () async {
+            context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
+            context.read<FeeLedgerBloc>().add(FeeLedgerLoadRequested(student.cc));
+            await Future.delayed(const Duration(milliseconds: 500));
           },
-        ),
-        BlocListener<ChatBloc, ChatState>(
-          listenWhen: (previous, current) {
-            // Only trigger on new messages that were just received
-            if (previous is ChatLoaded && current is ChatLoaded) {
-              return current.messages.length > previous.messages.length &&
-                  current.messages.first.senderType == ChatSenderType.admin;
-            }
-            return false;
-          },
-          listener: (context, state) {
-            if (state is ChatLoaded && state.messages.isNotEmpty) {
-              final latest = state.messages.first;
-              
-              // Only show in-app notification if user is NOT in the chat page
-              if (context.read<ChatBloc>().isUserInChat) return;
-              
-              InAppNotificationService.show(
-                context: context,
-                title: 'TAFS Support',
-                message: latest.content,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ChatPage()),
-                  );
-                },
-              );
-            }
-          },
-        ),
-      ],
-      child: BlocBuilder<SelectedStudentCubit, Student?>(
-        builder: (context, student) {
-          if (student == null) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          return Scaffold(
-            drawer: AppDrawer(student: student),
-            appBar: StudentAppBar(student: student),
-            body: RefreshIndicator(
-              onRefresh: () async {
-                context
-                    .read<FeeSummaryBloc>()
-                    .add(FeeSummaryLoadRequested(student.cc));
-                context
-                    .read<FeeLedgerBloc>()
-                    .add(FeeLedgerLoadRequested(student.cc));
-                // Add a small delay to make the refresh indicator visible
-                await Future.delayed(const Duration(milliseconds: 500));
-              },
-              color: AppTheme.navy,
-              child: SafeArea(
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(AppTheme.space5),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const StudentProfileCard(),
-                      const SizedBox(height: AppTheme.space4),
-                      // Welcome Banner
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(AppTheme.space6),
-                        decoration: BoxDecoration(
-                          gradient: AppTheme.navyGradient,
-                          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                          boxShadow: AppTheme.shadowMd,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${student.className} • Section ${student.section}',
-                              style: const TextStyle(
-                                color: AppTheme.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: AppTheme.space2),
-                            Text(
-                              'Welcome back, ${student.fullName.split(' ').first}!',
-                              style: const TextStyle(
-                                color: AppTheme.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Live Ledger
-                      LiveLedgerCard(
-                        studentCc: student.cc,
-                        studentName: student.fullName,
-                      ),
-                      const SizedBox(height: 32),
-                      // Communication Feed
-                      const CommunicationFeed(),
-                      const SizedBox(height: 16),
-                    ],
+          color: AppTheme.navy,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(AppTheme.space5),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LiveLedgerCard(
+                    studentCc: student.cc,
+                    studentName: student.fullName,
+                    onTap: onSwitchToFees,
                   ),
-                ),
+                  const SizedBox(height: 32),
+                  const CommunicationFeed(),
+                  const SizedBox(height: 16),
+                ],
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

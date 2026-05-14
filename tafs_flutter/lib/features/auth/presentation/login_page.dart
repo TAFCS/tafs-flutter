@@ -81,15 +81,10 @@ class _LoginPageState extends State<LoginPage> {
                               const Spacer(flex: 2),
                               // Logo with subtle shadow
                               Center(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    boxShadow: AppTheme.shadowSm,
-                                  ),
-                                  child: Image.asset(
-                                    'assets/logo.png',
-                                    height: 100,
-                                    fit: BoxFit.contain,
-                                  ),
+                                child: Image.asset(
+                                  'assets/logo.png',
+                                  height: 100,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                               const SizedBox(height: AppTheme.space12),

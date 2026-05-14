@@ -9,11 +9,13 @@ import '../../../fee_ledger/presentation/pages/fee_ledger_page.dart';
 class LiveLedgerCard extends StatelessWidget {
   final int studentCc;
   final String studentName;
+  final VoidCallback? onTap;
 
   const LiveLedgerCard({
     super.key,
     required this.studentCc,
     required this.studentName,
+    this.onTap,
   });
 
   @override
@@ -66,7 +68,7 @@ class LiveLedgerCard extends StatelessWidget {
         final bool isClear = !summary.hasOverdue;
 
         return GestureDetector(
-          onTap: () => Navigator.push(
+          onTap: onTap ?? () => Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => FeeLedgerPage(

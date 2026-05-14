@@ -13,7 +13,8 @@ import 'package:intl/intl.dart';
 import '../../domain/entities/chat_message.dart';
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key});
+  final bool isTab;
+  const ChatPage({super.key, this.isTab = false});
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -79,10 +80,13 @@ class _ChatPageState extends State<ChatPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
+        leading: widget.isTab
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
         title: Row(
           children: [
             CircleAvatar(
