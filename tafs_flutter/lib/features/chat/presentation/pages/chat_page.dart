@@ -268,16 +268,21 @@ class _ChatPageState extends State<ChatPage> {
                   },
                 ),
               ),
-              MessageInput(
-                replyingTo: _replyingTo,
-                onCancelReply: () => setState(() => _replyingTo = null),
-                onSend: (content, type, file, replyTo, metadata) {
-                  context.read<ChatBloc>().add(ChatMessageSent(
-                    content: content,
-                    type: type,
-                    file: file,
-                    mediaMetadata: metadata,
-                  ));
+              BlocBuilder<ChatBloc, ChatState>(
+                builder: (context, state) {
+                  return MessageInput(
+                    replyingTo: _replyingTo,
+                    onCancelReply: () => setState(() => _replyingTo = null),
+                    students: state is ChatLoaded ? (state as ChatLoaded).students : [],
+                    onSend: (content, type, file, replyTo, metadata) {
+                      context.read<ChatBloc>().add(ChatMessageSent(
+                        content: content,
+                        type: type,
+                        file: file,
+                        mediaMetadata: metadata,
+                      ));
+                    },
+                  );
                 },
               ),
             ],

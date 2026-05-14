@@ -11,6 +11,7 @@ abstract class ChatRepository {
     required String content,
     Map<String, dynamic>? metadata,
   });
+  Future<List<Map<String, dynamic>>> getStudents();
   void markAsRead();
   void enterChat();
   void leaveChat();

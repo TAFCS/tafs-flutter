@@ -57,3 +57,5 @@ class ChatMessageDeleted extends ChatEvent {
 class ChatEntered extends ChatEvent {}
 
 class ChatLeft extends ChatEvent {}
+
+class ChatStudentsRequested extends ChatEvent {}

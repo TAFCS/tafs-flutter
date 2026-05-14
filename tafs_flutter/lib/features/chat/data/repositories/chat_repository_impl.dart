@@ -148,6 +148,17 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> getStudents() async {
+    try {
+      final response = await dio.get('/chat/students');
+      return List<Map<String, dynamic>>.from(response.data);
+    } catch (e) {
+      print('Error fetching students for tagging: $e');
+      return [];
+    }
+  }
+
+  @override
   void sendMessage({
     required ChatMessageType type,
     required String content,

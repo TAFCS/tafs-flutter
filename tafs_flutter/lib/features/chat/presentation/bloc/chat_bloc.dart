@@ -19,6 +19,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<ChatMessageDeleted>(_onMessageDeleted);
     on<ChatEntered>(_onChatEntered);
     on<ChatLeft>(_onChatLeft);
+    on<ChatStudentsRequested>(_onStudentsRequested);
   }
 
   bool isUserInChat = false;
@@ -72,10 +73,14 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
     try {
       final messages = await repository.getChatHistory();
+      // Fetch students for tagging
+      final students = await repository.getStudents();
+
       emit(ChatLoaded(
         messages: messages, 
         hasReachedMax: messages.length < 50,
         unreadCount: _calculateUnread(messages),
+        students: students,
       ));
       // Only mark as read if we're starting IN the chat (unlikely for global start)
       if (isUserInChat) {
@@ -208,6 +213,18 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         }
       } catch (e) {
         // Handle error
+      }
+    }
+  }
+
+  Future<void> _onStudentsRequested(ChatStudentsRequested event, Emitter<ChatState> emit) async {
+    if (state is ChatLoaded) {
+      final currentState = state as ChatLoaded;
+      try {
+        final students = await repository.getStudents();
+        emit(currentState.copyWith(students: students));
+      } catch (e) {
+        // Silent fail
       }
     }
   }

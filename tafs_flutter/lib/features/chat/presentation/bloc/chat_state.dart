@@ -16,27 +16,31 @@ class ChatLoaded extends ChatState {
   final List<ChatMessage> messages;
   final bool hasReachedMax;
   final int unreadCount;
+  final List<Map<String, dynamic>> students;
 
   const ChatLoaded({
     required this.messages,
     this.hasReachedMax = false,
     this.unreadCount = 0,
+    this.students = const [],
   });
 
   ChatLoaded copyWith({
     List<ChatMessage>? messages,
     bool? hasReachedMax,
     int? unreadCount,
+    List<Map<String, dynamic>>? students,
   }) {
     return ChatLoaded(
       messages: messages ?? this.messages,
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,
       unreadCount: unreadCount ?? this.unreadCount,
+      students: students ?? this.students,
     );
   }
 
   @override
-  List<Object?> get props => [messages, hasReachedMax, unreadCount];
+  List<Object?> get props => [messages, hasReachedMax, unreadCount, students];
 }
 
 class ChatError extends ChatState {

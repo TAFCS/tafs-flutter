@@ -250,12 +250,15 @@ class ChatBubble extends StatelessWidget {
       case ChatMessageType.text:
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Text(
-            message.content,
-            style: TextStyle(
-              color: isMe ? Colors.white : Colors.black87,
-              fontSize: 16,
-              height: 1.3,
+          child: RichText(
+            text: TextSpan(
+              style: TextStyle(
+                color: isMe ? Colors.white : Colors.black87,
+                fontSize: 16,
+                height: 1.3,
+                fontFamily: 'Inter', // Default font
+              ),
+              children: _parseMentions(message.content, isMe),
             ),
           ),
         );
@@ -462,6 +465,53 @@ class ChatBubble extends StatelessWidget {
       ),
     );
   }
+
+  List<InlineSpan> _parseMentions(String text, bool isMe) {
+    final List<InlineSpan> spans = [];
+    final regex = RegExp(r'(@\[.*?\]\(student:\d+\))');
+    final matches = regex.allMatches(text);
+    
+    int lastMatchEnd = 0;
+    for (final match in matches) {
+      if (match.start > lastMatchEnd) {
+        spans.add(TextSpan(text: text.substring(lastMatchEnd, match.start)));
+      }
+      
+      final tagMatch = RegExp(r'@\[(.*?)\]\(student:(\d+)\)').firstMatch(match.group(0)!);
+      if (tagMatch != null) {
+        final name = tagMatch.group(1);
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            margin: const EdgeInsets.symmetric(horizontal: 2),
+            decoration: BoxDecoration(
+              color: isMe ? Colors.white.withOpacity(0.2) : AppTheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: isMe ? Colors.white30 : AppTheme.primary.withOpacity(0.2),
+              ),
+            ),
+            child: Text(
+              '@$name',
+              style: TextStyle(
+                color: isMe ? Colors.white : AppTheme.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ));
+      }
+      lastMatchEnd = match.end;
+    }
+    
+    if (lastMatchEnd < text.length) {
+      spans.add(TextSpan(text: text.substring(lastMatchEnd)));
+    }
+    
+    return spans;
+  }
 }
 
 class _VoiceNotePlayer extends StatefulWidget {
@@ -605,10 +655,10 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
                     trackShape: const RoundedRectSliderTrackShape(),
                   ),
                   child: Slider(
-                    value: _position.inMilliseconds.toDouble(),
+                    value: _position.inMilliseconds.toDouble().clamp(0.0, _duration.inMilliseconds.toDouble() > 0 ? _duration.inMilliseconds.toDouble() : 0.0),
                     max: _duration.inMilliseconds.toDouble() > 0 
                         ? _duration.inMilliseconds.toDouble() 
-                        : 0.1,
+                        : 0.0,
                     onChanged: (value) {
                       _audioPlayer.seek(Duration(milliseconds: value.toInt()));
                     },

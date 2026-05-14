@@ -6,6 +6,35 @@ import 'package:flutter/services.dart';
 import 'dart:io';
 import 'dart:async';
 import '../../domain/entities/chat_message.dart';
+import 'package:tafs_flutter/core/theme/app_theme.dart';
+
+class MentionsController extends TextEditingController {
+  @override
+  TextSpan buildTextSpan({required BuildContext context, TextStyle? style, required bool withComposing}) {
+    final List<InlineSpan> children = [];
+    final pattern = RegExp(r'(@\[.*?\]\(student:\d+\))');
+    
+    text.splitMapJoin(
+      pattern,
+      onMatch: (Match match) {
+        children.add(TextSpan(
+          text: match.group(0),
+          style: style?.copyWith(
+            color: Colors.blue, 
+            fontWeight: FontWeight.bold,
+          ),
+        ));
+        return "";
+      },
+      onNonMatch: (String text) {
+        children.add(TextSpan(text: text, style: style));
+        return "";
+      },
+    );
+    
+    return TextSpan(style: style, children: children);
+  }
+}
 
 class MessageInput extends StatefulWidget {
   final ChatMessage? replyingTo;
@@ -17,19 +46,27 @@ class MessageInput extends StatefulWidget {
     required this.onSend,
     this.replyingTo,
     required this.onCancelReply,
+    this.students = const [],
   });
+
+  final List<Map<String, dynamic>> students;
 
   @override
   State<MessageInput> createState() => _MessageInputState();
 }
 
 class _MessageInputState extends State<MessageInput> with SingleTickerProviderStateMixin {
-  final _controller = TextEditingController();
+  final _controller = MentionsController();
+  final _focusNode = FocusNode();
   final _record = AudioRecorder();
   bool _isRecording = false;
   bool _isTextEmpty = true;
   double _dragPosition = 0;
   final double _cancelThreshold = -100.0;
+  
+  bool _showSuggestions = false;
+  String _suggestionSearch = "";
+  int _suggestionIndex = 0;
   
   Timer? _timer;
   int _recordDuration = 0;
@@ -50,12 +87,47 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
       setState(() {
         _isTextEmpty = _controller.text.trim().isEmpty;
       });
+      _checkMentions();
     });
+  }
+
+  void _checkMentions() {
+    final text = _controller.text;
+    final lastAtPos = text.lastIndexOf("@");
+    if (lastAtPos != -1) {
+      final afterAt = text.substring(lastAtPos + 1);
+      if (afterAt.contains(" ")) {
+        setState(() => _showSuggestions = false);
+      } else {
+        setState(() {
+          _showSuggestions = true;
+          _suggestionSearch = afterAt.toLowerCase();
+          _suggestionIndex = 0;
+        });
+      }
+    } else {
+      setState(() => _showSuggestions = false);
+    }
+  }
+
+  void _insertMention(Map<String, dynamic> student) {
+    final text = _controller.text;
+    final lastAtPos = text.lastIndexOf("@");
+    final beforeAt = text.substring(0, lastAtPos);
+    final tag = "@[${student['full_name']}](student:${student['cc']}) ";
+    
+    _controller.text = beforeAt + tag;
+    _controller.selection = TextSelection.fromPosition(
+      TextPosition(offset: _controller.text.length),
+    );
+    
+    setState(() => _showSuggestions = false);
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     _record.dispose();
     _timer?.cancel();
     super.dispose();
@@ -430,6 +502,61 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                       },
                     ),
                   ),
+                if (_showSuggestions && widget.students.isNotEmpty)
+                  Builder(builder: (context) {
+                    final filtered = widget.students.where((s) => 
+                      s['full_name'].toString().toLowerCase().contains(_suggestionSearch) || 
+                      s['cc'].toString().contains(_suggestionSearch)
+                    ).toList();
+
+                    if (filtered.isEmpty) return const SizedBox.shrink();
+
+                    return Container(
+                      constraints: const BoxConstraints(maxHeight: 250),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, -5),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) {
+                            final student = filtered[index];
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.grey[200],
+                                backgroundImage: student['photograph_url'] != null 
+                                  ? NetworkImage(student['photograph_url']) 
+                                  : null,
+                                child: student['photograph_url'] == null 
+                                  ? const Icon(Icons.person, size: 20) 
+                                  : null,
+                              ),
+                              title: Text(
+                                student['full_name'],
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                              subtitle: Text(
+                                'CC: ${student['cc']}',
+                                style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                              onTap: () => _insertMention(student),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  }),
                 Row(
                   children: [
                     // Unified Pill Container
@@ -463,29 +590,56 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                                     ),
                                   ),
                             Expanded(
-                              child: TextField(
-                                controller: _controller,
-                                enabled: !_isRecording,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  letterSpacing: -0.2,
-                                  color: Colors.black87,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: _isRecording ? '' : 'Type a message...',
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey[400],
+                              child: KeyboardListener(
+                                focusNode: _focusNode,
+                                onKeyEvent: (event) {
+                                  if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.backspace) {
+                                    final text = _controller.text;
+                                    final selection = _controller.selection;
+                                    
+                                    if (selection.isCollapsed && selection.baseOffset > 0) {
+                                      final textBefore = text.substring(0, selection.baseOffset);
+                                      
+                                      // Find all tags in the text
+                                      final tags = RegExp(r'@\[.*?\]\(student:\d+\) ').allMatches(text);
+                                      for (final match in tags) {
+                                        // If cursor is at the end of this tag OR inside it
+                                        if (selection.baseOffset > match.start && selection.baseOffset <= match.end) {
+                                          final newText = text.replaceRange(match.start, match.end, "");
+                                          _controller.value = TextEditingValue(
+                                            text: newText,
+                                            selection: TextSelection.collapsed(offset: match.start),
+                                          );
+                                          return;
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                child: TextField(
+                                  controller: _controller,
+                                  enabled: !_isRecording,
+                                  style: const TextStyle(
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w500,
+                                    letterSpacing: -0.2,
+                                    color: Colors.black87,
                                   ),
-                                  filled: false,
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.fromLTRB(4, 14, 16, 14),
+                                  decoration: InputDecoration(
+                                    hintText: _isRecording ? '' : 'Type a message...',
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey[400],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    filled: false,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.fromLTRB(4, 14, 16, 14),
+                                  ),
+                                  onSubmitted: (_) => _sendMessage(),
                                 ),
-                                onSubmitted: (_) => _sendMessage(),
                               ),
                             ),
                           ],
