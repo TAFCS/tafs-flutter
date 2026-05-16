@@ -4,10 +4,21 @@ import '../../../../core/error/failures.dart';
 import '../models/parent_dto.dart';
 
 abstract class AuthRemoteDataSource {
-  Future<ParentDto> login(String username, String password);
+  Future<ParentDto> login(
+    String username,
+    String password, {
+    String? fcmToken,
+    String? deviceType,
+  });
   Future<void> logout(String accessToken);
   Future<Map<String, dynamic>> verifyCnic(String cnic);
-  Future<ParentDto> registerParent(String cnic, String email, String password);
+  Future<ParentDto> registerParent(
+    String cnic,
+    String email,
+    String password, {
+    String? fcmToken,
+    String? deviceType,
+  });
   Future<ParentDto> getProfile(String accessToken);
 }
 
@@ -17,14 +28,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   AuthRemoteDataSourceImpl(this.dio);
 
   @override
-  Future<ParentDto> login(String username, String password) async {
+  Future<ParentDto> login(
+    String username,
+    String password, {
+    String? fcmToken,
+    String? deviceType,
+  }) async {
     final String baseUrl =
         dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
 
     try {
       final response = await dio.post(
         '$baseUrl/auth/parent/login',
-        data: {"username": username, "password": password},
+        data: {
+          "username": username,
+          "password": password,
+          if (fcmToken != null) "fcmToken": fcmToken,
+          if (deviceType != null) "deviceType": deviceType,
+        },
         options: Options(
           headers: {'Content-Type': 'application/json', 'accept': '*/*'},
         ),
@@ -106,15 +127,23 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<ParentDto> registerParent(
     String cnic,
     String email,
-    String password,
-  ) async {
+    String password, {
+    String? fcmToken,
+    String? deviceType,
+  }) async {
     final String baseUrl =
         dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
 
     try {
       final response = await dio.post(
         '$baseUrl/auth/parent/register',
-        data: {"cnic": cnic, "email": email, "password": password},
+        data: {
+          "cnic": cnic,
+          "email": email,
+          "password": password,
+          if (fcmToken != null) "fcmToken": fcmToken,
+          if (deviceType != null) "deviceType": deviceType,
+        },
         options: Options(
           headers: {'Content-Type': 'application/json', 'accept': '*/*'},
         ),

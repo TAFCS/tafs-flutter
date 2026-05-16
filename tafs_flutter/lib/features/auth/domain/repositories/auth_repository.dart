@@ -3,7 +3,12 @@ import '../../../../core/error/failures.dart';
 import '../entities/parent.dart';
 
 abstract class AuthRepository {
-  Future<Either<Failure, Parent>> login(String username, String password);
+  Future<Either<Failure, Parent>> login(
+    String username,
+    String password, {
+    String? fcmToken,
+    String? deviceType,
+  });
   Future<Either<Failure, void>> logout();
   Future<Either<Failure, Parent?>> getCachedUser();
 
@@ -12,7 +17,9 @@ abstract class AuthRepository {
   Future<Either<Failure, Parent>> registerParent(
     String cnic,
     String email,
-    String password,
-  );
+    String password, {
+    String? fcmToken,
+    String? deviceType,
+  });
   Future<Either<Failure, Parent>> refreshProfile();
 }

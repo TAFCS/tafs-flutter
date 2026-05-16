@@ -84,7 +84,12 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
-    final result = await loginUseCase(event.username, event.password);
+    final result = await loginUseCase(
+      event.username,
+      event.password,
+      fcmToken: event.fcmToken,
+      deviceType: event.deviceType,
+    );
     result.fold(
       (failure) => emit(AuthError(failure.message)),
       (parent) => emit(AuthAuthenticated(parent)),
@@ -132,6 +137,8 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
       event.cnic,
       event.email,
       event.password,
+      fcmToken: event.fcmToken,
+      deviceType: event.deviceType,
     );
     result.fold(
       (failure) => emit(AuthError(failure.message)),

@@ -17,10 +17,17 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, Parent>> login(
     String username,
-    String password,
-  ) async {
+    String password, {
+    String? fcmToken,
+    String? deviceType,
+  }) async {
     try {
-      final parentDto = await remoteDataSource.login(username, password);
+      final parentDto = await remoteDataSource.login(
+        username,
+        password,
+        fcmToken: fcmToken,
+        deviceType: deviceType,
+      );
       await localDataSource.cacheParent(parentDto);
       return Right(parentDto);
     } on Failure catch (failure) {
@@ -75,13 +82,17 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, Parent>> registerParent(
     String cnic,
     String email,
-    String password,
-  ) async {
+    String password, {
+    String? fcmToken,
+    String? deviceType,
+  }) async {
     try {
       final parentDto = await remoteDataSource.registerParent(
         cnic,
         email,
         password,
+        fcmToken: fcmToken,
+        deviceType: deviceType,
       );
       await localDataSource.cacheParent(parentDto);
       return Right(parentDto);

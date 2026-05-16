@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/theme/app_theme.dart';
@@ -52,7 +54,7 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  void _register() {
+  void _register() async {
     if (_formKey.currentState!.validate()) {
       if (_passwordController.text != _confirmPasswordController.text) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -64,11 +66,22 @@ class _SignupPageState extends State<SignupPage> {
         return;
       }
 
+      String? fcmToken;
+      try {
+        fcmToken = await FirebaseMessaging.instance.getToken();
+      } catch (e) {
+        print('Error getting FCM token on register: $e');
+      }
+
+      if (!mounted) return;
+
       context.read<AuthBloc>().add(
         AuthRegisterRequested(
           cnic: _verifiedCnic!,
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          fcmToken: fcmToken,
+          deviceType: Platform.isAndroid ? 'ANDROID' : 'IOS',
         ),
       );
     }

@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/theme/app_theme.dart';
@@ -20,12 +22,23 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  void _login() {
+  void _login() async {
     if (_formKey.currentState!.validate()) {
+      String? fcmToken;
+      try {
+        fcmToken = await FirebaseMessaging.instance.getToken();
+      } catch (e) {
+        print('Error getting FCM token on login: $e');
+      }
+
+      if (!mounted) return;
+
       context.read<AuthBloc>().add(
         AuthLoginRequested(
           username: _emailController.text.trim(),
           password: _passwordController.text,
+          fcmToken: fcmToken,
+          deviceType: Platform.isAndroid ? 'ANDROID' : 'IOS',
         ),
       );
     }

@@ -8,7 +8,17 @@ class ParentLoginUseCase {
 
   ParentLoginUseCase(this.repository);
 
-  Future<Either<Failure, Parent>> call(String username, String password) async {
-    return await repository.login(username, password);
+  Future<Either<Failure, Parent>> call(
+    String username,
+    String password, {
+    String? fcmToken,
+    String? deviceType,
+  }) async {
+    return await repository.login(
+      username,
+      password,
+      fcmToken: fcmToken,
+      deviceType: deviceType,
+    );
   }
 }
