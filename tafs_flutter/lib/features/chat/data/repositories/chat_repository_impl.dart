@@ -70,7 +70,9 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       .setTransports(['websocket', 'polling'])
       .setAuth({'token': cached.accessToken})
       .enableAutoConnect()
+      .enableReconnection() // Ensure reconnection is explicitly enabled
       .setReconnectionDelay(1000)
+      .setReconnectionAttempts(99999999) // Infinite reconnection attempts
       .setReconnectionDelayMax(5000)
       .setRandomizationFactor(0.5)
       .build());
