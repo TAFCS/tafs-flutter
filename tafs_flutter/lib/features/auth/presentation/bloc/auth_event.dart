@@ -4,7 +4,7 @@ abstract class AuthEvent extends Equatable {
   const AuthEvent();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 class AuthCheckRequested extends AuthEvent {}
@@ -38,7 +38,7 @@ class AuthVerifyCnicRequested extends AuthEvent {
   const AuthVerifyCnicRequested({required this.cnic});
 
   @override
-  List<Object> get props => [cnic];
+  List<Object?> get props => [cnic];
 }
 
 class AuthRegisterRequested extends AuthEvent {
