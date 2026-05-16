@@ -173,65 +173,89 @@ class ChatBubble extends StatelessWidget {
 
   Widget _buildReplyPreview(BuildContext context, Map<String, dynamic> replyTo) {
     final isMe = messages.first.senderType == ChatSenderType.guardian;
-    final isImage = replyTo['type'].toString().toUpperCase() == 'IMAGE';
+    final type = replyTo['type']?.toString().toUpperCase() ?? 'TEXT';
+    final isImage = type == 'IMAGE';
+    final isVoice = type == 'VOICE';
 
-    return InkWell(
-      onTap: () => onReplyTap(replyTo['id'] ?? ''),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        margin: const EdgeInsets.all(4),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: isMe ? Colors.black.withOpacity(0.1) : Colors.black.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(8),
-          border: Border(
-            left: BorderSide(
-              color: isMe ? Colors.white70 : Colors.blue,
-              width: 4,
-            ),
-          ),
-        ),
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+      decoration: BoxDecoration(
+        color: isMe ? Colors.black.withOpacity(0.15) : Colors.black.withOpacity(0.05),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(12), bottom: Radius.circular(4)),
+      ),
+      child: IntrinsicHeight(
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    replyTo['senderName'] ?? 'Unknown',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: isMe ? Colors.white : Colors.blue,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    isImage ? 'Photo' : replyTo['content'],
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: isMe ? Colors.white.withOpacity(0.9) : Colors.black87,
-                    ),
-                  ),
-                ],
+            Container(
+              width: 4,
+              decoration: BoxDecoration(
+                color: isMe ? Colors.white70 : AppTheme.navy,
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
               ),
             ),
-            if (isImage) ...[
-              const SizedBox(width: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: _renderImage(
-                  replyTo['content'],
-                  width: 40,
-                  height: 40,
-                  fit: BoxFit.cover,
+            Expanded(
+              child: InkWell(
+                onTap: () => onReplyTap(replyTo['id'] ?? ''),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        replyTo['senderName'] ?? 'Unknown',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          color: isMe ? Colors.white : AppTheme.navy,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          if (isVoice) ...[
+                            Icon(Icons.mic, size: 14, color: isMe ? Colors.white70 : Colors.black54),
+                            const SizedBox(width: 4),
+                          ],
+                          if (isImage) ...[
+                            Icon(Icons.photo, size: 14, color: isMe ? Colors.white70 : Colors.black54),
+                            const SizedBox(width: 4),
+                          ],
+                          Expanded(
+                            child: Text(
+                              isImage ? 'Photo' : isVoice ? 'Voice Note' : (replyTo['content'] ?? ''),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isMe ? Colors.white.withOpacity(0.8) : Colors.black54,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ],
+            ),
+            if (isImage)
+              Container(
+                width: 50,
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.horizontal(right: Radius.circular(4)),
+                ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.horizontal(right: Radius.circular(4)),
+                  child: _renderImage(
+                    replyTo['content'],
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -298,6 +322,7 @@ class ChatBubble extends StatelessWidget {
         return _VoiceNotePlayer(
           key: ValueKey(message.id),
           url: message.content,
+          localPath: message.mediaMetadata?['localPath'],
           isMe: isMe,
         );
       case ChatMessageType.document:
@@ -516,9 +541,15 @@ class ChatBubble extends StatelessWidget {
 
 class _VoiceNotePlayer extends StatefulWidget {
   final String url;
+  final String? localPath;
   final bool isMe;
 
-  const _VoiceNotePlayer({super.key, required this.url, required this.isMe});
+  const _VoiceNotePlayer({
+    super.key, 
+    required this.url, 
+    this.localPath,
+    required this.isMe,
+  });
 
   @override
   State<_VoiceNotePlayer> createState() => _VoiceNotePlayerState();
@@ -538,17 +569,22 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
     super.initState();
     _audioPlayer = AudioPlayer();
     
-    // Set source immediately to fetch duration
-    _audioPlayer.setSource(UrlSource(widget.url)).then((_) {
-      if (mounted) setState(() => _isSourceSet = true);
-    });
+    _initPlayer();
     
     _audioPlayer.onDurationChanged.listen((d) {
       if (mounted) setState(() => _duration = d);
     });
 
     _audioPlayer.onPositionChanged.listen((p) {
-      if (mounted) setState(() => _position = p);
+      if (mounted) {
+        setState(() {
+          _position = p;
+          // Safety: if we reach the end, stop playing
+          if (_duration > Duration.zero && p >= _duration) {
+            _isPlaying = false;
+          }
+        });
+      }
     });
 
     _audioPlayer.onPlayerStateChanged.listen((state) {
@@ -563,7 +599,9 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
       if (mounted) {
         setState(() {
           _isPlaying = false;
-          _position = Duration.zero;
+          // Keep _position at the end so the UI shows it's finished.
+          // It will be reset to zero in _togglePlay when played again.
+          _position = _duration; 
           if (_activePlayer == _audioPlayer) {
             _activePlayer = null;
             _activeUrl = null;
@@ -571,6 +609,32 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
         });
       }
     });
+  }
+
+  Future<void> _initPlayer() async {
+    try {
+      Source? source;
+      if (widget.localPath != null && File(widget.localPath!).existsSync()) {
+        source = DeviceFileSource(widget.localPath!);
+      } else if (widget.url.isNotEmpty) {
+        source = UrlSource(widget.url);
+      }
+
+      if (source != null) {
+        await _audioPlayer.setSource(source);
+        if (mounted) setState(() => _isSourceSet = true);
+      }
+    } catch (e) {
+      debugPrint('Error initializing audio: $e');
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _VoiceNotePlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.url != widget.url || oldWidget.localPath != widget.localPath) {
+      _initPlayer();
+    }
   }
 
   @override
@@ -587,7 +651,6 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
     try {
       if (_activePlayer != null && _activePlayer != _audioPlayer) {
         await _activePlayer!.pause();
-        // The other player's state listener will update its UI
       }
 
       if (_isPlaying) {
@@ -595,12 +658,21 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
         _activePlayer = null;
         _activeUrl = null;
       } else {
+        // If we are at the end, seek to beginning before playing
+        if (_position >= _duration && _duration > Duration.zero) {
+          await _audioPlayer.seek(Duration.zero);
+        }
+        
         _activePlayer = _audioPlayer;
         _activeUrl = widget.url;
         await _audioPlayer.resume();
       }
       
-      if (mounted) setState(() => _isPlaying = _audioPlayer.state == PlayerState.playing);
+      if (mounted) {
+        setState(() {
+          _isPlaying = _audioPlayer.state == PlayerState.playing;
+        });
+      }
     } catch (e) {
       debugPrint('Audio playback error: $e');
     }

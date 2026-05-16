@@ -25,17 +25,19 @@ class ChatMessageSent extends ChatEvent {
   final String content;
   final ChatMessageType type;
   final File? file;
+  final ChatMessage? replyTo;
   final Map<String, dynamic>? mediaMetadata;
 
   const ChatMessageSent({
     required this.content,
     required this.type,
     this.file,
+    this.replyTo,
     this.mediaMetadata,
   });
 
   @override
-  List<Object?> get props => [content, type, file, mediaMetadata];
+  List<Object?> get props => [content, type, file, replyTo, mediaMetadata];
 }
 
 class ChatHistoryLoaded extends ChatEvent {

@@ -156,6 +156,15 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       final metadata = <String, dynamic>{};
       if (event.mediaMetadata != null) metadata.addAll(event.mediaMetadata!);
       if (event.file != null) metadata['localPath'] = event.file!.path;
+      
+      if (event.replyTo != null) {
+        metadata['replyTo'] = {
+          'id': event.replyTo!.id,
+          'content': event.replyTo!.content,
+          'type': event.replyTo!.messageType.name.toUpperCase(),
+          'senderName': event.replyTo!.senderName ?? (event.replyTo!.senderType == ChatSenderType.guardian ? 'You' : 'TAFS Support'),
+        };
+      }
 
       final optimisticMessage = ChatMessage(
         id: tempId,
@@ -177,15 +186,20 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
           content = await repository.uploadMedia(event.file!);
         }
         
-        final metadata = <String, dynamic>{'tempId': tempId};
+        final finalMetadata = <String, dynamic>{'tempId': tempId};
         if (event.mediaMetadata != null) {
-          metadata.addAll(event.mediaMetadata!);
+          finalMetadata.addAll(event.mediaMetadata!);
+        }
+        if (event.replyTo != null) {
+          finalMetadata['replyToId'] = event.replyTo!.id;
+          // Also include full reply object for the immediate socket update
+          finalMetadata['replyTo'] = metadata['replyTo'];
         }
 
         repository.sendMessage(
           type: event.type,
           content: content,
-          metadata: metadata,
+          metadata: finalMetadata,
         );
       } catch (e) {
         // Update status to error

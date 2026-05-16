@@ -364,69 +364,96 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Premium Reply Preview
+        // Premium Reply Preview (WhatsApp style)
         if (widget.replyingTo != null)
           Container(
             margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 35,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor,
-                    borderRadius: BorderRadius.circular(2),
+            child: IntrinsicHeight(
+              child: Row(
+                children: [
+                  Container(
+                    width: 4,
+                    decoration: BoxDecoration(
+                      color: AppTheme.navy,
+                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.replyingTo!.senderType == ChatSenderType.guardian ? 'You' : 'TAFS Support',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          color: Theme.of(context).primaryColor,
-                          fontSize: 12,
-                          letterSpacing: 0.3,
-                        ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            widget.replyingTo!.senderType == ChatSenderType.guardian ? 'You' : 'TAFS Support',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: AppTheme.navy,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              if (widget.replyingTo!.messageType == ChatMessageType.image) ...[
+                                const Icon(Icons.photo, size: 14, color: Colors.grey),
+                                const SizedBox(width: 4),
+                              ],
+                              if (widget.replyingTo!.messageType == ChatMessageType.voice) ...[
+                                const Icon(Icons.mic, size: 14, color: Colors.grey),
+                                const SizedBox(width: 4),
+                              ],
+                              Expanded(
+                                child: Text(
+                                  widget.replyingTo!.messageType == ChatMessageType.text 
+                                    ? widget.replyingTo!.content 
+                                    : widget.replyingTo!.messageType == ChatMessageType.image 
+                                      ? 'Photo' 
+                                      : widget.replyingTo!.messageType == ChatMessageType.voice 
+                                        ? 'Voice Note' 
+                                        : '[${widget.replyingTo!.messageType.name.toUpperCase()}]',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        widget.replyingTo!.messageType == ChatMessageType.text 
-                          ? widget.replyingTo!.content 
-                          : '[${widget.replyingTo!.messageType.name.toUpperCase()}]',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.close_rounded, size: 20, color: Colors.grey[400]),
-                  onPressed: widget.onCancelReply,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
+                  if (widget.replyingTo!.messageType == ChatMessageType.image)
+                    Container(
+                      width: 45,
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: widget.replyingTo!.mediaMetadata?['localPath'] != null
+                          ? Image.file(File(widget.replyingTo!.mediaMetadata!['localPath']), fit: BoxFit.cover)
+                          : Image.network(widget.replyingTo!.mediaMetadata?['url'] ?? widget.replyingTo!.content, fit: BoxFit.cover),
+                      ),
+                    ),
+                  IconButton(
+                    icon: Icon(Icons.close_rounded, size: 20, color: Colors.grey[400]),
+                    onPressed: widget.onCancelReply,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
             ),
           ),
 

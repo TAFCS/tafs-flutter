@@ -7,6 +7,7 @@ import '../../auth/presentation/bloc/selected_student_cubit.dart';
 import '../../chat/domain/entities/chat_message.dart';
 import '../../chat/presentation/bloc/chat_bloc.dart';
 import '../../chat/presentation/bloc/chat_state.dart';
+import '../../chat/presentation/bloc/chat_event.dart';
 import '../../chat/presentation/pages/chat_page.dart';
 import '../../fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import '../../fee_ledger/presentation/bloc/fee_ledger_event.dart';
@@ -37,7 +38,18 @@ class _MainShellPageState extends State<MainShellPage> {
     }
   }
 
-  void _onTabTapped(int index) => setState(() => _selectedIndex = index);
+  void _onTabTapped(int index) {
+    if (_selectedIndex == index) return;
+
+    final chatBloc = context.read<ChatBloc>();
+    if (index == 2) {
+      chatBloc.add(ChatEntered());
+    } else if (_selectedIndex == 2) {
+      chatBloc.add(ChatLeft());
+    }
+
+    setState(() => _selectedIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +79,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 context: context,
                 title: 'TAFS Support',
                 message: latest.content,
-                onTap: () => setState(() => _selectedIndex = 2),
+                onTap: () => _onTabTapped(2),
               );
             }
           },

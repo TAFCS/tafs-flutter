@@ -30,12 +30,10 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     _chatBloc = context.read<ChatBloc>();
-    _chatBloc.add(ChatEntered());
   }
 
   @override
   void dispose() {
-    _chatBloc.add(ChatLeft());
     super.dispose();
   }
 
@@ -196,13 +194,17 @@ class _ChatPageState extends State<ChatPage> {
                               .reversed
                               .toList();
 
-                          final message = item is List<ChatMessage> ? item.first : item as ChatMessage;
+                          final message = item is List<ChatMessage> 
+                              ? (item.isNotEmpty ? item.first : (item as dynamic)[0]) // Safety
+                              : item as ChatMessage;
                           bool showDateSeparator = false;
                           if (index == clusters.length - 1) {
                             showDateSeparator = true;
                           } else {
                             final nextItem = clusters[index + 1];
-                            final nextMessage = nextItem is List<ChatMessage> ? nextItem.first : nextItem as ChatMessage;
+                            final nextMessage = nextItem is List<ChatMessage> 
+                                ? (nextItem.isNotEmpty ? nextItem.first : (nextItem as dynamic)[0]) // Safety
+                                : nextItem as ChatMessage;
                             final currentLocal = message.createdAt.toLocal();
                             final nextLocal = nextMessage.createdAt.toLocal();
                             if (currentLocal.day != nextLocal.day ||
@@ -283,8 +285,13 @@ class _ChatPageState extends State<ChatPage> {
                         content: content,
                         type: type,
                         file: file,
+                        replyTo: replyTo,
                         mediaMetadata: metadata,
                       ));
+                      // Clear reply after sending
+                      if (_replyingTo != null) {
+                        setState(() => _replyingTo = null);
+                      }
                     },
                   );
                 },
