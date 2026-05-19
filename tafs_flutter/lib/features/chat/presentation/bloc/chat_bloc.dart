@@ -12,6 +12,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
   ChatBloc({required this.repository}) : super(ChatInitial()) {
     on<ChatStarted>(_onChatStarted);
+    on<ChatStopped>(_onChatStopped);
     on<ChatMessageReceived>(_onMessageReceived);
     on<ChatMessagesRead>(_onMessagesRead);
     on<ChatMessageSent>(_onMessageSent);
@@ -241,6 +242,13 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         // Silent fail
       }
     }
+  }
+
+  void _onChatStopped(ChatStopped event, Emitter<ChatState> emit) {
+    _messageSubscription?.cancel();
+    _readSubscription?.cancel();
+    repository.disconnect();
+    emit(ChatInitial());
   }
 
   @override

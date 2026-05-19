@@ -66,6 +66,17 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
     final socketUrl = baseUrl.replaceAll('/api/v1', '');
     
+    if (_socket != null) {
+      _socket!.io.options?['auth'] = {'token': cached.accessToken};
+      if (!_socket!.connected) {
+        print('Chat Socket already exists, connecting...');
+        _socket!.connect();
+      } else {
+        print('Chat Socket already connected');
+      }
+      return;
+    }
+    
     _socket = io.io(socketUrl, io.OptionBuilder()
       .setTransports(['websocket', 'polling'])
       .setAuth({'token': cached.accessToken})
@@ -78,7 +89,24 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       .build());
 
     // Register lifecycle observer
+    WidgetsBinding.instance.removeObserver(this);
     WidgetsBinding.instance.addObserver(this);
+
+    _socket!.on('connect_error', (err) async {
+      print('Chat Socket connect error: $err');
+      final latest = await localDataSource.getCachedParent();
+      if (latest != null && _socket != null) {
+        _socket!.io.options?['auth'] = {'token': latest.accessToken};
+      }
+    });
+
+    _socket!.on('reconnect_attempt', (_) async {
+      print('Chat Socket reconnect attempt...');
+      final latest = await localDataSource.getCachedParent();
+      if (latest != null && _socket != null) {
+        _socket!.io.options?['auth'] = {'token': latest.accessToken};
+      }
+    });
 
     _socket!.onConnect((_) async {
       print('Connected to Chat Socket');
