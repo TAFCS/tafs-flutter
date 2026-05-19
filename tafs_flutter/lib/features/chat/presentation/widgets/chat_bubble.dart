@@ -491,8 +491,8 @@ class ChatBubble extends StatelessWidget {
         crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Align(
-            alignment: isMe ? Alignment.topRight : Alignment.topLeft,
+          SizedBox(
+            width: textPainter.width,
             child: RichText(
               textAlign: isMe ? TextAlign.right : TextAlign.left,
               text: TextSpan(
