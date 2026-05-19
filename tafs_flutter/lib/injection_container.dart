@@ -21,6 +21,7 @@ import 'features/fee_ledger/domain/usecases/resolve_voucher_for_month_usecase.da
 import 'features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import 'features/auth/presentation/bloc/selected_student_cubit.dart';
+import 'features/chat/data/datasources/chat_outbox_local_data_source.dart';
 import 'features/chat/data/repositories/chat_repository_impl.dart';
 import 'features/chat/domain/repositories/chat_repository.dart';
 import 'features/chat/presentation/bloc/chat_bloc.dart';
@@ -59,9 +60,11 @@ class InjectionContainer {
       remoteDataSource: feeSummaryRemoteDataSource,
     );
 
+    final chatOutboxDataSource = ChatOutboxLocalDataSource();
     final chatRepository = ChatRepositoryImpl(
       dio: dio,
       localDataSource: localDataSource,
+      outboxDataSource: chatOutboxDataSource,
       baseUrl: dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080/api/v1',
     );
 

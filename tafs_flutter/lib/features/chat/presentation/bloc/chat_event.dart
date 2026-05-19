@@ -63,3 +63,13 @@ class ChatLeft extends ChatEvent {}
 class ChatStudentsRequested extends ChatEvent {}
 
 class ChatStopped extends ChatEvent {}
+
+class ChatReconnected extends ChatEvent {}
+
+class ChatMessageRetry extends ChatEvent {
+  final String clientMessageId;
+  const ChatMessageRetry(this.clientMessageId);
+
+  @override
+  List<Object?> get props => [clientMessageId];
+}

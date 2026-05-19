@@ -4,7 +4,7 @@ enum ChatMessageType { text, image, voice, document }
 
 enum ChatSenderType { guardian, admin }
 
-enum MessageStatus { sending, sent, error }
+enum MessageStatus { queued, sending, sent, error }
 
 class ChatMessage extends Equatable {
   final String id;

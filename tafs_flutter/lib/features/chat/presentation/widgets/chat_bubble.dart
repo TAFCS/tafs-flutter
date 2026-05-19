@@ -11,12 +11,14 @@ class ChatBubble extends StatelessWidget {
   final Function(String) onImageTap;
 
   final Function(String) onReplyTap;
+  final void Function(String clientMessageId)? onRetryTap;
 
   const ChatBubble({
     super.key, 
     required this.messages,
     required this.onImageTap,
     required this.onReplyTap,
+    this.onRetryTap,
   });
 
   @override
@@ -146,11 +148,22 @@ class ChatBubble extends StatelessWidget {
                                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.7)),
                               ),
                             )
-                          else if (message.status == MessageStatus.error)
-                            const Icon(
-                              Icons.error_outline_rounded,
+                          else if (message.status == MessageStatus.queued)
+                            Icon(
+                              Icons.schedule_rounded,
                               size: 14,
-                              color: Colors.white,
+                              color: Colors.white.withOpacity(0.7),
+                            )
+                          else if (message.status == MessageStatus.error)
+                            GestureDetector(
+                              onTap: onRetryTap != null
+                                  ? () => onRetryTap!(message.id)
+                                  : null,
+                              child: const Icon(
+                                Icons.error_outline_rounded,
+                                size: 14,
+                                color: Colors.white,
+                              ),
                             )
                           else
                             Icon(

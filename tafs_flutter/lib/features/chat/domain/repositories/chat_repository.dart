@@ -1,4 +1,5 @@
 import '../entities/chat_message.dart';
+import '../entities/chat_outbox_entry.dart';
 import 'dart:io';
 
 abstract class ChatRepository {
@@ -6,11 +7,17 @@ abstract class ChatRepository {
   Future<String> uploadMedia(File file);
   void connect();
   void disconnect();
-  void sendMessage({
+  bool get isConnected;
+  Future<ChatMessage> sendMessage({
     required ChatMessageType type,
     required String content,
     Map<String, dynamic>? metadata,
   });
+  Future<void> enqueueOutbox(ChatOutboxEntry entry);
+  Future<void> removeFromOutbox(String clientMessageId);
+  Future<List<ChatOutboxEntry>> getPendingOutbox();
+  Future<void> drainOutbox();
+  Future<ChatMessage?> retryOutboxMessage(String clientMessageId);
   Future<List<Map<String, dynamic>>> getStudents();
   void markAsRead();
   void enterChat();
@@ -18,4 +25,5 @@ abstract class ChatRepository {
   Stream<ChatMessage> get onMessageReceived;
   Stream<void> get onMessagesRead;
   Stream<String> get onMessageDeleted;
+  Stream<void> get onConnect;
 }

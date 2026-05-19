@@ -250,6 +250,9 @@ class _ChatPageState extends State<ChatPage> {
                                   child: ChatBubble(
                                     messages: item is List<ChatMessage> ? item : [item as ChatMessage],
                                     onReplyTap: (id) => _scrollToMessage(clusters, id),
+                                    onRetryTap: (id) {
+                                      context.read<ChatBloc>().add(ChatMessageRetry(id));
+                                    },
                                     onImageTap: (url) {
                                       final imageIndex = allImageUrls.indexOf(url);
                                       Navigator.push(
