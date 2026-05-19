@@ -23,7 +23,11 @@ class ChatOutboxLocalDataSource {
   Future<void> save(int familyId, List<ChatOutboxEntry> entries) async {
     final file = await _fileForFamily(familyId);
     if (entries.isEmpty) {
-      if (await file.exists()) await file.delete();
+      if (await file.exists()) {
+        try {
+          await file.delete();
+        } catch (_) {}
+      }
       return;
     }
     await file.writeAsString(ChatOutboxEntry.encodeList(entries));
