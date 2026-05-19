@@ -74,7 +74,7 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -138,21 +138,8 @@ class _ChatPageState extends State<ChatPage> {
           ),
         ],
       ),
-      body: Stack(
+      body: Column(
         children: [
-          // Watermark Background
-          Center(
-            child: Opacity(
-              opacity: 0.05,
-              child: Image.asset(
-                'assets/logo.png',
-                width: MediaQuery.of(context).size.width * 0.7,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-          Column(
-            children: [
               Expanded(
                 child: BlocBuilder<ChatBloc, ChatState>(
                   builder: (context, state) {
@@ -160,33 +147,35 @@ class _ChatPageState extends State<ChatPage> {
                       return const Center(child: CircularProgressIndicator());
                     }
                     if (state is ChatLoaded) {
-                      final clusters = <dynamic>[];
-                      for (int i = 0; i < state.messages.length; i++) {
+                      final List<List<ChatMessage>> clusters = [];
+                      for (int i = state.messages.length - 1; i >= 0; i--) {
                         final msg = state.messages[i];
-                        if (msg.messageType == ChatMessageType.image) {
-                          final group = [msg];
-                          while (i + 1 < state.messages.length &&
-                              state.messages[i + 1].messageType == ChatMessageType.image &&
-                              state.messages[i + 1].senderType == msg.senderType &&
-                              state.messages[i + 1].mediaMetadata?['batchId'] == msg.mediaMetadata?['batchId'] &&
-                              msg.mediaMetadata?['batchId'] != null) {
-                            group.add(state.messages[i + 1]);
-                            i++;
-                          }
-                          clusters.add(group);
+                        if (clusters.isEmpty) {
+                          clusters.add([msg]);
                         } else {
-                          clusters.add(msg);
+                          final lastCluster = clusters.last;
+                          final lastMsg = lastCluster.last;
+                          final sameSender = lastMsg.senderType == msg.senderType;
+                          final timeDiff = msg.createdAt.difference(lastMsg.createdAt).abs();
+                          final withinOneHour = timeDiff.inHours < 1;
+
+                          if (sameSender && withinOneHour) {
+                            lastCluster.add(msg);
+                          } else {
+                            clusters.add([msg]);
+                          }
                         }
                       }
+                      final reversedClusters = clusters.reversed.toList();
 
                       return ScrollablePositionedList.builder(
                         itemScrollController: _itemScrollController,
                         itemPositionsListener: _itemPositionsListener,
                         padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-                        itemCount: clusters.length,
+                        itemCount: reversedClusters.length,
                         reverse: true,
                         itemBuilder: (context, index) {
-                          final item = clusters[index];
+                          final item = reversedClusters[index];
                           final allImageUrls = state.messages
                               .where((m) => m.messageType == ChatMessageType.image)
                               .map((m) => m.mediaMetadata?['url'] as String? ?? m.content)
@@ -194,17 +183,13 @@ class _ChatPageState extends State<ChatPage> {
                               .reversed
                               .toList();
 
-                          final message = item is List<ChatMessage> 
-                              ? (item.isNotEmpty ? item.first : (item as dynamic)[0]) // Safety
-                              : item as ChatMessage;
+                          final message = item.first;
                           bool showDateSeparator = false;
-                          if (index == clusters.length - 1) {
+                          if (index == reversedClusters.length - 1) {
                             showDateSeparator = true;
                           } else {
-                            final nextItem = clusters[index + 1];
-                            final nextMessage = nextItem is List<ChatMessage> 
-                                ? (nextItem.isNotEmpty ? nextItem.first : (nextItem as dynamic)[0]) // Safety
-                                : nextItem as ChatMessage;
+                            final nextItem = reversedClusters[index + 1];
+                            final nextMessage = nextItem.first;
                             final currentLocal = message.createdAt.toLocal();
                             final nextLocal = nextMessage.createdAt.toLocal();
                             if (currentLocal.day != nextLocal.day ||
@@ -215,7 +200,7 @@ class _ChatPageState extends State<ChatPage> {
                           }
 
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 24.0),
+                            padding: const EdgeInsets.only(bottom: 12.0),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -241,31 +226,29 @@ class _ChatPageState extends State<ChatPage> {
                                       ),
                                     ),
                                   ),
-                                SwipeToReply(
-                                  onReply: () {
+                                ChatBubble(
+                                  messages: item,
+                                  onReplyTap: (id) => _scrollToMessage(reversedClusters, id),
+                                  onReply: (message) {
                                     setState(() {
-                                      _replyingTo = item is List<ChatMessage> ? item.first : item as ChatMessage;
+                                      _replyingTo = message;
                                     });
                                   },
-                                  child: ChatBubble(
-                                    messages: item is List<ChatMessage> ? item : [item as ChatMessage],
-                                    onReplyTap: (id) => _scrollToMessage(clusters, id),
-                                    onRetryTap: (id) {
-                                      context.read<ChatBloc>().add(ChatMessageRetry(id));
-                                    },
-                                    onImageTap: (url) {
-                                      final imageIndex = allImageUrls.indexOf(url);
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => FullScreenImageViewer(
-                                            imageUrls: allImageUrls,
-                                            initialIndex: imageIndex >= 0 ? imageIndex : 0,
-                                          ),
+                                  onRetryTap: (id) {
+                                    context.read<ChatBloc>().add(ChatMessageRetry(id));
+                                  },
+                                  onImageTap: (url) {
+                                    final imageIndex = allImageUrls.indexOf(url);
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => FullScreenImageViewer(
+                                          imageUrls: allImageUrls,
+                                          initialIndex: imageIndex >= 0 ? imageIndex : 0,
                                         ),
-                                      );
-                                    },
-                                  ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),
@@ -301,8 +284,6 @@ class _ChatPageState extends State<ChatPage> {
               ),
             ],
           ),
-        ],
-      ),
     );
   }
 }

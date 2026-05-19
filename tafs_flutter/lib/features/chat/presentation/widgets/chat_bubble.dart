@@ -3,14 +3,16 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/chat_message.dart';
 import 'dart:io';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:tafs_flutter/core/theme/app_theme.dart';
+import 'swipe_to_reply.dart';
 
 class ChatBubble extends StatelessWidget {
   final List<ChatMessage> messages;
   final Function(String) onImageTap;
 
   final Function(String) onReplyTap;
+  final void Function(ChatMessage) onReply;
   final void Function(String clientMessageId)? onRetryTap;
 
   const ChatBubble({
@@ -18,164 +20,89 @@ class ChatBubble extends StatelessWidget {
     required this.messages,
     required this.onImageTap,
     required this.onReplyTap,
+    required this.onReply,
     this.onRetryTap,
   });
 
   @override
   Widget build(BuildContext context) {
     if (messages.isEmpty) return const SizedBox.shrink();
-    final message = messages.first;
-    final isMe = message.senderType == ChatSenderType.guardian;
-    final theme = Theme.of(context);
-
-    final borderRadius = BorderRadius.only(
-      topLeft: const Radius.circular(20),
-      topRight: const Radius.circular(20),
-      bottomLeft: Radius.circular(isMe ? 20 : 4),
-      bottomRight: Radius.circular(isMe ? 4 : 20),
-    );
+    final firstMsg = messages.first;
+    final isMe = firstMsg.senderType == ChatSenderType.guardian;
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
         crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (!isMe && message.isAnnouncement)
-            Padding(
-              padding: const EdgeInsets.only(left: 16, bottom: 6, top: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: AppTheme.navy.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.campaign_rounded, size: 14, color: AppTheme.navy),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'TAFS Support',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      color: AppTheme.navy,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppTheme.navy, AppTheme.navy.withOpacity(0.8)],
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.navy.withOpacity(0.3),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Text(
-                      'OFFICIAL',
-                      style: TextStyle(
-                        fontSize: 8,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          if (!isMe && firstMsg.isAnnouncement)
+            _buildAnnouncementHeader(context, firstMsg),
+          ...List.generate(messages.length, (index) {
+            final message = messages[index];
+            final isFirst = index == 0;
+
+            final borderRadius = BorderRadius.only(
+              topLeft: Radius.circular(isFirst && !isMe ? 4 : 16),
+              topRight: Radius.circular(isFirst && isMe ? 4 : 16),
+              bottomLeft: const Radius.circular(16),
+              bottomRight: const Radius.circular(16),
+            );
+
+            return _buildIndividualBubble(context, message, borderRadius);
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnnouncementHeader(BuildContext context, ChatMessage message) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, bottom: 6, top: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
           Container(
-            margin: EdgeInsets.only(
-              top: 2,
-              bottom: 2,
-              left: isMe ? 64 : 12,
-              right: isMe ? 12 : 64,
-            ),
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: isMe ? AppTheme.navy : Colors.white,
-              borderRadius: borderRadius,
-              border: !isMe && message.isAnnouncement 
-                  ? Border.all(color: AppTheme.navy.withOpacity(0.15), width: 1)
-                  : null,
+              color: AppTheme.navy.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.campaign_rounded, size: 14, color: AppTheme.navy),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'TAFS Support',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              color: AppTheme.navy,
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppTheme.navy, AppTheme.navy.withOpacity(0.8)],
+              ),
+              borderRadius: BorderRadius.circular(6),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  color: AppTheme.navy.withOpacity(0.3),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
-            child: ClipRRect(
-              borderRadius: borderRadius,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (message.mediaMetadata?['replyTo'] != null)
-                    _buildReplyPreview(context, message.mediaMetadata!['replyTo']),
-                  _buildContent(context),
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12, bottom: 8, left: 12, top: 0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          DateFormat('h:mm a').format(message.createdAt.toLocal()),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: isMe ? Colors.white.withOpacity(0.7) : Colors.black38,
-                          ),
-                        ),
-                        if (isMe) ...[
-                          const SizedBox(width: 4),
-                          if (message.status == MessageStatus.sending)
-                            SizedBox(
-                              width: 10,
-                              height: 10,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.7)),
-                              ),
-                            )
-                          else if (message.status == MessageStatus.queued)
-                            Icon(
-                              Icons.schedule_rounded,
-                              size: 14,
-                              color: Colors.white.withOpacity(0.7),
-                            )
-                          else if (message.status == MessageStatus.error)
-                            GestureDetector(
-                              onTap: onRetryTap != null
-                                  ? () => onRetryTap!(message.id)
-                                  : null,
-                              child: const Icon(
-                                Icons.error_outline_rounded,
-                                size: 14,
-                                color: Colors.white,
-                              ),
-                            )
-                          else
-                            Icon(
-                              message.isRead ? Icons.done_all_rounded : Icons.done_rounded,
-                              size: 14,
-                              color: message.isRead ? Colors.blue[200] : Colors.white.withOpacity(0.7),
-                            ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
+            child: const Text(
+              'OFFICIAL',
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: 0.5,
               ),
             ),
           ),
@@ -184,8 +111,7 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildReplyPreview(BuildContext context, Map<String, dynamic> replyTo) {
-    final isMe = messages.first.senderType == ChatSenderType.guardian;
+  Widget _buildReplyPreview(BuildContext context, Map<String, dynamic> replyTo, bool isMe) {
     final type = replyTo['type']?.toString().toUpperCase() ?? 'TEXT';
     final isImage = type == 'IMAGE';
     final isVoice = type == 'VOICE';
@@ -275,28 +201,130 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context) {
-    if (messages.length > 1) {
-      return _buildImageGrid(context);
-    }
-
-    final message = messages.first;
+  Widget _buildIndividualBubble(BuildContext context, ChatMessage message, BorderRadius borderRadius) {
     final isMe = message.senderType == ChatSenderType.guardian;
-    
+
+    return SwipeToReply(
+      onReply: () => onReply(message),
+      child: Container(
+        margin: EdgeInsets.only(
+          top: 2,
+          bottom: 2,
+          left: isMe ? 0 : 12,
+          right: isMe ? 12 : 0,
+        ),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.7,
+        ),
+        decoration: BoxDecoration(
+          color: isMe ? AppTheme.navy : Colors.white,
+          borderRadius: borderRadius,
+          border: !isMe && message.isAnnouncement 
+              ? Border.all(color: AppTheme.navy.withOpacity(0.15), width: 1)
+              : null,
+        ),
+        child: ClipRRect(
+          borderRadius: borderRadius,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (message.mediaMetadata?['replyTo'] != null)
+                _buildReplyPreview(context, message.mediaMetadata!['replyTo'], isMe),
+              _buildIndividualContent(context, message),
+              if (message.messageType != ChatMessageType.text)
+                Padding(
+                  padding: const EdgeInsets.only(right: 12, bottom: 8, left: 12, top: 0),
+                  child: _buildTimeAndChecksRow(message),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeAndChecksRow(ChatMessage message) {
+    final isMe = message.senderType == ChatSenderType.guardian;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          DateFormat('h:mm a').format(message.createdAt.toLocal()),
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: isMe ? Colors.white.withOpacity(0.7) : Colors.black38,
+          ),
+        ),
+        if (isMe) ...[
+          const SizedBox(width: 4),
+          if (message.status == MessageStatus.sending)
+            SizedBox(
+              width: 10,
+              height: 10,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.7)),
+              ),
+            )
+          else if (message.status == MessageStatus.queued)
+            Icon(
+              Icons.schedule_rounded,
+              size: 14,
+              color: Colors.white.withOpacity(0.7),
+            )
+          else if (message.status == MessageStatus.error)
+            GestureDetector(
+              onTap: onRetryTap != null
+                  ? () => onRetryTap!(message.id)
+                  : null,
+              child: const Icon(
+                Icons.error_outline_rounded,
+                size: 14,
+                color: Colors.white,
+              ),
+            )
+          else
+            Icon(
+              message.isRead ? Icons.done_all_rounded : Icons.done_rounded,
+              size: 14,
+              color: message.isRead ? Colors.blue[200] : Colors.white.withOpacity(0.7),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildIndividualContent(BuildContext context, ChatMessage message) {
+    final isMe = message.senderType == ChatSenderType.guardian;
+
     switch (message.messageType) {
       case ChatMessageType.text:
+        final maxBubbleWidth = MediaQuery.of(context).size.width * 0.7 - 32; // subtracting horizontal padding
+        
+        final textStyle = TextStyle(
+          color: isMe ? Colors.white : Colors.black87,
+          fontSize: 16,
+          height: 1.3,
+          fontFamily: 'Inter',
+        );
+
+        final timeWidget = _buildTimeAndChecksRow(message);
+
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: RichText(
-            text: TextSpan(
-              style: TextStyle(
-                color: isMe ? Colors.white : Colors.black87,
-                fontSize: 16,
-                height: 1.3,
-                fontFamily: 'Inter', // Default font
-              ),
-              children: _parseMentions(message.content, isMe),
-            ),
+          child: buildTextAndTimeLayout(
+            context: context,
+            textContent: message.content,
+            textStyle: textStyle,
+            timeWidget: timeWidget,
+            maxBubbleWidth: maxBubbleWidth,
+            parseMentions: _parseMentions,
+            isMe: isMe,
           ),
         );
       case ChatMessageType.image:
@@ -415,6 +443,68 @@ class ChatBubble extends StatelessWidget {
         );
       default:
         return const SizedBox.shrink();
+    }
+  }
+
+  Widget buildTextAndTimeLayout({
+    required BuildContext context,
+    required String textContent,
+    required TextStyle textStyle,
+    required Widget timeWidget,
+    required double maxBubbleWidth,
+    required List<InlineSpan> Function(String, bool) parseMentions,
+    required bool isMe,
+  }) {
+    final double timeWidth = isMe ? 80.0 : 60.0;
+    const double spacing = 6.0;
+
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(
+        children: parseMentions(textContent, isMe),
+        style: textStyle,
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: maxBubbleWidth);
+
+    final bool fitsOnOneLine = textPainter.width + timeWidth + spacing <= maxBubbleWidth &&
+        textPainter.height <= textPainter.preferredLineHeight;
+
+    if (fitsOnOneLine) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Flexible(
+            child: RichText(
+              text: TextSpan(
+                children: parseMentions(textContent, isMe),
+                style: textStyle,
+              ),
+            ),
+          ),
+          const SizedBox(width: spacing),
+          timeWidget,
+        ],
+      );
+    } else {
+      return Column(
+        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Align(
+            alignment: isMe ? Alignment.topRight : Alignment.topLeft,
+            child: RichText(
+              textAlign: isMe ? TextAlign.right : TextAlign.left,
+              text: TextSpan(
+                children: parseMentions(textContent, isMe),
+                style: textStyle,
+              ),
+            ),
+          ),
+          const SizedBox(height: 2),
+          timeWidget,
+        ],
+      );
     }
   }
 

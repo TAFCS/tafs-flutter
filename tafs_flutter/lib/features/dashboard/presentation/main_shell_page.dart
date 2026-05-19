@@ -40,14 +40,6 @@ class _MainShellPageState extends State<MainShellPage> {
 
   void _onTabTapped(int index) {
     if (_selectedIndex == index) return;
-
-    final chatBloc = context.read<ChatBloc>();
-    if (index == 2) {
-      chatBloc.add(ChatEntered());
-    } else if (_selectedIndex == 2) {
-      chatBloc.add(ChatLeft());
-    }
-
     setState(() => _selectedIndex = index);
   }
 
@@ -79,7 +71,18 @@ class _MainShellPageState extends State<MainShellPage> {
                 context: context,
                 title: 'TAFS Support',
                 message: latest.content,
-                onTap: () => _onTabTapped(2),
+                onTap: () {
+                  final chatBloc = context.read<ChatBloc>();
+                  chatBloc.add(ChatEntered());
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChatPage(isTab: false),
+                    ),
+                  ).then((_) {
+                    chatBloc.add(ChatLeft());
+                  });
+                },
               );
             }
           },
@@ -94,9 +97,12 @@ class _MainShellPageState extends State<MainShellPage> {
           }
 
           return Scaffold(
-            appBar: _selectedIndex == 2
-                ? null
-                : StudentAppBar(student: student),
+            appBar: StudentAppBar(
+              student: student,
+              actions: const [
+                _ChatAppBarAction(),
+              ],
+            ),
             body: IndexedStack(
               index: _selectedIndex,
               children: [
@@ -108,7 +114,6 @@ class _MainShellPageState extends State<MainShellPage> {
                   studentName: student.fullName,
                   showAppBar: false,
                 ),
-                const ChatPage(isTab: true),
                 const FamilyProfilePage(showAppBar: false),
               ],
             ),
@@ -131,90 +136,107 @@ class _BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ChatBloc, ChatState>(
-      builder: (context, chatState) {
-        final unreadCount = chatState is ChatLoaded ? chatState.unreadCount : 0;
-        return Container(
-          decoration: const BoxDecoration(
-            color: AppTheme.white,
-            border: Border(top: BorderSide(color: AppTheme.blue100)),
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppTheme.white,
+        border: Border(top: BorderSide(color: AppTheme.blue100)),
+      ),
+      child: BottomNavigationBar(
+        currentIndex: selectedIndex,
+        onTap: onTap,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: AppTheme.white,
+        selectedItemColor: AppTheme.navy,
+        unselectedItemColor: AppTheme.blue300,
+        selectedFontSize: 11,
+        unselectedFontSize: 11,
+        elevation: 0,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home_rounded),
+            label: 'Home',
           ),
-          child: BottomNavigationBar(
-            currentIndex: selectedIndex,
-            onTap: onTap,
-            type: BottomNavigationBarType.fixed,
-            backgroundColor: AppTheme.white,
-            selectedItemColor: AppTheme.navy,
-            unselectedItemColor: AppTheme.blue300,
-            selectedFontSize: 11,
-            unselectedFontSize: 11,
-            elevation: 0,
-            items: [
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                activeIcon: Icon(Icons.home_rounded),
-                label: 'Home',
-              ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.account_balance_wallet_outlined),
-                activeIcon: Icon(Icons.account_balance_wallet_rounded),
-                label: 'Fees',
-              ),
-              BottomNavigationBarItem(
-                icon: _ChatTabIcon(unreadCount: unreadCount, isActive: false),
-                activeIcon: _ChatTabIcon(unreadCount: unreadCount, isActive: true),
-                label: 'Chat',
-              ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.people_alt_outlined),
-                activeIcon: Icon(Icons.people_alt_rounded),
-                label: 'Family',
-              ),
-            ],
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            activeIcon: Icon(Icons.account_balance_wallet_rounded),
+            label: 'Fees',
           ),
-        );
-      },
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_alt_outlined),
+            activeIcon: Icon(Icons.people_alt_rounded),
+            label: 'Family',
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _ChatTabIcon extends StatelessWidget {
-  final int unreadCount;
-  final bool isActive;
-
-  const _ChatTabIcon({required this.unreadCount, required this.isActive});
+class _ChatAppBarAction extends StatelessWidget {
+  const _ChatAppBarAction();
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Icon(isActive
-            ? Icons.chat_bubble_rounded
-            : Icons.chat_bubble_outline_rounded),
-        if (unreadCount > 0)
-          Positioned(
-            right: -6,
-            top: -4,
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-              child: Text(
-                '$unreadCount',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
+    return BlocBuilder<ChatBloc, ChatState>(
+      builder: (context, chatState) {
+        final unreadCount = chatState is ChatLoaded ? chatState.unreadCount : 0;
+        return Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.chat_bubble_outline_rounded,
+                  color: AppTheme.navy,
+                  size: 24,
                 ),
-                textAlign: TextAlign.center,
+                onPressed: () {
+                  final chatBloc = context.read<ChatBloc>();
+                  chatBloc.add(ChatEntered());
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChatPage(isTab: false),
+                    ),
+                  ).then((_) {
+                    chatBloc.add(ChatLeft());
+                  });
+                },
               ),
-            ),
+              if (unreadCount > 0)
+                Positioned(
+                  right: 4,
+                  top: 8,
+                  child: IgnorePointer(
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                      child: Center(
+                        child: Text(
+                          '$unreadCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-      ],
+        );
+      },
     );
   }
 }

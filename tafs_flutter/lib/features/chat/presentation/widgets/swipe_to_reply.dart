@@ -75,10 +75,10 @@ class _SwipeToReplyState extends State<SwipeToReply> with SingleTickerProviderSt
             padding: const EdgeInsets.only(left: 16),
             child: Opacity(
               opacity: (_dragValue / _threshold).clamp(0.0, 1.0),
-              child: const CircleAvatar(
+              child: CircleAvatar(
                 radius: 14,
-                backgroundColor: Colors.blue,
-                child: Icon(Icons.reply, color: Colors.white, size: 16),
+                backgroundColor: Colors.grey[300],
+                child: Icon(Icons.reply, color: Colors.grey[700], size: 16),
               ),
             ),
           ),
