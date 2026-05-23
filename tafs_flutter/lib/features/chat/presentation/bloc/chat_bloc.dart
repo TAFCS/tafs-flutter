@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/chat_outbox_entry.dart';
 import '../../domain/repositories/chat_repository.dart';
@@ -288,11 +290,13 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       messages: [optimisticMessage, ...currentState.messages],
     ));
 
+    // On web, XFile.path is a blob URL and not a real filesystem path.
+    // We store it only on native so the outbox can re-upload on retry.
     final outboxEntry = ChatOutboxEntry(
       clientMessageId: tempId,
       messageType: event.type.name.toUpperCase(),
       content: event.content,
-      localFilePath: event.file?.path,
+      localFilePath: (!kIsWeb && event.file != null) ? event.file!.path : null,
       mediaMetadata: event.mediaMetadata,
       replyToId: event.replyTo?.id,
       createdAt: DateTime.now(),

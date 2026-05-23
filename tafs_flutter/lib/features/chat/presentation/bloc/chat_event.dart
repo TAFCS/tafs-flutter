@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/chat_message.dart';
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 abstract class ChatEvent extends Equatable {
   const ChatEvent();
@@ -24,7 +24,7 @@ class ChatMessagesRead extends ChatEvent {}
 class ChatMessageSent extends ChatEvent {
   final String content;
   final ChatMessageType type;
-  final File? file;
+  final XFile? file;  // XFile works on both web (bytes) and native (path)
   final ChatMessage? replyTo;
   final Map<String, dynamic>? mediaMetadata;
 

@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -66,11 +67,16 @@ class _SignupPageState extends State<SignupPage> {
         return;
       }
 
+      // FCM and Platform.isAndroid are mobile-only — both crash on web.
       String? fcmToken;
-      try {
-        fcmToken = await FirebaseMessaging.instance.getToken();
-      } catch (e) {
-        print('Error getting FCM token on register: $e');
+      String? deviceType;
+      if (!kIsWeb) {
+        try {
+          fcmToken = await FirebaseMessaging.instance.getToken();
+          deviceType = Platform.isAndroid ? 'ANDROID' : 'IOS';
+        } catch (e) {
+          print('Error getting FCM token on register: $e');
+        }
       }
 
       if (!mounted) return;
@@ -81,7 +87,7 @@ class _SignupPageState extends State<SignupPage> {
           email: _emailController.text.trim(),
           password: _passwordController.text,
           fcmToken: fcmToken,
-          deviceType: Platform.isAndroid ? 'ANDROID' : 'IOS',
+          deviceType: deviceType,
         ),
       );
     }

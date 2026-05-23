@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:record/record.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
 import 'dart:async';
+import 'dart:typed_data';
 import '../../domain/entities/chat_message.dart';
 import 'package:tafs_flutter/core/theme/app_theme.dart';
+import 'package:tafs_flutter/core/utils/cdn_utils.dart';
 
 class MentionsController extends TextEditingController {
   @override
@@ -39,7 +42,7 @@ class MentionsController extends TextEditingController {
 class MessageInput extends StatefulWidget {
   final ChatMessage? replyingTo;
   final VoidCallback onCancelReply;
-  final Function(String content, ChatMessageType type, File? file, ChatMessage? replyTo, Map<String, dynamic>? metadata) onSend;
+  final Function(String content, ChatMessageType type, XFile? file, ChatMessage? replyTo, Map<String, dynamic>? metadata) onSend;
 
   const MessageInput({
     super.key, 
@@ -73,7 +76,10 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
   int _recordDuration = 0;
   
   final _picker = ImagePicker();
-  List<File> _selectedFiles = [];
+  List<XFile> _selectedFiles = [];
+  // Track the intended file extension so we can name the XFile correctly
+  // when the record package returns a blob URL (web) with no extension.
+  String _recordingExtension = 'm4a';
 
   void _removeSelectedFile(int index) {
     setState(() {
@@ -138,16 +144,24 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
     final List<XFile> images = await _picker.pickMultiImage();
     if (images.isNotEmpty) {
       setState(() {
-        _selectedFiles.addAll(images.map((image) => File(image.path)));
+        _selectedFiles.addAll(images);
       });
     }
   }
 
   Future<void> _takePhoto() async {
+    if (kIsWeb) {
+      // Camera not available on web; fallback to gallery picker
+      final List<XFile> images = await _picker.pickMultiImage();
+      if (images.isNotEmpty) {
+        setState(() => _selectedFiles.addAll(images));
+      }
+      return;
+    }
     final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
     if (photo != null) {
       setState(() {
-        _selectedFiles.add(File(photo.path));
+        _selectedFiles.add(photo);
       });
     }
   }
@@ -157,11 +171,23 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'],
       allowMultiple: true,
+      // On web, withData=true gives us bytes; on native we use paths.
+      withData: kIsWeb,
     );
-    
+
     if (result != null) {
+      final xfiles = result.files.map((f) {
+        if (kIsWeb && f.bytes != null) {
+          // Wrap web bytes into an XFile using a data URI approach via name
+          return XFile.fromData(f.bytes!, name: f.name, mimeType: 'application/octet-stream');
+        } else if (f.path != null) {
+          return XFile(f.path!);
+        }
+        return null;
+      }).whereType<XFile>().toList();
+
       setState(() {
-        _selectedFiles.addAll(result.paths.whereType<String>().map((path) => File(path)));
+        _selectedFiles.addAll(xfiles);
       });
     }
   }
@@ -263,40 +289,58 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
   Future<void> _startRecording() async {
     try {
       if (await _record.hasPermission()) {
-        const config = RecordConfig();
-        final path = '${Directory.systemTemp.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
-        
+        // Web: MediaRecorder only supports WebM/Opus in most browsers.
+        // Native: use AAC (m4a) which is widely supported.
+        final RecordConfig config;
+        final String path;
+        if (kIsWeb) {
+          _recordingExtension = 'webm';
+          config = const RecordConfig(encoder: AudioEncoder.opus);
+          // On web the path is ignored by MediaRecorder; provide a dummy name.
+          path = 'web-recording.webm';
+        } else {
+          _recordingExtension = 'm4a';
+          config = const RecordConfig(encoder: AudioEncoder.aacLc);
+          path = '${Directory.systemTemp.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        }
+
         if (await _record.isRecording()) {
           await _record.stop();
         }
 
-        // Broad try-catch for the actual hardware start
+        // Broad try-catch for the actual hardware / microphone start
         try {
           await _record.start(config, path: path);
         } catch (e) {
           debugPrint('Hardware error: $e');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Microphone hardware not available on this device.')),
+              const SnackBar(content: Text('Microphone not available on this device.')),
             );
           }
           return;
         }
-        
+
         try {
           await HapticFeedback.heavyImpact();
         } catch (_) {}
-        
+
         _recordDuration = 0;
         _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
           setState(() => _recordDuration++);
         });
-        
+
         setState(() {
           _isRecording = true;
           _isLocked = false;
           _dragPosition = 0;
         });
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Microphone permission denied.')),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error starting record: $e');
@@ -314,15 +358,20 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
 
   Future<void> _stopRecording({bool cancel = false}) async {
     _timer?.cancel();
-    final path = await _record.stop();
+    final resultPath = await _record.stop();
     setState(() {
       _isRecording = false;
       _isLocked = false;
       _recordDuration = 0;
     });
-    
-    if (!cancel && path != null) {
-      widget.onSend('', ChatMessageType.voice, File(path), widget.replyingTo, null);
+
+    if (!cancel && resultPath != null) {
+      // On web, resultPath is a blob URL (e.g. blob:http://localhost:.../uuid)
+      // which has no meaningful file extension. We create an XFile with the
+      // correct name so _getFileType and uploadMedia filename are both right.
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final voiceFile = XFile(resultPath, name: 'voice_$timestamp.$_recordingExtension');
+      widget.onSend('', ChatMessageType.voice, voiceFile, widget.replyingTo, null);
     }
   }
 
@@ -447,9 +496,11 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: widget.replyingTo!.mediaMetadata?['localPath'] != null
-                          ? Image.file(File(widget.replyingTo!.mediaMetadata!['localPath']), fit: BoxFit.cover)
-                          : Image.network(widget.replyingTo!.mediaMetadata?['url'] ?? widget.replyingTo!.content, fit: BoxFit.cover),
+                        child: Image.network(
+                          widget.replyingTo!.mediaMetadata?['url'] ?? widget.replyingTo!.content,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 20),
+                        ),
                       ),
                     ),
                   IconButton(
@@ -507,8 +558,16 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(11),
-                                  child: isImage 
-                                    ? Image.file(file, fit: BoxFit.cover)
+                                   child: isImage
+                                    ? FutureBuilder<Uint8List>(
+                                        future: file.readAsBytes(),
+                                        builder: (context, snap) {
+                                          if (snap.hasData) {
+                                            return Image.memory(snap.data!, fit: BoxFit.cover);
+                                          }
+                                          return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                                        },
+                                      )
                                     : Center(
                                         child: Icon(Icons.description_rounded, color: Colors.blue[400], size: 32),
                                       ),
@@ -568,11 +627,11 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                             return ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: Colors.grey[200],
-                                backgroundImage: student['photograph_url'] != null 
-                                  ? NetworkImage(student['photograph_url']) 
+                                backgroundImage: student['photograph_url'] != null
+                                  ? NetworkImage(CdnUtils.resolve(student['photograph_url'] as String))
                                   : null,
-                                child: student['photograph_url'] == null 
-                                  ? const Icon(Icons.person, size: 20) 
+                                child: student['photograph_url'] == null
+                                  ? const Icon(Icons.person, size: 20)
                                   : null,
                               ),
                               title: Text(
@@ -880,10 +939,16 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
 );
 }
 
-  ChatMessageType _getFileType(File file) {
-    final extension = file.path.split('.').last.toLowerCase();
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(extension)) {
+  ChatMessageType _getFileType(XFile file) {
+    // Use file.name (works on both web and native) for extension detection.
+    // On web, file.path is a blob URL which has no meaningful extension.
+    final name = file.name.isNotEmpty ? file.name : file.path;
+    final extension = name.split('.').last.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'].contains(extension)) {
       return ChatMessageType.image;
+    }
+    if (['m4a', 'mp3', 'ogg', 'aac', 'wav', 'webm', 'opus'].contains(extension)) {
+      return ChatMessageType.voice;
     }
     return ChatMessageType.document;
   }

@@ -1,48 +1,31 @@
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import '../../domain/entities/chat_outbox_entry.dart';
+import 'chat_outbox_local_data_source_mobile.dart'
+    if (dart.library.html) 'chat_outbox_local_data_source_web.dart';
 
-class ChatOutboxLocalDataSource {
-  Future<File> _fileForFamily(int familyId) async {
-    final dir = await getApplicationDocumentsDirectory();
-    return File('${dir.path}/chat_outbox_$familyId.json');
-  }
+/// Abstract interface for the offline message outbox.
+/// Implementations: _MobileOutboxStorage (file+path_provider) and
+/// _WebOutboxStorage (shared_preferences/IndexedDB).
+abstract class ChatOutboxStorage {
+  Future<List<ChatOutboxEntry>> load(int familyId);
+  Future<void> save(int familyId, List<ChatOutboxEntry> entries);
+  Future<void> enqueue(int familyId, ChatOutboxEntry entry);
+  Future<void> remove(int familyId, String clientMessageId);
+}
 
-  Future<List<ChatOutboxEntry>> load(int familyId) async {
-    final file = await _fileForFamily(familyId);
-    if (!await file.exists()) return [];
-    try {
-      final raw = await file.readAsString();
-      if (raw.isEmpty) return [];
-      return ChatOutboxEntry.decodeList(raw);
-    } catch (_) {
-      return [];
-    }
-  }
+/// Public class used everywhere in the app.
+/// Conditionally resolves to _MobileOutboxStorage or _WebOutboxStorage.
+class ChatOutboxLocalDataSource implements ChatOutboxStorage {
+  final ChatOutboxStorage _impl = createOutboxDataSource();
 
-  Future<void> save(int familyId, List<ChatOutboxEntry> entries) async {
-    final file = await _fileForFamily(familyId);
-    if (entries.isEmpty) {
-      if (await file.exists()) {
-        try {
-          await file.delete();
-        } catch (_) {}
-      }
-      return;
-    }
-    await file.writeAsString(ChatOutboxEntry.encodeList(entries));
-  }
-
-  Future<void> enqueue(int familyId, ChatOutboxEntry entry) async {
-    final entries = await load(familyId);
-    entries.removeWhere((e) => e.clientMessageId == entry.clientMessageId);
-    entries.add(entry);
-    await save(familyId, entries);
-  }
-
-  Future<void> remove(int familyId, String clientMessageId) async {
-    final entries = await load(familyId);
-    entries.removeWhere((e) => e.clientMessageId == clientMessageId);
-    await save(familyId, entries);
-  }
+  @override
+  Future<List<ChatOutboxEntry>> load(int familyId) => _impl.load(familyId);
+  @override
+  Future<void> save(int familyId, List<ChatOutboxEntry> entries) =>
+      _impl.save(familyId, entries);
+  @override
+  Future<void> enqueue(int familyId, ChatOutboxEntry entry) =>
+      _impl.enqueue(familyId, entry);
+  @override
+  Future<void> remove(int familyId, String clientMessageId) =>
+      _impl.remove(familyId, clientMessageId);
 }

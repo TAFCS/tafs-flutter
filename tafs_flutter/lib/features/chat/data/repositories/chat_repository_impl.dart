@@ -1,6 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
@@ -22,7 +26,12 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   final _readController = StreamController<void>.broadcast();
   final _deleteController = StreamController<String>.broadcast();
   final _connectController = StreamController<void>.broadcast();
+  final _sessionExpiredController = StreamController<void>.broadcast();
+  bool _isRefreshingToken = false;
   bool _isDrainingOutbox = false;
+
+  /// Fires when the refresh token is also expired — the app should redirect to login.
+  Stream<void> get onSessionExpired => _sessionExpiredController.stream;
 
   ChatRepositoryImpl({
     required this.dio,
@@ -46,16 +55,49 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   }
 
   @override
-  Future<String> uploadMedia(File file) async {
-    final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(
+  Future<String> uploadMedia(XFile file) async {
+    MultipartFile multipartFile;
+    if (kIsWeb) {
+      // On web, dart:io File is unavailable. Read bytes directly from XFile.
+      // XFile.readAsBytes() works for both regular data XFiles and blob URLs
+      // (returned by the record package after voice recording).
+      final bytes = await file.readAsBytes();
+      final filename = file.name.isNotEmpty ? file.name : 'upload';
+      // Prefer the MIME type from XFile (set by MediaRecorder for blobs),
+      // fall back to extension-based detection.
+      final mime = file.mimeType ?? _mimeFromFilename(filename);
+      multipartFile = MultipartFile.fromBytes(bytes, filename: filename,
+          contentType: MediaType.parse(mime));
+    } else {
+      multipartFile = await MultipartFile.fromFile(
         file.path,
         filename: file.path.split('/').last,
-      ),
-    });
+      );
+    }
 
+    final formData = FormData.fromMap({'file': multipartFile});
     final response = await dio.post('/chat/media', data: formData);
     return response.data['url'] as String;
+  }
+
+  /// Detects MIME type from a filename extension.
+  String _mimeFromFilename(String filename) {
+    final ext = filename.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'webm': return 'audio/webm';
+      case 'opus': return 'audio/ogg; codecs=opus';
+      case 'm4a':  return 'audio/mp4';
+      case 'mp3':  return 'audio/mpeg';
+      case 'ogg':  return 'audio/ogg';
+      case 'wav':  return 'audio/wav';
+      case 'jpg':
+      case 'jpeg': return 'image/jpeg';
+      case 'png':  return 'image/png';
+      case 'gif':  return 'image/gif';
+      case 'webp': return 'image/webp';
+      case 'pdf':  return 'application/pdf';
+      default:     return 'application/octet-stream';
+    }
   }
 
   @override
@@ -88,40 +130,117 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
 
     _socket!.on('connect_error', (err) async {
+      final errStr = err?.toString() ?? '';
+      // Backend middleware sends exact strings: 'token_expired' or 'unauthorized'
+      final isJwtExpired = errStr.contains('token_expired');
+      final isUnauthorized = errStr.contains('unauthorized');
+
+      if (isJwtExpired && !_isRefreshingToken) {
+        _isRefreshingToken = true;
+        // Pause auto-reconnect while we refresh
+        _socket?.io.options?['reconnectionAttempts'] = 0;
+        try {
+          final cached = await localDataSource.getCachedParent();
+          if (cached == null || cached.refreshToken.isEmpty) {
+            _socket?.io.options?['reconnectionAttempts'] = 0;
+            _socket?.disconnect();
+            _sessionExpiredController.add(null);
+            return;
+          }
+
+          final refreshBaseUrl =
+              dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+          final response = await Dio().post(
+            '$refreshBaseUrl/auth/parent/refresh',
+            data: {'refreshToken': cached.refreshToken},
+            options: Options(
+              headers: {'Content-Type': 'application/json'},
+              validateStatus: (s) => s != null && s < 500,
+            ),
+          );
+
+          if (response.statusCode == 200 && response.data != null) {
+            final body = response.data['data'] ?? response.data;
+            final newAccessToken = body['accessToken'] as String?;
+            final newRefreshToken = body['refreshToken'] as String?;
+
+            if (newAccessToken != null) {
+              final updated = cached.copyWith(
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken ?? cached.refreshToken,
+              );
+              await localDataSource.cacheParent(updated);
+
+              if (_socket != null) {
+                _socket!.io.options?['auth'] = {'token': newAccessToken};
+                _socket!.io.options?['reconnectionAttempts'] = 99999;
+                _socket!.connect(); // reconnect with fresh token
+              }
+            } else {
+              _socket?.disconnect();
+              _sessionExpiredController.add(null);
+            }
+          } else {
+            _socket?.disconnect();
+            _sessionExpiredController.add(null);
+          }
+        } catch (e) {
+          print('[ChatRepo] Token refresh failed: $e');
+        } finally {
+          _isRefreshingToken = false;
+        }
+      } else if (isUnauthorized) {
+        // Not authenticated — stop reconnecting, force login
+        _socket?.io.options?['reconnectionAttempts'] = 0;
+        _socket?.disconnect();
+        _sessionExpiredController.add(null);
+      } else if (!isJwtExpired && !isUnauthorized) {
+        // Network / other error — just update the token for the next attempt
+        final latest = await localDataSource.getCachedParent();
+        if (latest != null && _socket != null) {
+          _socket!.io.options?['auth'] = {'token': latest.accessToken};
+        }
+      }
+    });
+
+    _socket!.on('reconnect_attempt', (_) async {
+      // Token is updated in connect_error handler; just ensure latest is applied.
       final latest = await localDataSource.getCachedParent();
       if (latest != null && _socket != null) {
         _socket!.io.options?['auth'] = {'token': latest.accessToken};
       }
     });
 
-    _socket!.on('reconnect_attempt', (_) async {
-      final latest = await localDataSource.getCachedParent();
-      if (latest != null && _socket != null) {
-        _socket!.io.options?['auth'] = {'token': latest.accessToken};
-      }
+    // Backend signals token is expired — the auto-reconnect that follows will
+    // trigger connect_error where the actual token refresh happens.
+    _socket!.on('tokenExpired', (_) {
+      print('[ChatRepo] Server signalled token expired; awaiting auto-reconnect');
     });
 
     _socket!.onConnect((_) async {
       _connectController.add(null);
 
-      try {
-        await FirebaseMessaging.instance.requestPermission(
-          alert: true,
-          badge: true,
-          sound: true,
-        );
+      // FCM push tokens are only available on Android/iOS (Firebase not init'd on web)
+      if (!kIsWeb) {
+        try {
+          await FirebaseMessaging.instance.requestPermission(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
 
-        final fcmToken = await FirebaseMessaging.instance.getToken();
-        if (fcmToken != null) {
-          _socket!.emit('registerFcmToken', {
-            'familyId': cached.id,
-            'token': fcmToken,
-            'deviceType': Platform.isAndroid ? 'ANDROID' : 'IOS',
-          });
-        }
-      } catch (e) {
-        if (!e.toString().contains('apns-token-not-set')) {
-          print('Error getting FCM token: $e');
+          final fcmToken = await FirebaseMessaging.instance.getToken();
+          if (fcmToken != null) {
+            _socket!.emit('registerFcmToken', {
+              'familyId': cached.id,
+              'token': fcmToken,
+              'deviceType': Platform.isAndroid ? 'ANDROID' : 'IOS',
+            });
+          }
+        } catch (e) {
+          if (!e.toString().contains('apns-token-not-set')) {
+            print('Error getting FCM token: $e');
+          }
         }
       }
 
@@ -161,6 +280,10 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // On web, 'resumed' fires whenever the browser tab regains focus.
+    // Calling drainOutbox on web causes path_provider crashes.
+    // The socket's onConnect handler already drains the outbox reliably.
+    if (kIsWeb) return;
     if (state == AppLifecycleState.resumed) {
       if (_socket != null && !_socket!.connected) {
         _socket!.connect();
@@ -293,10 +416,15 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       metadata['replyToId'] = entry.replyToId;
     }
 
-    if (entry.localFilePath != null) {
-      final file = File(entry.localFilePath!);
-      if (await file.exists()) {
-        content = await uploadMedia(file);
+    // Local file upload: only supported on mobile.
+    // On web there is no local filesystem; mediaMetadata['url'] should
+    // already be set from the upload before the entry was queued.
+    if (!kIsWeb && entry.localFilePath != null) {
+      final ioFile = File(entry.localFilePath!);
+      if (await ioFile.exists()) {
+        // Wrap dart:io File in XFile so uploadMedia's cross-platform
+        // signature is satisfied (XFile is the common abstraction).
+        content = await uploadMedia(XFile(ioFile.path));
         metadata['url'] = content;
       }
     }

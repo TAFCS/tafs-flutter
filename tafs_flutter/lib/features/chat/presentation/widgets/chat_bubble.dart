@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/chat_message.dart';
 import 'dart:io';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:tafs_flutter/core/theme/app_theme.dart';
+import 'package:tafs_flutter/core/utils/cdn_utils.dart';
 import 'swipe_to_reply.dart';
 
 class ChatBubble extends StatelessWidget {
@@ -554,7 +556,8 @@ class ChatBubble extends StatelessWidget {
   }
 
   Widget _renderImage(String url, {String? localPath, double? width, double? height, BoxFit fit = BoxFit.contain}) {
-    if (localPath != null && File(localPath).existsSync()) {
+    // On web, dart:io File is not available. Always use the network URL.
+    if (!kIsWeb && localPath != null && File(localPath).existsSync()) {
       return Image.file(
         File(localPath),
         width: width,
@@ -572,8 +575,11 @@ class ChatBubble extends StatelessWidget {
       );
     }
 
+    // On web, route CDN URLs through backend proxy to avoid CORS errors.
+    final effectiveUrl = CdnUtils.resolve(url);
+
     return Image.network(
-      url,
+      effectiveUrl,
       width: width,
       height: height,
       fit: fit,
@@ -717,10 +723,14 @@ class _VoiceNotePlayerState extends State<_VoiceNotePlayer> {
   Future<void> _initPlayer() async {
     try {
       Source? source;
-      if (widget.localPath != null && File(widget.localPath!).existsSync()) {
+      // DeviceFileSource only works on native (mobile/desktop) where files live
+      // on disk. On web the browser's <audio> element only accepts URLs.
+      if (!kIsWeb && widget.localPath != null && File(widget.localPath!).existsSync()) {
         source = DeviceFileSource(widget.localPath!);
       } else if (widget.url.isNotEmpty) {
-        source = UrlSource(widget.url);
+        // On web, route through backend proxy to avoid CDN CORS blocking.
+        final audioUrl = CdnUtils.resolve(widget.url);
+        source = UrlSource(audioUrl);
       }
 
       if (source != null) {

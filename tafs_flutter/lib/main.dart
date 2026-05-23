@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
@@ -26,24 +27,34 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
 
-  // Initialize Notifications
-  final notificationService = NotificationService();
-  await notificationService.initialize();
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  notificationService.setupInteractions();
+  // Firebase is only initialized on mobile — web has no registered Firebase app
+  // and push notifications require a service worker not yet configured.
+  if (!kIsWeb) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    final notificationService = NotificationService();
+    await notificationService.initialize();
+    notificationService.setupInteractions();
+  }
 
   await dotenv.load(fileName: '.env');
 
   // ── Initialize HydratedBloc storage ───────────────────────────────────────
-  // hydrated_bloc v11 recommends getTemporaryDirectory() on mobile.
-  final storageDir = await getTemporaryDirectory();
-  HydratedBloc.storage = await HydratedStorage.build(
-    storageDirectory: HydratedStorageDirectory(storageDir.path),
-  );
+  // On web, HydratedStorage defaults to IndexedDB — no directory needed.
+  // On mobile, use the temporary directory.
+  if (kIsWeb) {
+    HydratedBloc.storage = await HydratedStorage.build(
+      storageDirectory: HydratedStorageDirectory.web,
+    );
+  } else {
+    final storageDir = await getTemporaryDirectory();
+    HydratedBloc.storage = await HydratedStorage.build(
+      storageDirectory: HydratedStorageDirectory(storageDir.path),
+    );
+  }
 
   InjectionContainer.init();
 

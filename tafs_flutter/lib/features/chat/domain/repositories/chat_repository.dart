@@ -1,10 +1,10 @@
 import '../entities/chat_message.dart';
 import '../entities/chat_outbox_entry.dart';
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 abstract class ChatRepository {
   Future<List<ChatMessage>> getChatHistory({int take = 50, int skip = 0});
-  Future<String> uploadMedia(File file);
+  Future<String> uploadMedia(XFile file);
   void connect();
   void disconnect();
   bool get isConnected;
