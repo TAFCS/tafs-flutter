@@ -52,7 +52,7 @@ dependencies:
   image_picker: ^1.2.1
   record: ^6.2.0
   audioplayers: ^6.6.0
-  file_picker: ^3.0.4
+  file_picker: ^8.1.4
   firebase_messaging: ^16.2.1
   firebase_core: ^4.8.0
   photo_view: ^0.15.0
