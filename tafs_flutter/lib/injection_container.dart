@@ -25,6 +25,9 @@ import 'features/chat/data/datasources/chat_outbox_local_data_source.dart';
 import 'features/chat/data/repositories/chat_repository_impl.dart';
 import 'features/chat/domain/repositories/chat_repository.dart';
 import 'features/chat/presentation/bloc/chat_bloc.dart';
+import 'features/notice_board/data/datasources/notice_board_remote_data_source.dart';
+import 'features/notice_board/data/repositories/notice_board_repository_impl.dart';
+import 'features/notice_board/presentation/bloc/notice_board_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class InjectionContainer {
@@ -33,6 +36,7 @@ class InjectionContainer {
   static late final FeeSummaryBloc feeSummaryBloc;
   static late final SelectedStudentCubit selectedStudentCubit;
   static late final ChatBloc chatBloc;
+  static late final NoticeBoardBloc noticeBoardBloc;
 
   static void init() {
     // Core
@@ -100,6 +104,12 @@ class InjectionContainer {
     selectedStudentCubit = SelectedStudentCubit();
 
     chatBloc = ChatBloc(repository: chatRepository);
+
+    final noticeBoardRemoteDataSource = NoticeBoardRemoteDataSource(dio);
+    final noticeBoardRepository = NoticeBoardRepositoryImpl(
+      remoteDataSource: noticeBoardRemoteDataSource,
+    );
+    noticeBoardBloc = NoticeBoardBloc(repository: noticeBoardRepository);
 
     // ── Dio interceptors ───────────────────────────────────────────────────
     // Must be registered after authBloc so the TokenInterceptor callback

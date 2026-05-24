@@ -22,6 +22,7 @@ abstract class ChatRepository {
   void markAsRead();
   void enterChat();
   void leaveChat();
+  Future<void> acknowledgeMessage(String messageId);
   Stream<ChatMessage> get onMessageReceived;
   Stream<void> get onMessagesRead;
   Stream<String> get onMessageDeleted;

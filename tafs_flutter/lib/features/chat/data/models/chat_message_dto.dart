@@ -13,6 +13,8 @@ class ChatMessageDto extends ChatMessage {
     required super.isRead,
     required super.createdAt,
     super.isAnnouncement,
+    super.requiresAcknowledgment,
+    super.isAcknowledged,
   });
 
   factory ChatMessageDto.fromJson(Map<String, dynamic> json) {
@@ -28,6 +30,8 @@ class ChatMessageDto extends ChatMessage {
       isRead: json['is_read'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
       isAnnouncement: json['is_announcement'] as bool? ?? false,
+      requiresAcknowledgment: json['requires_acknowledgment'] as bool? ?? false,
+      isAcknowledged: json['is_acknowledged'] as bool? ?? false,
     );
   }
 

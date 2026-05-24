@@ -543,6 +543,11 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   }
 
   @override
+  Future<void> acknowledgeMessage(String messageId) async {
+    await dio.post('/chat/messages/$messageId/acknowledge');
+  }
+
+  @override
   Stream<ChatMessage> get onMessageReceived => _messageController.stream;
 
   @override

@@ -17,6 +17,8 @@ import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import 'features/auth/presentation/bloc/selected_student_cubit.dart';
 import 'features/chat/presentation/bloc/chat_bloc.dart';
 import 'features/chat/presentation/bloc/chat_event.dart';
+import 'features/notice_board/presentation/bloc/notice_board_bloc.dart';
+import 'features/notice_board/presentation/bloc/notice_board_event.dart';
 import 'injection_container.dart';
 
 @pragma('vm:entry-point')
@@ -82,6 +84,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<ChatBloc>(
           create: (_) => InjectionContainer.chatBloc..add(ChatStarted()),
+        ),
+        BlocProvider<NoticeBoardBloc>(
+          create: (_) => InjectionContainer.noticeBoardBloc..add(const NoticeBoardLoadRequested()),
         ),
       ],
       child: MaterialApp(

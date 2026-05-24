@@ -16,14 +16,16 @@ class ChatBubble extends StatelessWidget {
   final Function(String) onReplyTap;
   final void Function(ChatMessage) onReply;
   final void Function(String clientMessageId)? onRetryTap;
+  final void Function(String messageId)? onAcknowledge;
 
   const ChatBubble({
-    super.key, 
+    super.key,
     required this.messages,
     required this.onImageTap,
     required this.onReplyTap,
     required this.onReply,
     this.onRetryTap,
+    this.onAcknowledge,
   });
 
   @override
@@ -205,8 +207,9 @@ class ChatBubble extends StatelessWidget {
 
   Widget _buildIndividualBubble(BuildContext context, ChatMessage message, BorderRadius borderRadius) {
     final isMe = message.senderType == ChatSenderType.guardian;
+    final needsAck = !isMe && message.requiresAcknowledgment && !message.isAcknowledged;
 
-    return SwipeToReply(
+    final bubble = SwipeToReply(
       onReply: () => onReply(message),
       child: Container(
         margin: EdgeInsets.only(
@@ -221,7 +224,7 @@ class ChatBubble extends StatelessWidget {
         decoration: BoxDecoration(
           color: isMe ? AppTheme.navy : Colors.white,
           borderRadius: borderRadius,
-          border: !isMe && message.isAnnouncement 
+          border: !isMe && message.isAnnouncement
               ? Border.all(color: AppTheme.navy.withOpacity(0.15), width: 1)
               : null,
         ),
@@ -243,6 +246,28 @@ class ChatBubble extends StatelessWidget {
           ),
         ),
       ),
+    );
+
+    if (!needsAck) return bubble;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        bubble,
+        Padding(
+          padding: const EdgeInsets.only(left: 12, top: 4, bottom: 2),
+          child: FilledButton.tonal(
+            onPressed: onAcknowledge != null ? () => onAcknowledge!(message.id) : null,
+            style: FilledButton.styleFrom(
+              minimumSize: Size.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Acknowledge', style: TextStyle(fontSize: 12)),
+          ),
+        ),
+      ],
     );
   }
 

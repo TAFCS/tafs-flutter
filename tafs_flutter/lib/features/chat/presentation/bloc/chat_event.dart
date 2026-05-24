@@ -73,3 +73,11 @@ class ChatMessageRetry extends ChatEvent {
   @override
   List<Object?> get props => [clientMessageId];
 }
+
+class ChatMessageAcknowledged extends ChatEvent {
+  final String messageId;
+  const ChatMessageAcknowledged(this.messageId);
+
+  @override
+  List<Object?> get props => [messageId];
+}

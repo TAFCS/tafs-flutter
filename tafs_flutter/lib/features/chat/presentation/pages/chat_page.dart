@@ -237,6 +237,9 @@ class _ChatPageState extends State<ChatPage> {
                                   onRetryTap: (id) {
                                     context.read<ChatBloc>().add(ChatMessageRetry(id));
                                   },
+                                  onAcknowledge: (messageId) {
+                                    context.read<ChatBloc>().add(ChatMessageAcknowledged(messageId));
+                                  },
                                   onImageTap: (url) {
                                     final imageIndex = allImageUrls.indexOf(url);
                                     Navigator.push(

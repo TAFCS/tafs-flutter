@@ -28,6 +28,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<ChatStudentsRequested>(_onStudentsRequested);
     on<ChatReconnected>(_onChatReconnected);
     on<ChatMessageRetry>(_onMessageRetry);
+    on<ChatMessageAcknowledged>(_onMessageAcknowledged);
   }
 
   bool isUserInChat = false;
@@ -421,6 +422,22 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     _connectSubscription?.cancel();
     repository.disconnect();
     emit(ChatInitial());
+  }
+
+  Future<void> _onMessageAcknowledged(
+    ChatMessageAcknowledged event,
+    Emitter<ChatState> emit,
+  ) async {
+    // Optimistically update local state first
+    if (state is ChatLoaded) {
+      final current = state as ChatLoaded;
+      final updated = current.messages.map((m) {
+        return m.id == event.messageId ? m.copyWith(isAcknowledged: true) : m;
+      }).toList();
+      emit(current.copyWith(messages: updated));
+    }
+    // Fire-and-forget — ignore errors
+    repository.acknowledgeMessage(event.messageId).catchError((_) {});
   }
 
   @override

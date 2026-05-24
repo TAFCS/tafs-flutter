@@ -9,6 +9,8 @@ import '../../chat/presentation/bloc/chat_bloc.dart';
 import '../../chat/presentation/bloc/chat_state.dart';
 import '../../chat/presentation/bloc/chat_event.dart';
 import '../../chat/presentation/pages/chat_page.dart';
+import '../../notice_board/presentation/bloc/notice_board_bloc.dart';
+import '../../notice_board/presentation/bloc/notice_board_state.dart';
 import '../../fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import '../../fee_ledger/presentation/bloc/fee_ledger_event.dart';
 import '../../fee_ledger/presentation/bloc/fee_summary_bloc.dart';
@@ -17,6 +19,7 @@ import '../../fee_ledger/presentation/pages/fee_ledger_page.dart';
 import '../../profile/presentation/family_profile_page.dart';
 import 'main_dashboard_page.dart';
 import 'widgets/student_app_bar.dart';
+import 'widgets/family_app_bar.dart';
 
 class MainShellPage extends StatefulWidget {
   const MainShellPage({super.key});
@@ -97,18 +100,18 @@ class _MainShellPageState extends State<MainShellPage> {
           }
 
           return Scaffold(
-            appBar: StudentAppBar(
-              student: student,
-              actions: const [
-                _ChatAppBarAction(),
-              ],
-            ),
+            appBar: _selectedIndex == 1
+                ? StudentAppBar(
+                    student: student,
+                    actions: const [_ChatAppBarAction()],
+                  )
+                : const FamilyAppBar(
+                    actions: [_ChatAppBarAction()],
+                  ),
             body: IndexedStack(
               index: _selectedIndex,
               children: [
-                HomeTabBody(
-                  onSwitchToFees: () => _onTabTapped(1),
-                ),
+                const HomeTabBody(),
                 FeeLedgerPage(
                   studentCc: student.cc,
                   studentName: student.fullName,
@@ -136,39 +139,93 @@ class _BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppTheme.white,
-        border: Border(top: BorderSide(color: AppTheme.blue100)),
-      ),
-      child: BottomNavigationBar(
-        currentIndex: selectedIndex,
-        onTap: onTap,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: AppTheme.white,
-        selectedItemColor: AppTheme.navy,
-        unselectedItemColor: AppTheme.blue300,
-        selectedFontSize: 11,
-        unselectedFontSize: 11,
-        elevation: 0,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home_rounded),
-            label: 'Home',
+    return BlocBuilder<NoticeBoardBloc, NoticeBoardState>(
+      builder: (context, noticeState) {
+        final unreadNotices = noticeState is NoticeBoardLoaded ? noticeState.unreadCount : 0;
+
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppTheme.white,
+            border: Border(top: BorderSide(color: AppTheme.blue100)),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            activeIcon: Icon(Icons.account_balance_wallet_rounded),
-            label: 'Fees',
+          child: BottomNavigationBar(
+            currentIndex: selectedIndex,
+            onTap: onTap,
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: AppTheme.white,
+            selectedItemColor: AppTheme.navy,
+            unselectedItemColor: AppTheme.blue300,
+            selectedFontSize: 11,
+            unselectedFontSize: 11,
+            elevation: 0,
+            items: [
+              BottomNavigationBarItem(
+                icon: _BadgedIcon(
+                  icon: Icons.home_outlined,
+                  count: unreadNotices,
+                ),
+                activeIcon: _BadgedIcon(
+                  icon: Icons.home_rounded,
+                  count: unreadNotices,
+                ),
+                label: 'Home',
+              ),
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.account_balance_wallet_outlined),
+                activeIcon: Icon(Icons.account_balance_wallet_rounded),
+                label: 'Fees',
+              ),
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.people_alt_outlined),
+                activeIcon: Icon(Icons.people_alt_rounded),
+                label: 'Family',
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people_alt_outlined),
-            activeIcon: Icon(Icons.people_alt_rounded),
-            label: 'Family',
+        );
+      },
+    );
+  }
+}
+
+class _BadgedIcon extends StatelessWidget {
+  final IconData icon;
+  final int count;
+
+  const _BadgedIcon({required this.icon, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(icon),
+        if (count > 0)
+          Positioned(
+            right: -6,
+            top: -4,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white, width: 1.5),
+              ),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              child: Center(
+                child: Text(
+                  count > 99 ? '99+' : '$count',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }
