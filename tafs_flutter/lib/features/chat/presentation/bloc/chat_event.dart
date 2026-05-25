@@ -19,7 +19,14 @@ class ChatMessageReceived extends ChatEvent {
   List<Object?> get props => [message];
 }
 
-class ChatMessagesRead extends ChatEvent {}
+class ChatMessagesRead extends ChatEvent {
+  /// Who marked the messages as read: 'ADMIN' or 'GUARDIAN'.
+  final String by;
+  const ChatMessagesRead(this.by);
+
+  @override
+  List<Object?> get props => [by];
+}
 
 class ChatMessageSent extends ChatEvent {
   final String content;

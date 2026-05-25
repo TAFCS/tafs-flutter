@@ -23,7 +23,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
   io.Socket? _socket;
   final _messageController = StreamController<ChatMessage>.broadcast();
-  final _readController = StreamController<void>.broadcast();
+  final _readController = StreamController<String>.broadcast();
   final _deleteController = StreamController<String>.broadcast();
   final _connectController = StreamController<void>.broadcast();
   final _sessionExpiredController = StreamController<void>.broadcast();
@@ -257,8 +257,9 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       }
     });
 
-    _socket!.on('messagesRead', (_) {
-      _readController.add(null);
+    _socket!.on('messagesRead', (data) {
+      final by = (data is Map ? data['by'] : null) as String? ?? 'ADMIN';
+      _readController.add(by);
     });
 
     _socket!.on('messageDeleted', (data) {
@@ -555,7 +556,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   Stream<ChatMessage> get onMessageReceived => _messageController.stream;
 
   @override
-  Stream<void> get onMessagesRead => _readController.stream;
+  Stream<String> get onMessagesRead => _readController.stream;
 
   @override
   Stream<String> get onMessageDeleted => _deleteController.stream;

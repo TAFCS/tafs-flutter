@@ -72,8 +72,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     });
 
     _readSubscription?.cancel();
-    _readSubscription = repository.onMessagesRead.listen((_) {
-      add(ChatMessagesRead());
+    _readSubscription = repository.onMessagesRead.listen((by) {
+      add(ChatMessagesRead(by));
     });
 
     _connectSubscription?.cancel();
@@ -236,17 +236,24 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   }
 
   void _onMessagesRead(ChatMessagesRead event, Emitter<ChatState> emit) {
-    if (state is ChatLoaded) {
-      final currentState = state as ChatLoaded;
-      final List<ChatMessage> updatedMessages =
-          currentState.messages.map<ChatMessage>((m) {
-        return m.copyWith(isRead: true);
-      }).toList();
-      emit(currentState.copyWith(
-        messages: updatedMessages,
-        unreadCount: 0,
-      ));
-    }
+    if (state is! ChatLoaded) return;
+    final currentState = state as ChatLoaded;
+
+    // Only mark messages sent by the OTHER party as read.
+    // 'ADMIN' marked as read → admin read the guardian's messages (blue tick on guardian messages).
+    // 'GUARDIAN' marked as read → guardian read the admin's messages (blue tick on admin messages).
+    final readSenderType = event.by == 'ADMIN'
+        ? ChatSenderType.guardian
+        : ChatSenderType.admin;
+
+    final updatedMessages = currentState.messages.map<ChatMessage>((m) {
+      return m.senderType == readSenderType ? m.copyWith(isRead: true) : m;
+    }).toList();
+
+    emit(currentState.copyWith(
+      messages: updatedMessages,
+      unreadCount: _calculateUnread(updatedMessages),
+    ));
   }
 
   Future<void> _onMessageSent(ChatMessageSent event, Emitter<ChatState> emit) async {
