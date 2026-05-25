@@ -186,6 +186,9 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
           }
         } catch (e) {
           print('[ChatRepo] Token refresh failed: $e');
+          // Restore auto-reconnect so the next attempt can retry the refresh.
+          // Leaving it at 0 permanently bricks the socket for the session.
+          _socket?.io.options?['reconnectionAttempts'] = 99999;
         } finally {
           _isRefreshingToken = false;
         }
@@ -287,14 +290,14 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (_socket != null && !_socket!.connected) {
-        // Re-establish socket connection (works on both native and web)
-        _socket!.connect();
-      } else if (isConnected) {
-        // Socket is already connected — flush any queued messages
-        // On web: drainOutbox uses REST, not path_provider, so it is safe.
-        unawaited(drainOutbox());
-      }
+      if (_socket == null) return;
+      // Always force a clean reconnect on resume. After backgrounding, the OS
+      // can kill the TCP connection while socket.io still reports connected==true
+      // (zombie). Trusting that flag causes outbox flushes to time out after 15s
+      // and inbound messages to be silently dropped.
+      // onConnect fires once the fresh handshake completes and drains the outbox.
+      _socket!.disconnect();
+      _socket!.connect();
     }
   }
 
