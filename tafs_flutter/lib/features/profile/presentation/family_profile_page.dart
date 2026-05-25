@@ -26,7 +26,7 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
   @override
   void initState() {
     super.initState();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+    _refreshTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
       if (mounted) {
         context.read<AuthBloc>().add(AuthRefreshRequested());
       }

@@ -34,6 +34,13 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
+      // Only react to actual session transitions: login or logout.
+      // Token refresh and profile updates re-emit AuthAuthenticated without
+      // changing the session, so we must NOT restart the chat for those.
+      listenWhen: (previous, current) {
+        if (current is AuthUnauthenticated) return true;
+        return current is AuthAuthenticated && previous is! AuthAuthenticated;
+      },
       listener: (context, state) {
         // If the user logs out from deep within the app, pop all pushed routes
         // so we return to this root widget (which will now render LoginPage).
