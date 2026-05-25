@@ -14,6 +14,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   StreamSubscription? _messageSubscription;
   StreamSubscription? _readSubscription;
   StreamSubscription? _connectSubscription;
+  StreamSubscription? _deleteSubscription;
 
   ChatBloc({required this.repository}) : super(ChatInitial()) {
     on<ChatStarted>(_onChatStarted);
@@ -81,7 +82,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       add(ChatReconnected());
     });
 
-    repository.onMessageDeleted.listen((messageId) {
+    _deleteSubscription?.cancel();
+    _deleteSubscription = repository.onMessageDeleted.listen((messageId) {
       add(ChatMessageDeleted(messageId));
     });
 
@@ -427,6 +429,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     _messageSubscription?.cancel();
     _readSubscription?.cancel();
     _connectSubscription?.cancel();
+    _deleteSubscription?.cancel();
     repository.disconnect();
     emit(ChatInitial());
   }
@@ -452,6 +455,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     _messageSubscription?.cancel();
     _readSubscription?.cancel();
     _connectSubscription?.cancel();
+    _deleteSubscription?.cancel();
     repository.disconnect();
     return super.close();
   }
