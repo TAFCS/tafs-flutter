@@ -270,8 +270,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       };
     }
 
-    final initialStatus =
-        repository.isConnected ? MessageStatus.sending : MessageStatus.queued;
+    const initialStatus = MessageStatus.sending;
 
     final optimisticMessage = ChatMessage(
       id: tempId,
@@ -303,8 +302,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       createdAt: DateTime.now(),
     );
     await repository.enqueueOutbox(outboxEntry);
-
-    if (!repository.isConnected) return;
 
     try {
       String content = event.content;
