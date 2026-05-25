@@ -27,4 +27,5 @@ abstract class ChatRepository {
   Stream<String> get onMessagesRead;
   Stream<String> get onMessageDeleted;
   Stream<void> get onConnect;
+  Stream<void> get onDisconnect;
 }

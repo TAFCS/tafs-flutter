@@ -125,27 +125,39 @@ class _ChatPageState extends State<ChatPage> {
                     letterSpacing: -0.5,
                   ),
                 ),
-                Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Text(
-                      'ONLINE',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
+                BlocBuilder<ChatBloc, ChatState>(
+                  buildWhen: (prev, next) {
+                    final prevConnected = prev is ChatLoaded && prev.isSocketConnected;
+                    final nextConnected = next is ChatLoaded && next.isSocketConnected;
+                    return prevConnected != nextConnected;
+                  },
+                  builder: (context, state) {
+                    final connected = state is ChatLoaded && state.isSocketConnected;
+                    final dotColor = connected ? Colors.green : Colors.orange;
+                    final label = connected ? 'ONLINE' : 'RECONNECTING...';
+                    return Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: dotColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            color: dotColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),

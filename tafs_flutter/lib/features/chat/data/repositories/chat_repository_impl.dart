@@ -26,6 +26,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   final _readController = StreamController<String>.broadcast();
   final _deleteController = StreamController<String>.broadcast();
   final _connectController = StreamController<void>.broadcast();
+  final _disconnectController = StreamController<void>.broadcast();
   final _sessionExpiredController = StreamController<void>.broadcast();
   bool _isRefreshingToken = false;
   bool _isDrainingOutbox = false;
@@ -272,6 +273,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
     _socket!.onDisconnect((reason) {
       print('[ChatRepo] Disconnected from socket. Reason: $reason');
+      _disconnectController.add(null);
       // The socket.io client's built-in reconnection logic will handle
       // reconnecting. We do NOT manually call connect() here to avoid
       // creating duplicate connections.
@@ -566,4 +568,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
   @override
   Stream<void> get onConnect => _connectController.stream;
+
+  @override
+  Stream<void> get onDisconnect => _disconnectController.stream;
 }

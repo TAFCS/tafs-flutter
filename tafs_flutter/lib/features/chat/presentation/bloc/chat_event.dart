@@ -73,6 +73,8 @@ class ChatStopped extends ChatEvent {}
 
 class ChatReconnected extends ChatEvent {}
 
+class ChatDisconnected extends ChatEvent {}
+
 class ChatMessageRetry extends ChatEvent {
   final String clientMessageId;
   const ChatMessageRetry(this.clientMessageId);

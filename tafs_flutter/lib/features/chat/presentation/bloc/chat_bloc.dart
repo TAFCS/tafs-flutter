@@ -14,6 +14,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   StreamSubscription? _messageSubscription;
   StreamSubscription? _readSubscription;
   StreamSubscription? _connectSubscription;
+  StreamSubscription? _disconnectSubscription;
   StreamSubscription? _deleteSubscription;
 
   ChatBloc({required this.repository}) : super(ChatInitial()) {
@@ -28,6 +29,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<ChatLeft>(_onChatLeft);
     on<ChatStudentsRequested>(_onStudentsRequested);
     on<ChatReconnected>(_onChatReconnected);
+    on<ChatDisconnected>(_onChatDisconnected);
     on<ChatMessageRetry>(_onMessageRetry);
     on<ChatMessageAcknowledged>(_onMessageAcknowledged);
   }
@@ -82,6 +84,11 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       add(ChatReconnected());
     });
 
+    _disconnectSubscription?.cancel();
+    _disconnectSubscription = repository.onDisconnect.listen((_) {
+      add(ChatDisconnected());
+    });
+
     _deleteSubscription?.cancel();
     _deleteSubscription = repository.onMessageDeleted.listen((messageId) {
       add(ChatMessageDeleted(messageId));
@@ -99,6 +106,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         unreadCount: _calculateUnread(merged),
         students: students,
         serverMessageCount: messages.length,
+        isSocketConnected: repository.isConnected,
       ));
 
       if (repository.isConnected) {
@@ -162,8 +170,17 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     }
   }
 
+  void _onChatDisconnected(ChatDisconnected event, Emitter<ChatState> emit) {
+    if (state is ChatLoaded) {
+      emit((state as ChatLoaded).copyWith(isSocketConnected: false));
+    }
+  }
+
   Future<void> _onChatReconnected(ChatReconnected event, Emitter<ChatState> emit) async {
     if (state is! ChatLoaded) return;
+
+    // Mark connected immediately so the UI updates before the history fetch.
+    emit((state as ChatLoaded).copyWith(isSocketConnected: true));
 
     try {
       final serverRecent = await repository.getChatHistory(take: 50, skip: 0);
@@ -181,6 +198,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       emit(currentLoaded.copyWith(
         messages: merged,
         unreadCount: _calculateUnread(merged),
+        isSocketConnected: true,
       ));
 
       await repository.drainOutbox();
@@ -429,6 +447,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     _messageSubscription?.cancel();
     _readSubscription?.cancel();
     _connectSubscription?.cancel();
+    _disconnectSubscription?.cancel();
     _deleteSubscription?.cancel();
     repository.disconnect();
     emit(ChatInitial());
@@ -455,6 +474,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     _messageSubscription?.cancel();
     _readSubscription?.cancel();
     _connectSubscription?.cancel();
+    _disconnectSubscription?.cancel();
     _deleteSubscription?.cancel();
     repository.disconnect();
     return super.close();
