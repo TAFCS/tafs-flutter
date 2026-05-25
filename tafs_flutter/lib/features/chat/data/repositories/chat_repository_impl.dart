@@ -266,7 +266,12 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       _deleteController.add(messageId);
     });
 
-    _socket!.onDisconnect((_) => print('Disconnected from Chat Socket'));
+    _socket!.onDisconnect((reason) {
+      print('[ChatRepo] Disconnected from socket. Reason: $reason');
+      // The socket.io client's built-in reconnection logic will handle
+      // reconnecting. We do NOT manually call connect() here to avoid
+      // creating duplicate connections.
+    });
 
     _socket!.connect();
   }
@@ -280,14 +285,13 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // On web, 'resumed' fires whenever the browser tab regains focus.
-    // Calling drainOutbox on web causes path_provider crashes.
-    // The socket's onConnect handler already drains the outbox reliably.
-    if (kIsWeb) return;
     if (state == AppLifecycleState.resumed) {
       if (_socket != null && !_socket!.connected) {
+        // Re-establish socket connection (works on both native and web)
         _socket!.connect();
       } else if (isConnected) {
+        // Socket is already connected — flush any queued messages
+        // On web: drainOutbox uses REST, not path_provider, so it is safe.
         unawaited(drainOutbox());
       }
     }
