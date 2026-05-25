@@ -96,6 +96,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         hasReachedMax: messages.length < 50,
         unreadCount: _calculateUnread(merged),
         students: students,
+        serverMessageCount: messages.length,
       ));
 
       if (repository.isConnected) {
@@ -395,8 +396,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     if (currentState.hasReachedMax) return;
 
     try {
-      final messages =
-          await repository.getChatHistory(skip: currentState.messages.length);
+      final messages = await repository.getChatHistory(
+        skip: currentState.serverMessageCount,
+      );
       if (state is! ChatLoaded) return;
       final successState = state as ChatLoaded;
       if (messages.isEmpty) {
@@ -405,6 +407,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         emit(successState.copyWith(
           messages: successState.messages + messages,
           hasReachedMax: messages.length < 50,
+          serverMessageCount: successState.serverMessageCount + messages.length,
         ));
       }
     } catch (_) {}

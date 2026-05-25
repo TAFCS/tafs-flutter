@@ -1,3 +1,4 @@
+import 'dart:math' show max;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -25,16 +26,35 @@ class _ChatPageState extends State<ChatPage> {
   ChatMessage? _replyingTo;
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
+  int _clusterCount = 0;
+  bool _isLoadingMore = false;
 
   @override
   void initState() {
     super.initState();
     _chatBloc = context.read<ChatBloc>();
+    _itemPositionsListener.itemPositions.addListener(_onScrollPositionChanged);
   }
 
   @override
   void dispose() {
+    _itemPositionsListener.itemPositions.removeListener(_onScrollPositionChanged);
     super.dispose();
+  }
+
+  void _onScrollPositionChanged() {
+    if (_isLoadingMore) return;
+    final positions = _itemPositionsListener.itemPositions.value;
+    if (positions.isEmpty) return;
+    final maxIndex = positions.map((p) => p.index).reduce(max);
+    final s = _chatBloc.state;
+    if (s is! ChatLoaded || s.hasReachedMax) return;
+    // With reverse:true, high index = oldest messages (top of screen).
+    // Trigger when the user scrolls within 3 clusters of the oldest end.
+    if (maxIndex >= _clusterCount - 3) {
+      setState(() => _isLoadingMore = true);
+      _chatBloc.add(ChatHistoryLoaded());
+    }
   }
 
   void _scrollToMessage(List<dynamic> clusters, String messageId) {
@@ -141,7 +161,12 @@ class _ChatPageState extends State<ChatPage> {
       body: Column(
         children: [
               Expanded(
-                child: BlocBuilder<ChatBloc, ChatState>(
+                child: BlocConsumer<ChatBloc, ChatState>(
+                  listener: (context, state) {
+                    if (state is ChatLoaded && _isLoadingMore) {
+                      setState(() => _isLoadingMore = false);
+                    }
+                  },
                   builder: (context, state) {
                     if (state is ChatInitial || state is ChatLoading) {
                       return const Center(child: CircularProgressIndicator());
@@ -167,14 +192,24 @@ class _ChatPageState extends State<ChatPage> {
                         }
                       }
                       final reversedClusters = clusters.reversed.toList();
+                      _clusterCount = reversedClusters.length;
 
                       return ScrollablePositionedList.builder(
                         itemScrollController: _itemScrollController,
                         itemPositionsListener: _itemPositionsListener,
                         padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-                        itemCount: reversedClusters.length,
+                        itemCount: reversedClusters.length + (_isLoadingMore ? 1 : 0),
                         reverse: true,
                         itemBuilder: (context, index) {
+                          // Loading spinner at the top (oldest end) while fetching more
+                          if (index == reversedClusters.length) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Center(
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            );
+                          }
                           final item = reversedClusters[index];
                           final allImageUrls = state.messages
                               .where((m) => m.messageType == ChatMessageType.image)
