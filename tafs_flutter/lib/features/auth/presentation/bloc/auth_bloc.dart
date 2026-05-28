@@ -16,6 +16,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<AuthLoginRequested>(_onAuthLoginRequested);
     on<AuthLogoutRequested>(_onAuthLogoutRequested);
+    on<AuthDeleteAccountRequested>(_onAuthDeleteAccountRequested);
     on<AuthVerifyCnicRequested>(_onVerifyCnicRequested);
     on<AuthRegisterRequested>(_onRegisterRequested);
     on<AuthSignupResetRequested>(_onSignupResetRequested);
@@ -103,6 +104,21 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     await repository.logout();
     await clear(); // Wipe hydrated_bloc disk cache so restart shows login
     emit(AuthUnauthenticated());
+  }
+
+  Future<void> _onAuthDeleteAccountRequested(
+    AuthDeleteAccountRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    final result = await repository.deleteAccount();
+    result.fold(
+      (failure) => emit(AuthError(failure.message)),
+      (_) async {
+        await clear(); // Wipe hydrated_bloc disk cache so restart shows login
+        emit(AuthUnauthenticated());
+      },
+    );
   }
 
   // ─── Signup handlers ───────────────────────────────────────────────────────

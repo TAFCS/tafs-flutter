@@ -30,6 +30,8 @@ class AuthLoginRequested extends AuthEvent {
 
 class AuthLogoutRequested extends AuthEvent {}
 
+class AuthDeleteAccountRequested extends AuthEvent {}
+
 // ─── Signup Events ────────────────────────────────────────────────────────
 
 class AuthVerifyCnicRequested extends AuthEvent {

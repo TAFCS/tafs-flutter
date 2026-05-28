@@ -11,6 +11,7 @@ abstract class AuthRemoteDataSource {
     String? deviceType,
   });
   Future<void> logout(String accessToken);
+  Future<void> deleteAccount(String accessToken);
   Future<Map<String, dynamic>> verifyCnic(String cnic);
   Future<ParentDto> registerParent(
     String cnic,
@@ -75,6 +76,25 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       await dio.post(
         '$baseUrl/auth/parent/logout',
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+        ),
+      );
+    } catch (e) {
+      throw ServerFailure(e.toString());
+    }
+  }
+
+  @override
+  Future<void> deleteAccount(String accessToken) async {
+    final String baseUrl =
+        dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+    try {
+      await dio.delete(
+        '$baseUrl/auth/parent/account',
         options: Options(
           headers: {
             'Content-Type': 'application/json',

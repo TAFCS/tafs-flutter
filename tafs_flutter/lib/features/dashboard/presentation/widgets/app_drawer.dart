@@ -199,6 +199,20 @@ class AppDrawer extends StatelessWidget {
           const Divider(color: Colors.white10),
           _buildDrawerItem(
             context: context,
+            icon: Icons.delete_forever_rounded,
+            text: 'Delete Account',
+            onTap: () async {
+              Navigator.pop(context);
+
+              final confirmed = await _showDeleteAccountDialog(context);
+              if (confirmed != true) return;
+
+              if (!context.mounted) return;
+              context.read<AuthBloc>().add(AuthDeleteAccountRequested());
+            },
+          ),
+          _buildDrawerItem(
+            context: context,
             icon: Icons.logout_rounded,
             text: 'Logout',
             onTap: () {
@@ -217,6 +231,49 @@ class AppDrawer extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Future<bool?> _showDeleteAccountDialog(BuildContext context) async {
+    final controller = TextEditingController();
+
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete account?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'This will permanently delete your app account and you will be signed out.',
+              ),
+              const SizedBox(height: 12),
+              const Text('Type DELETE to confirm:'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: controller,
+                autofocus: true,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final ok = controller.text.trim().toUpperCase() == 'DELETE';
+                if (!ok) return;
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
     );
   }
 

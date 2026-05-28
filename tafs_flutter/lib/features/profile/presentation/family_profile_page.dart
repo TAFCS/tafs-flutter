@@ -147,8 +147,33 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                         ),
                       ),
                       const SizedBox(height: AppTheme.space10),
+                      const Divider(color: AppTheme.blue100),
+                      const SizedBox(height: AppTheme.space4),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: () async {
+                            final confirmed = await _showDeleteAccountDialog(context);
+                            if (confirmed != true) return;
+                            if (!context.mounted) return;
+                            context.read<AuthBloc>().add(AuthDeleteAccountRequested());
+                          },
+                          icon: const Icon(
+                            Icons.delete_forever_rounded,
+                            size: 18,
+                            color: AppTheme.danger,
+                          ),
+                          label: const Text(
+                            'Delete account',
+                            style: TextStyle(
+                              color: AppTheme.danger,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppTheme.space2),
                       if (!widget.showAppBar) ...[
-                        const Divider(color: AppTheme.blue100),
                         const SizedBox(height: AppTheme.space3),
                         Center(
                           child: TextButton.icon(
@@ -177,6 +202,49 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
       ),
     );
   }
+}
+
+Future<bool?> _showDeleteAccountDialog(BuildContext context) async {
+  final controller = TextEditingController();
+
+  return showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text('Delete account?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This will permanently delete your app account and you will be signed out.',
+            ),
+            const SizedBox(height: 12),
+            const Text('Type DELETE to confirm:'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller,
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final ok = controller.text.trim().toUpperCase() == 'DELETE';
+              if (!ok) return;
+              Navigator.of(dialogContext).pop(true);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      );
+    },
+  );
 }
 
 class _ParentHeaderCard extends StatelessWidget {
