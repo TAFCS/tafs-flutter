@@ -94,6 +94,13 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         home: const AuthGate(),
         debugShowCheckedModeBanner: false,
+        builder: (context, child) {
+          return GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
       ),
     );
   }
