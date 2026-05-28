@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/models/parent_dto.dart';
+import '../utils/jwt_utils.dart';
 
 /// Dio interceptor that transparently refreshes the parent access token on 401.
 ///
@@ -53,10 +54,13 @@ class TokenInterceptor extends Interceptor {
       return handler.next(err);
     }
 
+    print('🔄 Intercepted 401 for $path. Attempting token refresh...');
+
     final RequestOptions original = err.requestOptions;
 
     // ── Concurrent request during an ongoing refresh ──────────────────────
     if (_isRefreshing) {
+      print('⏳ Refresh already in progress. Queueing request...');
       final completer = Completer<Response<dynamic>>();
       _pendingQueue.add(
         _PendingRequest(options: original, completer: completer),
@@ -76,6 +80,7 @@ class TokenInterceptor extends Interceptor {
       // ── 1. Read cached session ──────────────────────────────────────────
       final cached = await localDataSource.getCachedParent();
       if (cached == null) {
+        print('❌ No cached session. Logging out...');
         _failAll(err);
         await _clearAndLogout();
         return handler.next(err);
@@ -85,6 +90,7 @@ class TokenInterceptor extends Interceptor {
       final String baseUrl =
           dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
 
+      print('📡 Calling refresh endpoint: $baseUrl/auth/parent/refresh');
       final refreshResponse = await _refreshDio.post<Map<String, dynamic>>(
         '$baseUrl/auth/parent/refresh',
         data: {'refreshToken': cached.refreshToken},
@@ -95,6 +101,8 @@ class TokenInterceptor extends Interceptor {
       final innerData = (refreshResponse.data!['data'] as Map<String, dynamic>);
       newAccess = innerData['accessToken'] as String;
       final newRefresh = innerData['refreshToken'] as String;
+
+      print('✅ Token refresh successful. Retrying original request...');
 
       // ── 4. Persist updated tokens ───────────────────────────────────────
       final updated = ParentDto(
@@ -132,14 +140,17 @@ class TokenInterceptor extends Interceptor {
       if (refreshErr.requestOptions.path.contains('/auth/parent/refresh') &&
           (refreshErr.response?.statusCode == 401 ||
               refreshErr.response?.statusCode == 403)) {
+        print('❌ Token refresh failed with 401/403. Logging out...');
         _failAll(err);
         await _clearAndLogout();
         return handler.next(err);
       }
+      print('⚠️ Refresh error (retryable): ${refreshErr.message}');
       _failAll(refreshErr);
       return handler.next(refreshErr);
-    } catch (_) {
+    } catch (e) {
       // Refresh parsing/storage failed — treat as auth session failure.
+      print('❌ Token refresh parsing failed: $e. Logging out...');
       _failAll(err);
       await _clearAndLogout();
       return handler.next(err);
@@ -158,6 +169,7 @@ class TokenInterceptor extends Interceptor {
   }
 
   Future<void> _clearAndLogout() async {
+    print('🚪 Clearing session and triggering logout...');
     await localDataSource.clearCache();
     onLogout();
   }

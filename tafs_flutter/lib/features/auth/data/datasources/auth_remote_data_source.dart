@@ -10,6 +10,7 @@ abstract class AuthRemoteDataSource {
     String? fcmToken,
     String? deviceType,
   });
+  Future<Map<String, dynamic>> refreshToken(String refreshToken);
   Future<void> logout(String accessToken);
   Future<void> deleteAccount(String accessToken);
   Future<Map<String, dynamic>> verifyCnic(String cnic);
@@ -70,7 +71,46 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> logout(String accessToken) async {
+  Future<Map<String, dynamic>> refreshToken(String refreshToken) async {
+    final String baseUrl =
+        dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+
+    try {
+      final response = await dio.post(
+        '$baseUrl/auth/parent/refresh',
+        data: {'refreshToken': refreshToken},
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data['data'] as Map<String, dynamic>?;
+        if (data != null) {
+          return {
+            'accessToken': data['accessToken'] as String? ?? '',
+            'refreshToken': data['refreshToken'] as String? ?? '',
+          };
+        }
+        throw const ServerFailure(
+          'Token refresh failed. Invalid response structure.',
+        );
+      } else {
+        throw const ServerFailure(
+          'Token refresh failed. Invalid response from server.',
+        );
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+        throw const InvalidCredentialsFailure();
+      }
+      throw ServerFailure(e.message ?? 'Unknown server error');
+    } catch (e) {
+      throw ServerFailure(e.toString());
+    }
+  }
+
+  @override
     final String baseUrl =
         dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
     try {
@@ -208,10 +248,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         // BUT wait, ParentDto needs accessToken and refreshToken to be valid for the session.
         // We should merge the new data with the existing tokens.
         final data = response.data['data'] as Map<String, dynamic>;
-        // We'll return it as is, and the repository can handle merging if needed, 
+        // We'll return it as is, and the repository can handle merging if needed,
         // but ParentDto.fromJson expects tokens in the JSON.
         // Let's add the tokens back into the JSON before parsing.
-        data['accessToken'] = accessToken; 
+        data['accessToken'] = accessToken;
         // We don't have the refresh token here, but getProfile doesn't change it.
         return ParentDto.fromJson(data);
       } else {

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'core/network/token_interceptor.dart';
+import 'core/utils/jwt_utils.dart';
 import 'features/auth/data/datasources/auth_local_data_source.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
@@ -40,9 +41,11 @@ class InjectionContainer {
 
   static void init() {
     // Core
-    final dio = Dio(BaseOptions(
-      baseUrl: dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080/api/v1',
-    ));
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080/api/v1',
+      ),
+    );
     const secureStorage = FlutterSecureStorage();
 
     final localDataSource = AuthLocalDataSourceImpl(secureStorage);
@@ -115,13 +118,21 @@ class InjectionContainer {
     // Must be registered after authBloc so the TokenInterceptor callback
     // can reference it.
 
-    // 1. Attach access token to every outgoing request automatically
+    // 1. Proactively check token expiration before making requests
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final cached = await localDataSource.getCachedParent();
           if (cached != null && !options.headers.containsKey('Authorization')) {
             options.headers['Authorization'] = 'Bearer ${cached.accessToken}';
+
+            // Check if token is expired (with 60-second buffer)
+            if (JwtUtils.isTokenExpired(cached.accessToken)) {
+              // Token is expired — trigger logout to show login screen
+              print('⚠️ Access token expired. Logging out...');
+              authBloc.add(AuthLogoutRequested());
+              // Continue with the request anyway; let the 401 handler deal with it
+            }
           }
           handler.next(options);
         },
