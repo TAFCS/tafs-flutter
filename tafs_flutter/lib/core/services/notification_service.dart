@@ -7,11 +7,15 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
+  /// Must match a file in android/app/src/main/res/drawable/ (not mipmap).
+  static const String _androidNotificationIcon = 'ic_notification';
+
   final fln.FlutterLocalNotificationsPlugin _localNotifications = fln.FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
-    // 1. Android Settings
-    const fln.AndroidInitializationSettings androidSettings = fln.AndroidInitializationSettings('launcher_icon');
+    // 1. Android Settings — drawable resource name only (no @drawable/ prefix).
+    const fln.AndroidInitializationSettings androidSettings =
+        fln.AndroidInitializationSettings(_androidNotificationIcon);
 
     // 2. iOS Settings
     const fln.DarwinInitializationSettings iosSettings = fln.DarwinInitializationSettings(
@@ -78,7 +82,7 @@ class NotificationService {
             channelDescription: 'This channel is used for important notifications.',
             importance: fln.Importance.max,
             priority: fln.Priority.high,
-            icon: android?.smallIcon,
+            icon: android?.smallIcon ?? _androidNotificationIcon,
           ),
           iOS: const fln.DarwinNotificationDetails(
             presentAlert: true,
