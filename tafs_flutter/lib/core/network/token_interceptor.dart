@@ -11,8 +11,10 @@ import '../../features/auth/data/models/parent_dto.dart';
 ///   2. Read cached [ParentDto] from [AuthLocalDataSource] for the refresh token
 ///   3. POST /auth/parent/refresh → get a new token pair
 ///   4. Persist updated [ParentDto] back to secure storage
-///   5. Retry the original request (and any queued concurrent requests)
-///   6. If refresh also fails → clear storage + call [onLogout] (triggers AuthBloc)
+///   5. Notify [AuthBloc] via [onTokenRefreshed] so in-memory state + HydratedBloc
+///      cache are kept in sync with FlutterSecureStorage (fixes dual-storage desync)
+///   6. Retry the original request (and any queued concurrent requests)
+///   7. If refresh also fails → clear storage + call [onLogout] (triggers AuthBloc)
 class TokenInterceptor extends Interceptor {
   final Dio dio;
   final AuthLocalDataSource localDataSource;
@@ -20,6 +22,12 @@ class TokenInterceptor extends Interceptor {
   /// Called when refresh fails or no cached session exists.
   /// In practice: `() => InjectionContainer.authBloc.add(AuthLogoutRequested())`
   final void Function() onLogout;
+
+  /// Called after a successful silent token refresh with the updated [ParentDto].
+  /// In practice: `(parent) => authBloc.add(AuthTokenRefreshed(parent))`
+  /// This keeps [AuthBloc] state and HydratedBloc JSON cache in sync with
+  /// [FlutterSecureStorage] — preventing stale-token loops after app restart.
+  final void Function(ParentDto parent) onTokenRefreshed;
 
   bool _isRefreshing = false;
   final List<_PendingRequest> _pendingQueue = [];
@@ -32,6 +40,7 @@ class TokenInterceptor extends Interceptor {
     required this.dio,
     required this.localDataSource,
     required this.onLogout,
+    required this.onTokenRefreshed,
   });
 
   @override
@@ -109,7 +118,13 @@ class TokenInterceptor extends Interceptor {
       );
       await localDataSource.cacheParent(updated);
 
-      // ── 5. Drain queue — retry all waiting requests ─────────────────────
+      // ── 5. Sync AuthBloc + HydratedBloc cache with new tokens ───────────
+      // This is critical: without this, AuthBloc holds the old expired token
+      // in memory and in its HydratedBloc JSON file. After a cold restart,
+      // the old token would be restored and cause an immediate 401 on launch.
+      onTokenRefreshed(updated);
+
+      // ── 6. Drain queue — retry all waiting requests ─────────────────────
       for (final pending in _pendingQueue) {
         pending.options.headers['Authorization'] = 'Bearer $newAccess';
         pending.options.extra['__retried_after_refresh'] = true;
@@ -122,7 +137,7 @@ class TokenInterceptor extends Interceptor {
       }
       _pendingQueue.clear();
 
-      // ── 6. Retry the original request ───────────────────────────────────
+      // ── 7. Retry the original request ───────────────────────────────────
       original.headers['Authorization'] = 'Bearer $newAccess';
       original.extra['__retried_after_refresh'] = true;
       final retriedResponse = await dio.fetch<dynamic>(original);

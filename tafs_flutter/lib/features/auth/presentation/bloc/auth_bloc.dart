@@ -21,6 +21,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     on<AuthRegisterRequested>(_onRegisterRequested);
     on<AuthSignupResetRequested>(_onSignupResetRequested);
     on<AuthRefreshRequested>(_onAuthRefreshRequested);
+    on<AuthTokenRefreshed>(_onAuthTokenRefreshed);
   }
 
   // ─── HydratedBloc serialization ────────────────────────────────────────────
@@ -78,6 +79,18 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
       (failure) => null, // Keep existing state on failure
       (parent) => emit(AuthAuthenticated(parent)),
     );
+  }
+
+  /// Called by [TokenInterceptor] when it silently refreshes the access token
+  /// on a 401 response. Emitting [AuthAuthenticated] with the updated parent
+  /// keeps the in-memory BLoC state and the HydratedBloc JSON cache in sync
+  /// with [FlutterSecureStorage] — preventing the dual-storage desync that
+  /// caused stale-token loops after app restart.
+  Future<void> _onAuthTokenRefreshed(
+    AuthTokenRefreshed event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthAuthenticated(event.parent));
   }
 
   Future<void> _onAuthLoginRequested(

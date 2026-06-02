@@ -128,12 +128,15 @@ class InjectionContainer {
       ),
     );
 
-    // 2. Silently refresh on 401; trigger logout if refresh also fails
+    // 2. Silently refresh on 401; trigger logout if refresh also fails.
+    // onTokenRefreshed keeps AuthBloc state and HydratedBloc JSON cache in sync
+    // with FlutterSecureStorage so stale tokens are never restored on cold restart.
     dio.interceptors.add(
       TokenInterceptor(
         dio: dio,
         localDataSource: localDataSource,
         onLogout: () => authBloc.add(AuthLogoutRequested()),
+        onTokenRefreshed: (parent) => authBloc.add(AuthTokenRefreshed(parent)),
       ),
     );
   }

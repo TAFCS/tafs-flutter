@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../domain/entities/parent.dart';
 
 abstract class AuthEvent extends Equatable {
   const AuthEvent();
@@ -64,4 +65,16 @@ class AuthRegisterRequested extends AuthEvent {
 
 class AuthSignupResetRequested extends AuthEvent {
   const AuthSignupResetRequested();
+}
+
+/// Emitted by [TokenInterceptor] after it silently refreshes the access token.
+/// Carrying the updated [Parent] keeps [AuthBloc] (and therefore HydratedBloc)
+/// in sync with [FlutterSecureStorage] so both stores always hold the same tokens.
+class AuthTokenRefreshed extends AuthEvent {
+  final Parent parent;
+
+  const AuthTokenRefreshed(this.parent);
+
+  @override
+  List<Object?> get props => [parent];
 }
