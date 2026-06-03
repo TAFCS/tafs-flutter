@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/error/failures.dart';
 import '../models/fee_summary_dto.dart';
 
@@ -14,7 +14,7 @@ class FeeSummaryRemoteDataSourceImpl implements FeeSummaryRemoteDataSource {
   @override
   Future<FeeSummaryDto> getStudentFeeSummary(int studentCc) async {
     final baseUrl =
-        dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+        AppConfig.apiBaseUrl;
     try {
       final response = await dio.get('$baseUrl/fees/parent/student/$studentCc/summary');
       if (response.statusCode == 200 && response.data != null) {

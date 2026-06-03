@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../../../core/config/app_config.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
@@ -150,7 +150,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
           }
 
           final refreshBaseUrl =
-              dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+              AppConfig.apiBaseUrl;
           final response = await Dio().post(
             '$refreshBaseUrl/auth/parent/refresh',
             data: {'refreshToken': cached.refreshToken},

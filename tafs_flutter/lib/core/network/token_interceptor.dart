@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../config/app_config.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/models/parent_dto.dart';
 
@@ -91,8 +91,7 @@ class TokenInterceptor extends Interceptor {
       }
 
       // ── 2. Call refresh endpoint ────────────────────────────────────────
-      final String baseUrl =
-          dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+      final String baseUrl = AppConfig.apiBaseUrl;
 
       final refreshResponse = await _refreshDio.post<Map<String, dynamic>>(
         '$baseUrl/auth/parent/refresh',

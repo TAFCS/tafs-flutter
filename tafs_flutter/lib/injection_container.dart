@@ -28,7 +28,7 @@ import 'features/chat/presentation/bloc/chat_bloc.dart';
 import 'features/notice_board/data/datasources/notice_board_remote_data_source.dart';
 import 'features/notice_board/data/repositories/notice_board_repository_impl.dart';
 import 'features/notice_board/presentation/bloc/notice_board_bloc.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'core/config/app_config.dart';
 
 class InjectionContainer {
   static late final AuthBloc authBloc;
@@ -41,7 +41,7 @@ class InjectionContainer {
   static void init() {
     // Core
     final dio = Dio(BaseOptions(
-      baseUrl: dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080/api/v1',
+      baseUrl: AppConfig.apiBaseUrl,
     ));
     const secureStorage = FlutterSecureStorage();
 
@@ -65,11 +65,11 @@ class InjectionContainer {
     );
 
     final chatOutboxDataSource = ChatOutboxLocalDataSource();
-    final chatRepository = ChatRepositoryImpl(
+    final ChatRepository chatRepository = ChatRepositoryImpl(
       dio: dio,
       localDataSource: localDataSource,
       outboxDataSource: chatOutboxDataSource,
-      baseUrl: dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080/api/v1',
+      baseUrl: AppConfig.apiBaseUrl,
     );
 
     // Use cases

@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/error/failures.dart';
 import '../models/parent_dto.dart';
 
@@ -36,7 +36,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     String? deviceType,
   }) async {
     final String baseUrl =
-        dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+        AppConfig.apiBaseUrl;
 
     try {
       final response = await dio.post(
@@ -72,7 +72,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> logout(String accessToken) async {
     final String baseUrl =
-        dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+        AppConfig.apiBaseUrl;
     try {
       await dio.post(
         '$baseUrl/auth/parent/logout',
@@ -91,7 +91,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> deleteAccount(String accessToken) async {
     final String baseUrl =
-        dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+        AppConfig.apiBaseUrl;
     try {
       await dio.delete(
         '$baseUrl/auth/parent/account',
@@ -110,7 +110,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<Map<String, dynamic>> verifyCnic(String cnic) async {
     final String baseUrl =
-        dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+        AppConfig.apiBaseUrl;
 
     try {
       final response = await dio.post(
@@ -152,7 +152,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     String? deviceType,
   }) async {
     final String baseUrl =
-        dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+        AppConfig.apiBaseUrl;
 
     try {
       final response = await dio.post(
@@ -189,7 +189,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<ParentDto> getProfile(String accessToken) async {
     final String baseUrl =
-        dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+        AppConfig.apiBaseUrl;
 
     try {
       final response = await dio.get(

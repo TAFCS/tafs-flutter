@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../../core/config/app_config.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../auth/domain/entities/parent.dart';
@@ -67,7 +67,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return;
 
-    final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+    final String baseUrl = AppConfig.apiBaseUrl;
     final dio = Dio();
 
     try {

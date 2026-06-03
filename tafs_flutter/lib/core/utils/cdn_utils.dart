@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../config/app_config.dart';
 
 /// Converts a DigitalOcean Spaces CDN URL to a backend-proxied URL when
 /// running on Flutter Web.
@@ -18,7 +18,7 @@ class CdnUtils {
   CdnUtils._();
 
   static String _apiBase() =>
-      (dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080/api/v1')
+      AppConfig.apiBaseUrl
           .trimRight()
           .replaceAll(RegExp(r'/+$'), '');
 

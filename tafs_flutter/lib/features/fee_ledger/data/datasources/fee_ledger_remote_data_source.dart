@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/error/failures.dart';
 import '../models/fee_month_status_dto.dart';
 import '../models/ledger_response_dto.dart';
@@ -27,7 +27,7 @@ class FeeLedgerRemoteDataSourceImpl implements FeeLedgerRemoteDataSource {
   @override
   Future<LedgerResponseDto> getLedger(int studentCc) async {
     final baseUrl =
-        dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+        AppConfig.apiBaseUrl;
     try {
       final response = await dio.get(
         '$baseUrl/app/student/$studentCc/ledger',
@@ -46,7 +46,7 @@ class FeeLedgerRemoteDataSourceImpl implements FeeLedgerRemoteDataSource {
   @override
   Future<List<VoucherDto>> getStudentVouchers(int studentCc) async {
     final baseUrl =
-        dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+        AppConfig.apiBaseUrl;
     try {
       final response = await dio.get(
         '$baseUrl/vouchers/parent/student/$studentCc',
@@ -72,7 +72,7 @@ class FeeLedgerRemoteDataSourceImpl implements FeeLedgerRemoteDataSource {
   @override
   Future<List<FeeMonthStatusDto>> getStudentFeeMonths(int studentCc) async {
     final baseUrl =
-        dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+        AppConfig.apiBaseUrl;
     try {
       final response = await dio.get(
         '$baseUrl/student-fees/parent/student/$studentCc/monthly-status',
@@ -131,7 +131,7 @@ class FeeLedgerRemoteDataSourceImpl implements FeeLedgerRemoteDataSource {
     required int targetMonth,
   }) async {
     final baseUrl =
-        dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:8080/api/v1';
+        AppConfig.apiBaseUrl;
     try {
       final response = await dio.get(
         '$baseUrl/vouchers/parent/student/$studentCc/resolve',

@@ -6,8 +6,25 @@ import '../../notice_board/presentation/bloc/notice_board_event.dart';
 import '../../notice_board/presentation/bloc/notice_board_state.dart';
 import '../../notice_board/presentation/widgets/notice_post_card.dart';
 
-class HomeTabBody extends StatelessWidget {
+class HomeTabBody extends StatefulWidget {
   const HomeTabBody({super.key});
+
+  @override
+  State<HomeTabBody> createState() => _HomeTabBodyState();
+}
+
+class _HomeTabBodyState extends State<HomeTabBody> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final bloc = context.read<NoticeBoardBloc>();
+      if (bloc.state is NoticeBoardInitial) {
+        bloc.add(const NoticeBoardLoadRequested());
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +84,13 @@ class _NoticeBoardSection extends StatelessWidget {
                 child: Text(
                   'Could not load notices.',
                   style: TextStyle(color: AppTheme.blue300, fontSize: 13),
+                ),
+              )
+            else if (state is NoticeBoardInitial)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppTheme.space8),
+                  child: CircularProgressIndicator(color: AppTheme.navy, strokeWidth: 2),
                 ),
               ),
           ],
