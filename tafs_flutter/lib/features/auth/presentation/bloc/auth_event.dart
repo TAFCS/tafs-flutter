@@ -63,8 +63,14 @@ class AuthRegisterRequested extends AuthEvent {
   List<Object?> get props => [cnic, email, password, fcmToken, deviceType];
 }
 
+/// Return to signup step 1 (verify CNIC) without leaving the signup screen.
 class AuthSignupResetRequested extends AuthEvent {
   const AuthSignupResetRequested();
+}
+
+/// Leave signup and return to the login form (pops the signup route).
+class AuthSignupExitToLoginRequested extends AuthEvent {
+  const AuthSignupExitToLoginRequested();
 }
 
 /// Emitted by [TokenInterceptor] after it silently refreshes the access token.

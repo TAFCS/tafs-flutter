@@ -10,6 +10,7 @@ import '../../chat/presentation/bloc/chat_state.dart';
 import '../../chat/presentation/bloc/chat_event.dart';
 import '../../chat/presentation/pages/chat_page.dart';
 import '../../notice_board/presentation/bloc/notice_board_bloc.dart';
+import '../../notice_board/presentation/bloc/notice_board_event.dart';
 import '../../notice_board/presentation/bloc/notice_board_state.dart';
 import '../../fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import '../../fee_ledger/presentation/bloc/fee_ledger_event.dart';
@@ -39,6 +40,7 @@ class _MainShellPageState extends State<MainShellPage> {
       context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
       context.read<FeeLedgerBloc>().add(FeeLedgerLoadRequested(student.cc));
     }
+    context.read<NoticeBoardBloc>().add(const NoticeBoardLoadRequested());
   }
 
   void _onTabTapped(int index) {

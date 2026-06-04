@@ -22,6 +22,18 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  String? _loginError;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(() {
+      if (_loginError != null) setState(() => _loginError = null);
+    });
+    _passwordController.addListener(() {
+      if (_loginError != null) setState(() => _loginError = null);
+    });
+  }
 
   void _login() async {
     if (_formKey.currentState!.validate()) {
@@ -63,16 +75,9 @@ class _LoginPageState extends State<LoginPage> {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: AppTheme.danger,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              ),
-            ),
-          );
+          setState(() => _loginError = state.message);
+        } else if (state is AuthLoading) {
+          setState(() => _loginError = null);
         }
       },
       builder: (context, state) {
@@ -153,6 +158,32 @@ class _LoginPageState extends State<LoginPage> {
                                 return null;
                               },
                             ),
+                            if (_loginError != null) ...[
+                              const SizedBox(height: AppTheme.space2),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppTheme.space4,
+                                  vertical: AppTheme.space3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.danger.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                                  border: Border.all(color: AppTheme.danger.withValues(alpha: 0.3)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.error_outline_rounded, color: AppTheme.danger, size: 16),
+                                    const SizedBox(width: AppTheme.space2),
+                                    Expanded(
+                                      child: Text(
+                                        _loginError!,
+                                        style: const TextStyle(color: AppTheme.danger, fontSize: 13),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                             SizedBox(height: sectionGap),
                             // Login button
                             CustomButton(

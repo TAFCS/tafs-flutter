@@ -33,11 +33,10 @@ class MyApp extends StatelessWidget {
           create: (_) => InjectionContainer.selectedStudentCubit,
         ),
         BlocProvider<ChatBloc>(
-          create: (_) => InjectionContainer.chatBloc..add(ChatStarted()),
+          create: (_) => InjectionContainer.chatBloc,
         ),
         BlocProvider<NoticeBoardBloc>(
-          create: (_) => InjectionContainer.noticeBoardBloc
-            ..add(const NoticeBoardLoadRequested()),
+          create: (_) => InjectionContainer.noticeBoardBloc,
         ),
       ],
       child: MaterialApp(

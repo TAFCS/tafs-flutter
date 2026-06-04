@@ -38,7 +38,10 @@ class _AuthGateState extends State<AuthGate> {
       // Token refresh and profile updates re-emit AuthAuthenticated without
       // changing the session, so we must NOT restart the chat for those.
       listenWhen: (previous, current) {
-        if (current is AuthUnauthenticated) return true;
+        // Only clear the nav stack on real logout — not signup CNIC reset / exit.
+        if (current is AuthUnauthenticated) {
+          return previous is AuthAuthenticated;
+        }
         return current is AuthAuthenticated && previous is! AuthAuthenticated;
       },
       listener: (context, state) {
@@ -79,11 +82,18 @@ class _AuthGateState extends State<AuthGate> {
             );
           }
 
-          if (authState is AuthUnauthenticated) {
+          if (authState is AuthUnauthenticated ||
+              authState is AuthError ||
+              authState is AuthLoading ||
+              authState is SignupInitial ||
+              authState is SignupCnicVerifying ||
+              authState is SignupCnicValid ||
+              authState is SignupCnicInvalid ||
+              authState is SignupRegistering) {
             return const LoginPage();
           }
 
-          // AuthInitial / AuthLoading — branded splash
+          // AuthInitial — branded splash while session check runs
           return Scaffold(
             body: Container(
               width: double.infinity,

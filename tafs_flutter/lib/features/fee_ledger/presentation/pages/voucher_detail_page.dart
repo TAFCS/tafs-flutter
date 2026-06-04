@@ -8,7 +8,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/custom_button.dart';
+
 import '../../../../core/widgets/student_profile_card.dart';
 import '../../domain/entities/voucher.dart';
 
@@ -83,18 +83,7 @@ class VoucherDetailPage extends StatelessWidget {
               _BankDetails(bankInfo: voucher.bankInfo!),
               const SizedBox(height: AppTheme.space8),
             ],
-            if (voucher.status != 'PAID')
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-              child: CustomButton(
-                text: 'Pay Now',
-                onPressed: () {
-                  // TODO: Implement Payment Integration
-                },
-                gradient: AppTheme.navyGradient,
-              ),
-              ),
+
           ],
         ),
       ),

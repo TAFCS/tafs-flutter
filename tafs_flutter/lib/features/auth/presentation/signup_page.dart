@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../core/widgets/custom_button.dart';
@@ -157,8 +158,19 @@ class _SignupPageState extends State<SignupPage> {
           _guardianName = state.guardianName;
         }
 
-        return Scaffold(
-          body: SafeArea(
+        return PopScope(
+          canPop: !isCnicValid,
+          onPopInvokedWithResult: (didPop, _) {
+            if (didPop) {
+              context.read<AuthBloc>().add(
+                const AuthSignupExitToLoginRequested(),
+              );
+            } else if (isCnicValid) {
+              _resetSignup();
+            }
+          },
+          child: Scaffold(
+            body: SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24.0),
@@ -189,9 +201,12 @@ class _SignupPageState extends State<SignupPage> {
                       const SizedBox(height: 16),
                       CustomTextField(
                         label: 'CNIC',
-                        hint: 'Enter your CNIC number',
+                        hint: 'XXXXX-XXXXXXX-X',
                         controller: _cnicController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          _CnicFormatter(),
+                        ],
                       ),
                       const SizedBox(height: 24),
                       CustomButton(
@@ -299,7 +314,12 @@ class _SignupPageState extends State<SignupPage> {
                       children: [
                         const Text('Already have an account? '),
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            context.read<AuthBloc>().add(
+                              const AuthSignupExitToLoginRequested(),
+                            );
+                            Navigator.pop(context);
+                          },
                           child: const Text('Login'),
                         ),
                       ],
@@ -309,8 +329,48 @@ class _SignupPageState extends State<SignupPage> {
               ),
             ),
           ),
-        );
-      },
+        ),
+      );
+    },
+    );
+  }
+}
+
+class _CnicFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text;
+
+    if (newValue.selection.baseOffset == 0) {
+      return newValue;
+    }
+
+    final buffer = StringBuffer();
+    // Keep only digits
+    final cleaned = text.replaceAll(RegExp(r'\D'), '');
+
+    for (int i = 0; i < cleaned.length; i++) {
+      if (i == 5) {
+        buffer.write('-');
+      } else if (i == 12) {
+        buffer.write('-');
+      }
+      buffer.write(cleaned[i]);
+    }
+
+    final string = buffer.toString();
+    
+    // Limit to 15 characters (13 digits + 2 hyphens)
+    if (string.length > 15) {
+      return oldValue;
+    }
+
+    return newValue.copyWith(
+      text: string,
+      selection: TextSelection.collapsed(offset: string.length),
     );
   }
 }

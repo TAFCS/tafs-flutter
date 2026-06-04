@@ -71,16 +71,29 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
               return const _NoMonthsView();
             }
 
-            final totalCharged = months.fold<double>(
-              0,
-              (s, m) => s + m.totalAmount,
+            final unpaidVouchers = vouchers
+                .where((v) => v.status != 'PAID' && v.status != 'VOID')
+                .toList()
+              ..sort((a, b) => b.issueDate.compareTo(a.issueDate));
+
+            final activeVoucher = unpaidVouchers.isNotEmpty ? unpaidVouchers.first : null;
+
+            final paidVouchers = vouchers
+                .where((v) => v.status == 'PAID')
+                .toList()
+              ..sort((a, b) => b.issueDate.compareTo(a.issueDate));
+
+            final totalOutstanding = unpaidVouchers.fold<double>(
+              0, (s, v) => s + v.totalBalance,
             );
-            final totalPaid = months.fold<double>(0, (s, m) => s + m.totalPaid);
-            final totalOutstanding = months.fold<double>(
-              0,
-              (s, m) => s + m.outstandingBalance,
+            final totalPaid = vouchers.fold<double>(
+              0, (s, v) => s + v.totalPaid,
             );
-            final runningOutstanding = months.last.runningOutstandingBalance;
+            final totalCharged = vouchers
+                .where((v) => v.status != 'VOID')
+                .fold<double>(0, (s, v) => s + v.totalPayableBeforeDue);
+            
+            final runningOutstanding = totalOutstanding;
 
             return Column(
               children: [
@@ -103,45 +116,37 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
                         FeeLedgerLoadRequested(widget.studentCc),
                       );
                     },
-                    child: ListView.separated(
+                    child: ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.all(AppTheme.space4),
-                      itemCount: months.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: AppTheme.space3),
-                      itemBuilder: (context, index) {
-                        final month = months[index];
-                        final monthVouchers = vouchers.where((v) {
-                          final belongsToMonth = v.heads.any(
-                            (h) =>
-                                h.academicYear == month.academicYear &&
-                                h.targetMonth == month.targetMonth &&
-                                !h.isArrear,
-                          );
-
-                          if (!belongsToMonth) return false;
-                          if (v.status == 'VOID') {
-                            return v.totalPaid > 0;
-                          }
-                          return true;
-                        }).toList();
-
-                        return _MonthCard(
-                          month: month,
-                          challanCount: monthVouchers.length,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => _FeeMonthDetailPage(
-                                  studentCc: widget.studentCc,
-                                  month: month,
-                                  vouchers: monthVouchers,
+                      children: [
+                        if (activeVoucher != null) ...[
+                          _ActiveVoucherCard(voucher: activeVoucher),
+                        ] else ...[
+                          const _AllCaughtUpCard(),
+                        ],
+                        if (paidVouchers.isNotEmpty) ...[
+                          const SizedBox(height: AppTheme.space6),
+                          Text(
+                            'PAYMENT HISTORY',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: AppTheme.blue300,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.2,
                                 ),
-                              ),
-                            );
-                          },
-                        );
-                      },
+                          ),
+                          const SizedBox(height: AppTheme.space3),
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: paidVouchers.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: AppTheme.space3),
+                            itemBuilder: (context, index) {
+                              return _VoucherCard(voucher: paidVouchers[index]);
+                            },
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ),
@@ -560,29 +565,6 @@ class _FeeMonthDetailPage extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: AppTheme.space3),
-            SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: AppTheme.successGradient,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-                  boxShadow: AppTheme.shadowSm,
-                ),
-                child: ElevatedButton.icon(
-                  onPressed: () => _resolveAndOpen(context),
-                  icon: const Icon(Icons.payment_rounded),
-                  label: const Text('PAY NOW'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    foregroundColor: AppTheme.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusFull)),
-                  ),
-                ),
-              ),
-            ),
           ],
           const SizedBox(height: AppTheme.space3),
           SizedBox(
@@ -856,3 +838,184 @@ class _ErrorView extends StatelessWidget {
     );
   }
 }
+
+class _ActiveVoucherCard extends StatelessWidget {
+  final Voucher voucher;
+
+  const _ActiveVoucherCard({required this.voucher});
+
+  Color get _statusColor {
+    switch (voucher.status) {
+      case 'OVERDUE':
+        return AppTheme.danger;
+      case 'PARTIALLY_PAID':
+        return AppTheme.warning;
+      default:
+        return AppTheme.navy;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat('#,##0', 'en_US');
+    final dateFmt = DateFormat('dd MMM yyyy');
+
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.space5),
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.blue100, width: 2),
+        boxShadow: AppTheme.shadowMd,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.navy.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                ),
+                child: const Text(
+                  'ACTIVE CHALLAN',
+                  style: TextStyle(
+                    color: AppTheme.navy,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                ),
+                child: Text(
+                  voucher.status.replaceAll('_', ' '),
+                  style: TextStyle(
+                    color: _statusColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.space4),
+          Text(
+            'Challan #${voucher.id}',
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppTheme.blue300,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Rs. ${fmt.format(voucher.totalPayableBeforeDue)}',
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.navy,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(Icons.calendar_today_rounded, size: 14, color: AppTheme.blue300),
+              const SizedBox(width: 6),
+              Text(
+                'Due Date: ${dateFmt.format(voucher.dueDate)}',
+                style: const TextStyle(
+                  color: AppTheme.blue300,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.space5),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => VoucherDetailPage(voucher: voucher),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.picture_as_pdf_rounded),
+              label: const Text('DOWNLOAD CHALLAN'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.navy,
+                foregroundColor: AppTheme.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AllCaughtUpCard extends StatelessWidget {
+  const _AllCaughtUpCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.space6),
+      decoration: BoxDecoration(
+        color: AppTheme.success.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.success.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppTheme.space3),
+            decoration: BoxDecoration(
+              color: AppTheme.success.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.check_circle_outline_rounded, color: AppTheme.success, size: 36),
+          ),
+          const SizedBox(height: AppTheme.space4),
+          const Text(
+            "You're all caught up!",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.success,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            "No outstanding fees for this student.",
+            style: TextStyle(
+              fontSize: 13,
+              color: AppTheme.blue300,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+

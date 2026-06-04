@@ -20,6 +20,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     on<AuthVerifyCnicRequested>(_onVerifyCnicRequested);
     on<AuthRegisterRequested>(_onRegisterRequested);
     on<AuthSignupResetRequested>(_onSignupResetRequested);
+    on<AuthSignupExitToLoginRequested>(_onSignupExitToLoginRequested);
     on<AuthRefreshRequested>(_onAuthRefreshRequested);
     on<AuthTokenRefreshed>(_onAuthTokenRefreshed);
   }
@@ -180,5 +181,12 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(SignupInitial());
+  }
+
+  Future<void> _onSignupExitToLoginRequested(
+    AuthSignupExitToLoginRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthUnauthenticated());
   }
 }
