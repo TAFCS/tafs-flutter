@@ -639,26 +639,12 @@ class ChatBubble extends StatelessWidget {
       final tagMatch = RegExp(r'@\[(.*?)\]\(student:(\d+)\)').firstMatch(match.group(0)!);
       if (tagMatch != null) {
         final name = tagMatch.group(1);
-        spans.add(WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-            margin: const EdgeInsets.symmetric(horizontal: 2),
-            decoration: BoxDecoration(
-              color: isMe ? Colors.white.withOpacity(0.2) : AppTheme.navy.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: isMe ? Colors.white30 : AppTheme.navy.withOpacity(0.2),
-              ),
-            ),
-            child: Text(
-              '@$name',
-              style: TextStyle(
-                color: isMe ? Colors.white : AppTheme.navy,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
+        spans.add(TextSpan(
+          text: '@$name',
+          style: TextStyle(
+            color: isMe ? Colors.white : AppTheme.navy,
+            fontWeight: FontWeight.w900,
+            backgroundColor: isMe ? Colors.white.withOpacity(0.25) : AppTheme.navy.withOpacity(0.12),
           ),
         ));
       }
