@@ -47,10 +47,10 @@ class ChatBubble extends StatelessWidget {
             final isFirst = index == 0;
 
             final borderRadius = BorderRadius.only(
-              topLeft: Radius.circular(isFirst && !isMe ? 4 : 16),
-              topRight: Radius.circular(isFirst && isMe ? 4 : 16),
-              bottomLeft: const Radius.circular(16),
-              bottomRight: const Radius.circular(16),
+              topLeft: Radius.circular(isFirst && !isMe ? 4 : 8),
+              topRight: Radius.circular(isFirst && isMe ? 4 : 8),
+              bottomLeft: const Radius.circular(8),
+              bottomRight: const Radius.circular(8),
             );
 
             return _buildIndividualBubble(context, message, borderRadius);
@@ -213,8 +213,8 @@ class ChatBubble extends StatelessWidget {
       onReply: () => onReply(message),
       child: Container(
         margin: EdgeInsets.only(
-          top: 2,
-          bottom: 2,
+          top: 1,
+          bottom: 1,
           left: isMe ? 0 : 12,
           right: isMe ? 12 : 0,
         ),
@@ -319,7 +319,7 @@ class ChatBubble extends StatelessWidget {
             Icon(
               message.isRead ? Icons.done_all_rounded : Icons.done_rounded,
               size: 14,
-              color: message.isRead ? Colors.blue[200] : Colors.white.withOpacity(0.7),
+              color: Colors.white.withOpacity(0.7),
             ),
         ],
       ],
@@ -343,7 +343,7 @@ class ChatBubble extends StatelessWidget {
         final timeWidget = _buildTimeAndChecksRow(message);
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: buildTextAndTimeLayout(
             context: context,
             textContent: message.content,
