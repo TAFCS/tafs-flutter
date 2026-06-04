@@ -6,11 +6,10 @@ import 'features/auth/presentation/auth_gate.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/selected_student_cubit.dart';
 import 'features/chat/presentation/bloc/chat_bloc.dart';
-import 'features/chat/presentation/bloc/chat_event.dart';
 import 'features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import 'features/notice_board/presentation/bloc/notice_board_bloc.dart';
-import 'features/notice_board/presentation/bloc/notice_board_event.dart';
+import 'features/profile/presentation/bloc/profile_bloc.dart';
 import 'injection_container.dart';
 
 class MyApp extends StatelessWidget {
@@ -37,6 +36,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<NoticeBoardBloc>(
           create: (_) => InjectionContainer.noticeBoardBloc,
+        ),
+        BlocProvider<ProfileBloc>(
+          create: (_) => InjectionContainer.profileBloc,
         ),
       ],
       child: MaterialApp(

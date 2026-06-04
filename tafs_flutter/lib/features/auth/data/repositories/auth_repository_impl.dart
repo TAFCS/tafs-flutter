@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
+import '../../domain/entities/cnic_verification_result.dart';
 import '../../domain/entities/parent.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
@@ -88,10 +89,14 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, Map<String, dynamic>>> verifyCnic(String cnic) async {
+  Future<Either<Failure, CnicVerificationResult>> verifyCnic(String cnic) async {
     try {
       final result = await remoteDataSource.verifyCnic(cnic);
-      return Right(result);
+      return Right(CnicVerificationResult(
+        exists: result['exists'] as bool? ?? false,
+        guardianName: result['guardianName'] as String?,
+        message: result['message'] as String?,
+      ));
     } on Failure catch (failure) {
       return Left(failure);
     } catch (e) {

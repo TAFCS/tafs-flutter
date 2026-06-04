@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
+import '../entities/cnic_verification_result.dart';
 import '../entities/parent.dart';
 
 abstract class AuthRepository {
@@ -14,7 +15,7 @@ abstract class AuthRepository {
   Future<Either<Failure, Parent?>> getCachedUser();
 
   // Signup methods
-  Future<Either<Failure, Map<String, dynamic>>> verifyCnic(String cnic);
+  Future<Either<Failure, CnicVerificationResult>> verifyCnic(String cnic);
   Future<Either<Failure, Parent>> registerParent(
     String cnic,
     String email,

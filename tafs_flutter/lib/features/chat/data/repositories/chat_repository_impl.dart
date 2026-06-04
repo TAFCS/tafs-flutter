@@ -10,6 +10,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/chat_outbox_entry.dart';
+import '../../domain/entities/chat_student.dart';
 import '../../domain/repositories/chat_repository.dart';
 import '../datasources/chat_outbox_local_data_source.dart';
 import '../models/chat_message_dto.dart';
@@ -512,10 +513,16 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getStudents() async {
+  Future<List<ChatStudent>> getStudents() async {
     try {
       final response = await dio.get('/chat/students');
-      return List<Map<String, dynamic>>.from(response.data);
+      return (response.data as List<dynamic>)
+          .map((s) => ChatStudent(
+                cc: s['cc'] as int,
+                fullName: s['full_name'] as String? ?? '',
+                photographUrl: s['photograph_url'] as String?,
+              ))
+          .toList();
     } catch (e) {
       return [];
     }

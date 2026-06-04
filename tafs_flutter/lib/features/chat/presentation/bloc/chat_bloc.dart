@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:image_picker/image_picker.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/chat_outbox_entry.dart';
 import '../../domain/repositories/chat_repository.dart';
@@ -18,18 +17,18 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   StreamSubscription? _deleteSubscription;
 
   ChatBloc({required this.repository}) : super(ChatInitial()) {
-    on<ChatStarted>(_onChatStarted);
-    on<ChatStopped>(_onChatStopped);
+    on<ChatSessionStartRequested>(_onChatStarted);
+    on<ChatSessionStopRequested>(_onChatStopped);
     on<ChatMessageReceived>(_onMessageReceived);
     on<ChatMessagesRead>(_onMessagesRead);
     on<ChatMessageSent>(_onMessageSent);
     on<ChatHistoryLoaded>(_onHistoryLoaded);
     on<ChatMessageDeleted>(_onMessageDeleted);
-    on<ChatEntered>(_onChatEntered);
-    on<ChatLeft>(_onChatLeft);
+    on<ChatViewEntered>(_onChatEntered);
+    on<ChatViewLeft>(_onChatLeft);
     on<ChatStudentsRequested>(_onStudentsRequested);
-    on<ChatReconnected>(_onChatReconnected);
-    on<ChatDisconnected>(_onChatDisconnected);
+    on<ChatReconnectionSucceeded>(_onChatReconnected);
+    on<ChatDisconnectionOccurred>(_onChatDisconnected);
     on<ChatMessageRetry>(_onMessageRetry);
     on<ChatMessageAcknowledged>(_onMessageAcknowledged);
   }
@@ -40,7 +39,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     return messages.where((m) => !m.isRead && m.senderType == ChatSenderType.admin).length;
   }
 
-  void _onChatEntered(ChatEntered event, Emitter<ChatState> emit) {
+  void _onChatEntered(ChatViewEntered event, Emitter<ChatState> emit) {
     isUserInChat = true;
     repository.enterChat();
     repository.markAsRead();
@@ -60,12 +59,12 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     }
   }
 
-  void _onChatLeft(ChatLeft event, Emitter<ChatState> emit) {
+  void _onChatLeft(ChatViewLeft event, Emitter<ChatState> emit) {
     isUserInChat = false;
     repository.leaveChat();
   }
 
-  Future<void> _onChatStarted(ChatStarted event, Emitter<ChatState> emit) async {
+  Future<void> _onChatStarted(ChatSessionStartRequested event, Emitter<ChatState> emit) async {
     emit(ChatLoading());
     repository.connect();
 
@@ -81,12 +80,12 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
     _connectSubscription?.cancel();
     _connectSubscription = repository.onConnect.listen((_) {
-      add(ChatReconnected());
+      add(ChatReconnectionSucceeded());
     });
 
     _disconnectSubscription?.cancel();
     _disconnectSubscription = repository.onDisconnect.listen((_) {
-      add(ChatDisconnected());
+      add(ChatDisconnectionOccurred());
     });
 
     _deleteSubscription?.cancel();
@@ -170,13 +169,13 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     }
   }
 
-  void _onChatDisconnected(ChatDisconnected event, Emitter<ChatState> emit) {
+  void _onChatDisconnected(ChatDisconnectionOccurred event, Emitter<ChatState> emit) {
     if (state is ChatLoaded) {
       emit((state as ChatLoaded).copyWith(isSocketConnected: false));
     }
   }
 
-  Future<void> _onChatReconnected(ChatReconnected event, Emitter<ChatState> emit) async {
+  Future<void> _onChatReconnected(ChatReconnectionSucceeded event, Emitter<ChatState> emit) async {
     if (state is! ChatLoaded) return;
 
     // Mark connected immediately so the UI updates before the history fetch.
@@ -283,7 +282,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     final tempId = 'temp-${DateTime.now().millisecondsSinceEpoch}';
 
     final metadata = <String, dynamic>{};
-    if (event.mediaMetadata != null) metadata.addAll(event.mediaMetadata!);
+    if (event.batchId != null) metadata['batchId'] = event.batchId;
     if (event.file != null) metadata['localPath'] = event.file!.path;
 
     if (event.replyTo != null) {
@@ -325,7 +324,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       messageType: event.type.name.toUpperCase(),
       content: event.content,
       localFilePath: (!kIsWeb && event.file != null) ? event.file!.path : null,
-      mediaMetadata: event.mediaMetadata,
+      mediaMetadata: event.batchId != null ? {'batchId': event.batchId} : null,
       replyToId: event.replyTo?.id,
       createdAt: DateTime.now(),
     );
@@ -345,8 +344,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       }
 
       final finalMetadata = <String, dynamic>{'tempId': tempId};
-      if (event.mediaMetadata != null) {
-        finalMetadata.addAll(event.mediaMetadata!);
+      if (event.batchId != null) {
+        finalMetadata['batchId'] = event.batchId;
       }
       if (event.replyTo != null) {
         finalMetadata['replyToId'] = event.replyTo!.id;
@@ -443,7 +442,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     } catch (_) {}
   }
 
-  void _onChatStopped(ChatStopped event, Emitter<ChatState> emit) {
+  void _onChatStopped(ChatSessionStopRequested event, Emitter<ChatState> emit) {
     _messageSubscription?.cancel();
     _readSubscription?.cancel();
     _connectSubscription?.cancel();

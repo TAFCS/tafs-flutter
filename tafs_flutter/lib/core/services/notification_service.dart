@@ -32,10 +32,7 @@ class NotificationService {
 
     await _localNotifications.initialize(
       initSettings,
-      onDidReceiveNotificationResponse: (fln.NotificationResponse details) {
-        // Handle notification tap
-        print('Notification tapped: ${details.payload}');
-      },
+      onDidReceiveNotificationResponse: (fln.NotificationResponse details) {},
     );
 
     // Create Android High Importance Channel
@@ -54,16 +51,8 @@ class NotificationService {
   }
 
   void setupInteractions() {
-    // 1. Foreground message listener
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Foreground message received: ${message.notification?.title}');
-      _showLocalNotification(message);
-    });
-
-    // 2. Background/Killed state interaction
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('Notification opened app: ${message.data}');
-    });
+    FirebaseMessaging.onMessage.listen(_showLocalNotification);
+    FirebaseMessaging.onMessageOpenedApp.listen((_) {});
   }
 
   Future<void> _showLocalNotification(RemoteMessage message) async {

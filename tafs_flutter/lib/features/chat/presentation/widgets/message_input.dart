@@ -8,6 +8,7 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:typed_data';
 import '../../domain/entities/chat_message.dart';
+import '../../domain/entities/chat_student.dart';
 import 'package:tafs_flutter/core/theme/app_theme.dart';
 import 'package:tafs_flutter/core/utils/cdn_utils.dart';
 
@@ -42,7 +43,7 @@ class MentionsController extends TextEditingController {
 class MessageInput extends StatefulWidget {
   final ChatMessage? replyingTo;
   final VoidCallback onCancelReply;
-  final Function(String content, ChatMessageType type, XFile? file, ChatMessage? replyTo, Map<String, dynamic>? metadata) onSend;
+  final Function(String content, ChatMessageType type, XFile? file, ChatMessage? replyTo, String? batchId) onSend;
 
   const MessageInput({
     super.key, 
@@ -52,7 +53,7 @@ class MessageInput extends StatefulWidget {
     this.students = const [],
   });
 
-  final List<Map<String, dynamic>> students;
+  final List<ChatStudent> students;
 
   @override
   State<MessageInput> createState() => _MessageInputState();
@@ -117,12 +118,12 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
     }
   }
 
-  void _insertMention(Map<String, dynamic> student) {
+  void _insertMention(ChatStudent student) {
     final text = _controller.text;
     final lastAtPos = text.lastIndexOf("@");
     final beforeAt = text.substring(0, lastAtPos);
-    final tag = "@[${student['full_name']}](student:${student['cc']}) ";
-    
+    final tag = "@[${student.fullName}](student:${student.cc}) ";
+
     _controller.text = beforeAt + tag;
     _controller.selection = TextSelection.fromPosition(
       TextPosition(offset: _controller.text.length),
@@ -386,12 +387,8 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
 
       for (final file in _selectedFiles) {
         final type = _getFileType(file);
-        final metadata = <String, dynamic>{};
-        if (batchId != null && type == ChatMessageType.image) {
-          metadata['batchId'] = batchId;
-        }
-        
-        widget.onSend('', type, file, widget.replyingTo, metadata);
+        final String? fileBatchId = (batchId != null && type == ChatMessageType.image) ? batchId : null;
+        widget.onSend('', type, file, widget.replyingTo, fileBatchId);
       }
       setState(() {
         _selectedFiles = [];
@@ -400,7 +397,7 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
 
     // Send text if not empty
     if (text.isNotEmpty) {
-      widget.onSend(text, ChatMessageType.text, null, widget.replyingTo, null);
+      widget.onSend(text, ChatMessageType.text, null, widget.replyingTo, null); // batchId not applicable for text
       _controller.clear();
       setState(() {
         _isTextEmpty = true;
@@ -596,9 +593,9 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                   ),
                 if (_showSuggestions && widget.students.isNotEmpty)
                   Builder(builder: (context) {
-                    final filtered = widget.students.where((s) => 
-                      s['full_name'].toString().toLowerCase().contains(_suggestionSearch) || 
-                      s['cc'].toString().contains(_suggestionSearch)
+                    final filtered = widget.students.where((s) =>
+                      s.fullName.toLowerCase().contains(_suggestionSearch) ||
+                      s.cc.toString().contains(_suggestionSearch)
                     ).toList();
 
                     if (filtered.isEmpty) return const SizedBox.shrink();
@@ -627,19 +624,19 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                             return ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: Colors.grey[200],
-                                backgroundImage: student['photograph_url'] != null
-                                  ? NetworkImage(CdnUtils.resolve(student['photograph_url'] as String))
+                                backgroundImage: student.photographUrl != null
+                                  ? NetworkImage(CdnUtils.resolve(student.photographUrl!))
                                   : null,
-                                child: student['photograph_url'] == null
+                                child: student.photographUrl == null
                                   ? const Icon(Icons.person, size: 20)
                                   : null,
                               ),
                               title: Text(
-                                student['full_name'],
+                                student.fullName,
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                               ),
                               subtitle: Text(
-                                'CC: ${student['cc']}',
+                                'CC: ${student.cc}',
                                 style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                               onTap: () => _insertMention(student),

@@ -57,13 +57,8 @@ class FeeLedgerBloc extends Bloc<FeeLedgerEvent, FeeLedgerState> {
     emit(FeeLedgerLoading());
     
     // Fetch ledger and vouchers in parallel for responsiveness
-    final results = await Future.wait([
-      getLedger(event.studentCc),
-      getStudentVouchers(event.studentCc),
-    ]);
-
-    final ledgerResult = results[0] as dynamic;
-    final vouchersResult = results[1] as dynamic;
+    final ledgerResult = await getLedger(event.studentCc);
+    final vouchersResult = await getStudentVouchers(event.studentCc);
 
     ledgerResult.fold(
       (failure) => emit(FeeLedgerError(failure.message)),

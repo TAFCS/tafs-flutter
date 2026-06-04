@@ -9,7 +9,7 @@ abstract class ChatEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class ChatStarted extends ChatEvent {}
+class ChatSessionStartRequested extends ChatEvent {}
 
 class ChatMessageReceived extends ChatEvent {
   final ChatMessage message;
@@ -31,20 +31,20 @@ class ChatMessagesRead extends ChatEvent {
 class ChatMessageSent extends ChatEvent {
   final String content;
   final ChatMessageType type;
-  final XFile? file;  // XFile works on both web (bytes) and native (path)
+  final XFile? file;
   final ChatMessage? replyTo;
-  final Map<String, dynamic>? mediaMetadata;
+  final String? batchId;
 
   const ChatMessageSent({
     required this.content,
     required this.type,
     this.file,
     this.replyTo,
-    this.mediaMetadata,
+    this.batchId,
   });
 
   @override
-  List<Object?> get props => [content, type, file, replyTo, mediaMetadata];
+  List<Object?> get props => [content, type, file, replyTo, batchId];
 }
 
 class ChatHistoryLoaded extends ChatEvent {
@@ -63,17 +63,17 @@ class ChatMessageDeleted extends ChatEvent {
   List<Object?> get props => [messageId];
 }
 
-class ChatEntered extends ChatEvent {}
+class ChatViewEntered extends ChatEvent {}
 
-class ChatLeft extends ChatEvent {}
+class ChatViewLeft extends ChatEvent {}
 
 class ChatStudentsRequested extends ChatEvent {}
 
-class ChatStopped extends ChatEvent {}
+class ChatSessionStopRequested extends ChatEvent {}
 
-class ChatReconnected extends ChatEvent {}
+class ChatReconnectionSucceeded extends ChatEvent {}
 
-class ChatDisconnected extends ChatEvent {}
+class ChatDisconnectionOccurred extends ChatEvent {}
 
 class ChatMessageRetry extends ChatEvent {
   final String clientMessageId;

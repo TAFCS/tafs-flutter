@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:dio/dio.dart';
-import '../../../core/config/app_config.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../auth/domain/entities/parent.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
 import '../../auth/presentation/bloc/auth_state.dart';
+import 'bloc/profile_bloc.dart';
+import 'bloc/profile_event.dart';
+import 'bloc/profile_state.dart';
 
 class EditGuardianPage extends StatefulWidget {
   final FamilyGuardian guardian;
@@ -28,8 +29,6 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
   late TextEditingController _organizationController;
   late TextEditingController _educationController;
   late TextEditingController _addressController;
-
-  bool _isLoading = false;
 
   @override
   void initState() {
@@ -59,66 +58,52 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
     super.dispose();
   }
 
-  Future<void> _submitRequest() async {
+  void _submitRequest() {
     if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
 
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return;
 
-    final String baseUrl = AppConfig.apiBaseUrl;
-    final dio = Dio();
+    final changes = <String, String>{};
 
-    try {
-      final Map<String, dynamic> requestedData = {};
+    void addIfChanged(String key, String? current, String next) {
+      final normalizedCurrent = (current ?? '').trim();
+      final normalizedNext = next.trim();
+      if (normalizedCurrent == normalizedNext) return;
+      if (normalizedCurrent.isEmpty && normalizedNext == '+92') return;
+      if (normalizedCurrent.isEmpty && normalizedNext.isEmpty) return;
+      changes[key] = normalizedNext;
+    }
 
-      void addIfChanged(String key, String? currentValue, String newValue) {
-        final normalizedCurrent = (currentValue ?? '').trim();
-        final normalizedNew = newValue.trim();
-        
-        if (normalizedCurrent == normalizedNew) return;
-        if (normalizedCurrent.isEmpty && normalizedNew == '+92') return;
-        if (normalizedCurrent.isEmpty && normalizedNew.isEmpty) return;
+    addIfChanged('primary_phone', widget.guardian.phone, _phoneController.text);
+    addIfChanged('whatsapp_number', widget.guardian.whatsapp, _whatsappController.text);
+    addIfChanged('email_address', widget.guardian.email, _emailController.text);
+    addIfChanged('cnic', widget.guardian.cnic, _cnicController.text);
+    addIfChanged('occupation', widget.guardian.occupation, _occupationController.text);
+    addIfChanged('job_position', widget.guardian.jobPosition, _jobPositionController.text);
+    addIfChanged('organization', widget.guardian.organization, _organizationController.text);
+    addIfChanged('education_level', widget.guardian.education, _educationController.text);
+    addIfChanged('mailing_address', widget.guardian.address, _addressController.text);
 
-        requestedData[key] = normalizedNew;
-      }
-
-      addIfChanged("primary_phone", widget.guardian.phone, _phoneController.text);
-      addIfChanged("whatsapp_number", widget.guardian.whatsapp, _whatsappController.text);
-      addIfChanged("email_address", widget.guardian.email, _emailController.text);
-      addIfChanged("cnic", widget.guardian.cnic, _cnicController.text);
-      addIfChanged("occupation", widget.guardian.occupation, _occupationController.text);
-      addIfChanged("job_position", widget.guardian.jobPosition, _jobPositionController.text);
-      addIfChanged("organization", widget.guardian.organization, _organizationController.text);
-      addIfChanged("education_level", widget.guardian.education, _educationController.text);
-      addIfChanged("mailing_address", widget.guardian.address, _addressController.text);
-
-      if (requestedData.isEmpty) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No changes detected.')),
-        );
-        return;
-      }
-
-      final response = await dio.post(
-        '$baseUrl/parent-change-requests',
-        data: {
-          "guardian_id": widget.guardian.id,
-          "family_id": authState.parent.id,
-          "requested_data": requestedData,
-        },
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer ${authState.parent.accessToken}',
-            'Content-Type': 'application/json',
-          },
-        ),
+    if (changes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No changes detected.')),
       );
+      return;
+    }
 
-      if (response.statusCode == 201) {
-        if (mounted) {
+    context.read<ProfileBloc>().add(GuardianChangeSubmitted(
+      guardianId: widget.guardian.id,
+      familyId: authState.parent.id,
+      changes: changes,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<ProfileBloc, ProfileState>(
+      listener: (context, state) {
+        if (state is ProfileSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Request submitted! Admin will review it soon.'),
@@ -126,35 +111,28 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
             ),
           );
           Navigator.pop(context);
+        } else if (state is ProfileError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppTheme.danger,
+            ),
+          );
         }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to submit: ${e.toString()}'),
-            backgroundColor: AppTheme.danger,
+      },
+      builder: (context, state) {
+        final isLoading = state is ProfileLoading;
+        return Scaffold(
+          backgroundColor: AppTheme.white,
+          appBar: AppBar(
+            title: const Text('Edit Profile'),
+            backgroundColor: AppTheme.white,
+            foregroundColor: AppTheme.navy,
+            elevation: 0,
           ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.white,
-      appBar: AppBar(
-        title: const Text('Edit Profile'),
-        backgroundColor: AppTheme.white,
-        foregroundColor: AppTheme.navy,
-        elevation: 0,
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.navy))
-          : SingleChildScrollView(
+          body: isLoading
+              ? const Center(child: CircularProgressIndicator(color: AppTheme.navy))
+              : SingleChildScrollView(
               padding: const EdgeInsets.all(AppTheme.space5),
               child: Form(
                 key: _formKey,
@@ -260,6 +238,8 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                 ),
               ),
             ),
+        );
+      },
     );
   }
 

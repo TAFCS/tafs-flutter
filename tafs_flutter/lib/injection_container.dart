@@ -28,6 +28,9 @@ import 'features/chat/presentation/bloc/chat_bloc.dart';
 import 'features/notice_board/data/datasources/notice_board_remote_data_source.dart';
 import 'features/notice_board/data/repositories/notice_board_repository_impl.dart';
 import 'features/notice_board/presentation/bloc/notice_board_bloc.dart';
+import 'features/profile/data/datasources/profile_remote_data_source.dart';
+import 'features/profile/data/repositories/profile_repository_impl.dart';
+import 'features/profile/presentation/bloc/profile_bloc.dart';
 import 'core/config/app_config.dart';
 
 class InjectionContainer {
@@ -37,6 +40,7 @@ class InjectionContainer {
   static late final SelectedStudentCubit selectedStudentCubit;
   static late final ChatBloc chatBloc;
   static late final NoticeBoardBloc noticeBoardBloc;
+  static late final ProfileBloc profileBloc;
 
   static void init() {
     // Core
@@ -110,6 +114,12 @@ class InjectionContainer {
       remoteDataSource: noticeBoardRemoteDataSource,
     );
     noticeBoardBloc = NoticeBoardBloc(repository: noticeBoardRepository);
+
+    final profileRemoteDataSource = ProfileRemoteDataSourceImpl(dio);
+    final profileRepository = ProfileRepositoryImpl(
+      remoteDataSource: profileRemoteDataSource,
+    );
+    profileBloc = ProfileBloc(repository: profileRepository);
 
     // ── Dio interceptors ───────────────────────────────────────────────────
     // Must be registered after authBloc so the TokenInterceptor callback

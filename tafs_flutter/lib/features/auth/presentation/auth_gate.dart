@@ -49,9 +49,9 @@ class _AuthGateState extends State<AuthGate> {
         // so we return to this root widget (which will now render LoginPage).
         if (state is AuthUnauthenticated) {
           Navigator.popUntil(context, (route) => route.isFirst);
-          context.read<ChatBloc>().add(ChatStopped());
+          context.read<ChatBloc>().add(ChatSessionStopRequested());
         } else if (state is AuthAuthenticated) {
-          context.read<ChatBloc>().add(ChatStarted());
+          context.read<ChatBloc>().add(ChatSessionStartRequested());
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(

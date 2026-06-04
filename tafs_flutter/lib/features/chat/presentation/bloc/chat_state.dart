@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/chat_message.dart';
+import '../../domain/entities/chat_student.dart';
 
 abstract class ChatState extends Equatable {
   const ChatState();
@@ -16,7 +17,7 @@ class ChatLoaded extends ChatState {
   final List<ChatMessage> messages;
   final bool hasReachedMax;
   final int unreadCount;
-  final List<Map<String, dynamic>> students;
+  final List<ChatStudent> students;
   /// Count of messages fetched from the server via getChatHistory calls only.
   /// Used as the skip value for the next pagination request, so that optimistic
   /// or socket-pushed messages do not inflate the offset.
@@ -36,7 +37,7 @@ class ChatLoaded extends ChatState {
     List<ChatMessage>? messages,
     bool? hasReachedMax,
     int? unreadCount,
-    List<Map<String, dynamic>>? students,
+    List<ChatStudent>? students,
     int? serverMessageCount,
     bool? isSocketConnected,
   }) {

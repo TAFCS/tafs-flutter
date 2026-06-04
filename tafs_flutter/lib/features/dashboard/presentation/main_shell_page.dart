@@ -78,14 +78,14 @@ class _MainShellPageState extends State<MainShellPage> {
                 message: latest.content,
                 onTap: () {
                   final chatBloc = context.read<ChatBloc>();
-                  chatBloc.add(ChatEntered());
+                  chatBloc.add(ChatViewEntered());
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const ChatPage(isTab: false),
                     ),
                   ).then((_) {
-                    chatBloc.add(ChatLeft());
+                    chatBloc.add(ChatViewLeft());
                   });
                 },
               );
@@ -254,14 +254,14 @@ class _ChatAppBarAction extends StatelessWidget {
                 ),
                 onPressed: () {
                   final chatBloc = context.read<ChatBloc>();
-                  chatBloc.add(ChatEntered());
+                  chatBloc.add(ChatViewEntered());
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const ChatPage(isTab: false),
                     ),
                   ).then((_) {
-                    chatBloc.add(ChatLeft());
+                    chatBloc.add(ChatViewLeft());
                   });
                 },
               ),

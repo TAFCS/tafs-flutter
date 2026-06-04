@@ -145,14 +145,14 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     final result = await repository.verifyCnic(event.cnic);
     result.fold(
       (failure) => emit(SignupCnicInvalid(failure.message)),
-      (response) {
-        if (response['exists'] == true) {
+      (result) {
+        if (result.exists) {
           emit(SignupCnicValid(
             cnic: event.cnic,
-            guardianName: response['guardianName'] ?? 'Guardian',
+            guardianName: result.guardianName ?? 'Guardian',
           ));
         } else {
-          emit(SignupCnicInvalid(response['message'] ?? 'CNIC not found'));
+          emit(SignupCnicInvalid(result.message ?? 'CNIC not found'));
         }
       },
     );

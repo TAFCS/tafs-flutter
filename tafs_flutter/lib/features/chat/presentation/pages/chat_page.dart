@@ -57,14 +57,10 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  void _scrollToMessage(List<dynamic> clusters, String messageId) {
+  void _scrollToMessage(List<List<ChatMessage>> clusters, String messageId) {
     int index = -1;
     for (int i = 0; i < clusters.length; i++) {
-      final item = clusters[i];
-      if (item is ChatMessage && item.id == messageId) {
-        index = i;
-        break;
-      } else if (item is List<ChatMessage> && item.any((m) => m.id == messageId)) {
+      if (clusters[i].any((m) => m.id == messageId)) {
         index = i;
         break;
       }
@@ -315,14 +311,14 @@ class _ChatPageState extends State<ChatPage> {
                   return MessageInput(
                     replyingTo: _replyingTo,
                     onCancelReply: () => setState(() => _replyingTo = null),
-                    students: state is ChatLoaded ? (state as ChatLoaded).students : [],
-                    onSend: (content, type, file, replyTo, metadata) {
+                    students: state is ChatLoaded ? state.students : [],
+                    onSend: (content, type, file, replyTo, batchId) {
                       context.read<ChatBloc>().add(ChatMessageSent(
                         content: content,
                         type: type,
                         file: file,
                         replyTo: replyTo,
-                        mediaMetadata: metadata,
+                        batchId: batchId,
                       ));
                       // Clear reply after sending
                       if (_replyingTo != null) {

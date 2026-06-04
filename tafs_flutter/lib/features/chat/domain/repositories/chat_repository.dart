@@ -1,5 +1,6 @@
 import '../entities/chat_message.dart';
 import '../entities/chat_outbox_entry.dart';
+import '../entities/chat_student.dart';
 import 'package:image_picker/image_picker.dart';
 
 abstract class ChatRepository {
@@ -18,7 +19,7 @@ abstract class ChatRepository {
   Future<List<ChatOutboxEntry>> getPendingOutbox();
   Future<void> drainOutbox();
   Future<ChatMessage?> retryOutboxMessage(String clientMessageId);
-  Future<List<Map<String, dynamic>>> getStudents();
+  Future<List<ChatStudent>> getStudents();
   void markAsRead();
   void enterChat();
   void leaveChat();
