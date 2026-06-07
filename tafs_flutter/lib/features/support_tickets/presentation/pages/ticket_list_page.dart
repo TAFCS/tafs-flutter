@@ -342,6 +342,36 @@ class _TicketOriginationPageState extends State<TicketOriginationPage> {
     return _options!.topicsGeneralWithChild;
   }
 
+  bool get _skippedChildStep => _students.length <= 1;
+
+  void _goBack() {
+    if (_step <= 0) {
+      Navigator.pop(context);
+      return;
+    }
+    setState(() {
+      if (_step == 3) {
+        _step = 2;
+      } else if (_step == 2) {
+        _step = _skippedChildStep ? 0 : 1;
+      } else if (_step == 1) {
+        _step = 0;
+      }
+    });
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      title: const Text('Raise a query'),
+      backgroundColor: AppTheme.white,
+      foregroundColor: AppTheme.navy,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: _goBack,
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     if (_category == null || _subtopic == null || _descriptionController.text.length < 20) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -378,47 +408,46 @@ class _TicketOriginationPageState extends State<TicketOriginationPage> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Raise a query'),
-          backgroundColor: AppTheme.white,
-          foregroundColor: AppTheme.navy,
+      return PopScope(
+        canPop: true,
+        child: Scaffold(
+          appBar: _buildAppBar(),
+          body: const Center(child: CircularProgressIndicator(color: AppTheme.navy)),
         ),
-        body: const Center(child: CircularProgressIndicator(color: AppTheme.navy)),
       );
     }
 
     if (_loadError != null || _options == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Raise a query'),
-          backgroundColor: AppTheme.white,
-          foregroundColor: AppTheme.navy,
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(_loadError ?? 'Something went wrong', textAlign: TextAlign.center),
-                const SizedBox(height: 16),
-                ElevatedButton(onPressed: _load, child: const Text('Retry')),
-              ],
+      return PopScope(
+        canPop: true,
+        child: Scaffold(
+          appBar: _buildAppBar(),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_loadError ?? 'Something went wrong', textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  ElevatedButton(onPressed: _load, child: const Text('Retry')),
+                ],
+              ),
             ),
           ),
         ),
       );
     }
 
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: const Text('Raise a query'),
-        backgroundColor: AppTheme.white,
-        foregroundColor: AppTheme.navy,
-      ),
-      body: ListView(
+    return PopScope(
+      canPop: _step == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goBack();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey[100],
+        appBar: _buildAppBar(),
+        body: ListView(
         children: [
           if (_step == 0)
             McqQuestionCard(
@@ -498,6 +527,7 @@ class _TicketOriginationPageState extends State<TicketOriginationPage> {
               ),
             ),
         ],
+      ),
       ),
     );
   }
