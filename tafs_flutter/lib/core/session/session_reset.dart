@@ -5,6 +5,8 @@ import '../../features/auth/domain/entities/student.dart';
 import '../../features/auth/presentation/bloc/selected_student_cubit.dart';
 import '../../features/chat/presentation/bloc/chat_bloc.dart';
 import '../../features/chat/presentation/bloc/chat_event.dart';
+import '../../features/support_tickets/presentation/bloc/support_ticket_list_bloc.dart';
+import '../../features/support_tickets/presentation/bloc/support_ticket_list_event.dart';
 import '../../features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import '../../features/fee_ledger/presentation/bloc/fee_ledger_event.dart';
 import '../../features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
@@ -25,6 +27,7 @@ void resetSessionState(BuildContext context) {
   context.read<NoticeBoardBloc>().add(const NoticeBoardResetRequested());
   context.read<ProfileBloc>().add(const ProfileResetRequested());
   context.read<ChatBloc>().add(ChatSessionStopRequested());
+  context.read<SupportTicketListBloc>().add(const SupportTicketListResetRequested());
 }
 
 /// Keeps [SelectedStudentCubit] aligned with the authenticated student list.

@@ -26,6 +26,9 @@ import 'features/chat/data/datasources/chat_outbox_local_data_source.dart';
 import 'features/chat/data/repositories/chat_repository_impl.dart';
 import 'features/chat/domain/repositories/chat_repository.dart';
 import 'features/chat/presentation/bloc/chat_bloc.dart';
+import 'features/support_tickets/data/repositories/support_ticket_repository_impl.dart';
+import 'features/support_tickets/domain/repositories/support_ticket_repository.dart';
+import 'features/support_tickets/presentation/bloc/support_ticket_list_bloc.dart';
 import 'features/notice_board/data/datasources/notice_board_remote_data_source.dart';
 import 'features/notice_board/data/repositories/notice_board_repository_impl.dart';
 import 'features/notice_board/presentation/bloc/notice_board_bloc.dart';
@@ -41,12 +44,15 @@ class InjectionContainer {
   static late final FeeSummaryBloc feeSummaryBloc;
   static late final SelectedStudentCubit selectedStudentCubit;
   static late final ChatBloc chatBloc;
+  static late final SupportTicketListBloc supportTicketListBloc;
+  static late final SupportTicketRepository supportTicketRepository;
+  static late final Dio dio;
   static late final NoticeBoardBloc noticeBoardBloc;
   static late final ProfileBloc profileBloc;
 
   static void init() {
     // Core
-    final dio = Dio(BaseOptions(
+    dio = Dio(BaseOptions(
       baseUrl: AppConfig.apiBaseUrl,
     ));
     const secureStorage = FlutterSecureStorage();
@@ -114,6 +120,14 @@ class InjectionContainer {
     selectedStudentCubit = SelectedStudentCubit();
 
     chatBloc = ChatBloc(repository: chatRepository);
+
+    supportTicketRepository = SupportTicketRepositoryImpl(
+      dio: dio,
+      chatRepository: chatRepository,
+    );
+    supportTicketListBloc = SupportTicketListBloc(
+      repository: supportTicketRepository,
+    );
 
     final noticeBoardRemoteDataSource = NoticeBoardRemoteDataSource(dio);
     final noticeBoardRepository = NoticeBoardRepositoryImpl(

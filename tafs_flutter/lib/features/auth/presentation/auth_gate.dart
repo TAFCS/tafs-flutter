@@ -12,6 +12,8 @@ import '../../auth/presentation/bloc/selected_student_cubit.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../chat/presentation/bloc/chat_bloc.dart';
 import '../../chat/presentation/bloc/chat_event.dart';
+import '../../support_tickets/presentation/bloc/support_ticket_list_bloc.dart';
+import '../../support_tickets/presentation/bloc/support_ticket_list_event.dart';
 import '../../dashboard/presentation/main_shell_page.dart';
 import '../../profile/presentation/student_selection_page.dart';
 
@@ -56,6 +58,9 @@ class _AuthGateState extends State<AuthGate> {
               syncSelectedStudent(context, state.parent.students);
             }
             context.read<ChatBloc>().add(ChatSessionStartRequested());
+            context.read<SupportTicketListBloc>().add(
+                  const SupportTicketListLoadRequested(),
+                );
           },
         ),
         BlocListener<AuthBloc, AuthState>(

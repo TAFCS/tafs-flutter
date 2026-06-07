@@ -29,4 +29,7 @@ abstract class ChatRepository {
   Stream<String> get onMessageDeleted;
   Stream<void> get onConnect;
   Stream<void> get onDisconnect;
+  Stream<Map<String, dynamic>> get onTicketMessagePayload;
+  void enterTicket(String ticketId);
+  void leaveTicket(String ticketId);
 }

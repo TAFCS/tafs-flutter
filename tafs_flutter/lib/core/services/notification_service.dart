@@ -1,30 +1,31 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart' as fln;
+import 'dart:convert';
 import 'dart:io';
+
+import '../navigation/app_navigator.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  /// Must match a file in android/app/src/main/res/drawable/ (not mipmap).
   static const String _androidNotificationIcon = 'ic_notification';
 
-  final fln.FlutterLocalNotificationsPlugin _localNotifications = fln.FlutterLocalNotificationsPlugin();
+  final fln.FlutterLocalNotificationsPlugin _localNotifications =
+      fln.FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
-    // 1. Android Settings — drawable resource name only (no @drawable/ prefix).
     const fln.AndroidInitializationSettings androidSettings =
         fln.AndroidInitializationSettings(_androidNotificationIcon);
 
-    // 2. iOS Settings
-    const fln.DarwinInitializationSettings iosSettings = fln.DarwinInitializationSettings(
+    const fln.DarwinInitializationSettings iosSettings =
+        fln.DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
     );
 
-    // 3. Initialization
     const fln.InitializationSettings initSettings = fln.InitializationSettings(
       android: androidSettings,
       iOS: iosSettings,
@@ -32,10 +33,9 @@ class NotificationService {
 
     await _localNotifications.initialize(
       initSettings,
-      onDidReceiveNotificationResponse: (fln.NotificationResponse details) {},
+      onDidReceiveNotificationResponse: _onLocalNotificationTap,
     );
 
-    // Create Android High Importance Channel
     if (Platform.isAndroid) {
       const fln.AndroidNotificationChannel channel = fln.AndroidNotificationChannel(
         'high_importance_channel',
@@ -45,14 +45,37 @@ class NotificationService {
       );
 
       await _localNotifications
-          .resolvePlatformSpecificImplementation<fln.AndroidFlutterLocalNotificationsPlugin>()
+          .resolvePlatformSpecificImplementation<
+              fln.AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(channel);
     }
   }
 
   void setupInteractions() {
     FirebaseMessaging.onMessage.listen(_showLocalNotification);
-    FirebaseMessaging.onMessageOpenedApp.listen((_) {});
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleRemoteMessage);
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) _handleRemoteMessage(message);
+    });
+  }
+
+  void _onLocalNotificationTap(fln.NotificationResponse details) {
+    if (details.payload == null || details.payload!.isEmpty) return;
+    try {
+      final data = jsonDecode(details.payload!) as Map<String, dynamic>;
+      _openSupportTicketFromData(data);
+    } catch (_) {}
+  }
+
+  void _handleRemoteMessage(RemoteMessage message) {
+    _openSupportTicketFromData(message.data);
+  }
+
+  void _openSupportTicketFromData(Map<String, dynamic> data) {
+    if (data['type'] != 'SUPPORT_TICKET_MESSAGE') return;
+    final ticketId = data['ticketId'] as String?;
+    if (ticketId == null || ticketId.isEmpty) return;
+    navigateToSupportTicketThread(ticketId);
   }
 
   Future<void> _showLocalNotification(RemoteMessage message) async {
@@ -79,7 +102,7 @@ class NotificationService {
             presentSound: true,
           ),
         ),
-        payload: message.data.toString(),
+        payload: jsonEncode(message.data),
       );
     }
   }

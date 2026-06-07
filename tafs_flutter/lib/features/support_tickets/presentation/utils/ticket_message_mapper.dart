@@ -1,0 +1,35 @@
+import '../../../chat/domain/entities/chat_message.dart';
+import '../../domain/entities/ticket_message.dart';
+
+ChatMessage ticketMessageToChatMessage(TicketMessage message) {
+  ChatMessageType type;
+  switch (message.messageType) {
+    case TicketMessageType.image:
+      type = ChatMessageType.image;
+      break;
+    case TicketMessageType.voice:
+      type = ChatMessageType.voice;
+      break;
+    case TicketMessageType.document:
+      type = ChatMessageType.document;
+      break;
+    default:
+      type = ChatMessageType.text;
+  }
+
+  return ChatMessage(
+    id: message.id,
+    conversationId: message.ticketId,
+    senderType: message.senderType == TicketMessageSenderType.guardian
+        ? ChatSenderType.guardian
+        : ChatSenderType.admin,
+    senderName: message.senderName ??
+        (message.senderType == TicketMessageSenderType.guardian ? 'You' : 'School'),
+    messageType: type,
+    content: message.content,
+    mediaMetadata: message.mediaMetadata,
+    isRead: true,
+    createdAt: message.createdAt,
+    status: MessageStatus.sent,
+  );
+}

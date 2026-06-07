@@ -8,7 +8,11 @@ import '../../chat/domain/entities/chat_message.dart';
 import '../../chat/presentation/bloc/chat_bloc.dart';
 import '../../chat/presentation/bloc/chat_state.dart';
 import '../../chat/presentation/bloc/chat_event.dart';
+import '../../support_tickets/presentation/bloc/support_ticket_list_bloc.dart';
+import '../../support_tickets/presentation/bloc/support_ticket_list_event.dart';
+import '../../support_tickets/presentation/bloc/support_ticket_list_state.dart';
 import '../../chat/presentation/pages/chat_page.dart';
+import '../../support_tickets/presentation/pages/ticket_list_page.dart';
 import '../../notice_board/presentation/bloc/notice_board_bloc.dart';
 import '../../notice_board/presentation/bloc/notice_board_event.dart';
 import '../../notice_board/presentation/bloc/notice_board_state.dart';
@@ -252,9 +256,11 @@ class _ChatAppBarAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ChatBloc, ChatState>(
-      builder: (context, chatState) {
-        final unreadCount = chatState is ChatLoaded ? chatState.unreadCount : 0;
+    return BlocBuilder<SupportTicketListBloc, SupportTicketListState>(
+      builder: (context, ticketState) {
+        final unreadCount = ticketState is SupportTicketListLoaded
+            ? ticketState.unreadTotal
+            : 0;
         return Padding(
           padding: const EdgeInsets.only(right: 8.0),
           child: Stack(
@@ -263,21 +269,20 @@ class _ChatAppBarAction extends StatelessWidget {
             children: [
               IconButton(
                 icon: const Icon(
-                  Icons.chat_bubble_outline_rounded,
+                  Icons.support_agent_outlined,
                   color: AppTheme.navy,
                   size: 24,
                 ),
                 onPressed: () {
-                  final chatBloc = context.read<ChatBloc>();
-                  chatBloc.add(ChatViewEntered());
+                  context.read<SupportTicketListBloc>().add(
+                        const SupportTicketListLoadRequested(),
+                      );
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const ChatPage(isTab: false),
+                      builder: (context) => const TicketListPage(),
                     ),
-                  ).then((_) {
-                    chatBloc.add(ChatViewLeft());
-                  });
+                  );
                 },
               ),
               if (unreadCount > 0)

@@ -29,6 +29,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   final _connectController = StreamController<void>.broadcast();
   final _disconnectController = StreamController<void>.broadcast();
   final _sessionExpiredController = StreamController<void>.broadcast();
+  final _ticketMessageController = StreamController<Map<String, dynamic>>.broadcast();
   bool _isRefreshingToken = false;
   bool _isDrainingOutbox = false;
 
@@ -44,6 +45,20 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
   @override
   bool get isConnected => _socket != null && _socket!.connected;
+
+  @override
+  Stream<Map<String, dynamic>> get onTicketMessagePayload =>
+      _ticketMessageController.stream;
+
+  @override
+  void enterTicket(String ticketId) {
+    _socket?.emit('enterTicket', {'ticketId': ticketId});
+  }
+
+  @override
+  void leaveTicket(String ticketId) {
+    _socket?.emit('leaveTicket', {'ticketId': ticketId});
+  }
 
   @override
   Future<List<ChatMessage>> getChatHistory({int take = 50, int skip = 0}) async {
@@ -270,6 +285,16 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
     _socket!.on('messageDeleted', (data) {
       final messageId = data['messageId'] as String;
       _deleteController.add(messageId);
+    });
+
+    _socket!.on('ticketMessageReceived', (data) {
+      try {
+        if (data is Map) {
+          _ticketMessageController.add(Map<String, dynamic>.from(data));
+        }
+      } catch (e) {
+        print('Error parsing ticketMessageReceived: $e');
+      }
     });
 
     _socket!.onDisconnect((reason) {

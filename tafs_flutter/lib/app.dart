@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'core/navigation/app_navigator.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/auth_gate.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/selected_student_cubit.dart';
 import 'features/chat/presentation/bloc/chat_bloc.dart';
+import 'features/support_tickets/presentation/bloc/support_ticket_list_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/student_ledger_bloc.dart';
@@ -35,6 +37,9 @@ class MyApp extends StatelessWidget {
         BlocProvider<SelectedStudentCubit>(
           create: (_) => InjectionContainer.selectedStudentCubit,
         ),
+        BlocProvider<SupportTicketListBloc>(
+          create: (_) => InjectionContainer.supportTicketListBloc,
+        ),
         BlocProvider<ChatBloc>(
           create: (_) => InjectionContainer.chatBloc,
         ),
@@ -46,6 +51,7 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
+        navigatorKey: appNavigatorKey,
         title: 'TAFS Parent Portal',
         theme: AppTheme.lightTheme,
         home: const AuthGate(),
