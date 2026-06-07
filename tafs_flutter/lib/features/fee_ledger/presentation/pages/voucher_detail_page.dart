@@ -69,7 +69,7 @@ class VoucherDetailPage extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: AppTheme.space3),
-            _FeeBreakdown(heads: voucher.heads),
+            _FeeBreakdown(voucher: voucher),
             const SizedBox(height: AppTheme.space6),
             if (voucher.bankInfo != null) ...[
               Text(
@@ -267,12 +267,16 @@ class _SummaryRow extends StatelessWidget {
 }
 
 class _FeeBreakdown extends StatelessWidget {
-  final List<VoucherHead> heads;
-  const _FeeBreakdown({required this.heads});
+  final Voucher voucher;
+  const _FeeBreakdown({required this.voucher});
 
   @override
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0', 'en_US');
+    final heads = voucher.heads;
+    final activeSurcharges = voucher.activeArrearSurcharges;
+    final itemCount = heads.length + (activeSurcharges.isNotEmpty ? 1 : 0);
+
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.white,
@@ -282,10 +286,69 @@ class _FeeBreakdown extends StatelessWidget {
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: heads.length,
+        itemCount: itemCount,
         separatorBuilder: (_, __) =>
             const Divider(height: 1, color: AppTheme.blue100),
         itemBuilder: (ctx, i) {
+          if (i == heads.length) {
+            final totalAmount = activeSurcharges.fold<double>(
+              0,
+              (s, a) => s + a.amount,
+            );
+            final totalDeposited = activeSurcharges.fold<double>(
+              0,
+              (s, a) => s + a.amountPaid,
+            );
+            final totalBalance = activeSurcharges.fold<double>(
+              0,
+              (s, a) => s + a.balance,
+            );
+
+            return Padding(
+              padding: const EdgeInsets.all(AppTheme.space4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Previous Months' Late Payment Surcharge",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: AppTheme.navy,
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.space4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _BreakdownStat(
+                          label: 'Net Amount',
+                          value: 'Rs. ${fmt.format(totalAmount)}',
+                        ),
+                      ),
+                      Expanded(
+                        child: _BreakdownStat(
+                          label: 'Deposited',
+                          value: 'Rs. ${fmt.format(totalDeposited)}',
+                          valueColor: AppTheme.success,
+                        ),
+                      ),
+                      Expanded(
+                        child: _BreakdownStat(
+                          label: 'Balance',
+                          value: 'Rs. ${fmt.format(totalBalance)}',
+                          valueColor: totalBalance > 0
+                              ? AppTheme.danger
+                              : AppTheme.success,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }
+
           final head = heads[i];
           return Padding(
             padding: const EdgeInsets.all(AppTheme.space4),

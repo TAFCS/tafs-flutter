@@ -242,15 +242,9 @@ class FeeLedgerRemoteDataSourceImpl implements FeeLedgerRemoteDataSource {
           () => _MonthAccumulator(academicYear: year, targetMonth: month),
         );
 
-        final net = voucher.heads.fold<double>(0, (s, h) => s + h.netAmount);
-        final paid = voucher.heads.fold<double>(
-          0,
-          (s, h) => s + h.amountDeposited,
-        );
-        final outstanding = voucher.heads.fold<double>(
-          0,
-          (s, h) => s + h.balance,
-        );
+        final net = voucher.totalPayableBeforeDue;
+        final paid = voucher.totalPaid;
+        final outstanding = voucher.totalBalance;
 
         acc.totalAmount += net;
         acc.totalPaid += paid;

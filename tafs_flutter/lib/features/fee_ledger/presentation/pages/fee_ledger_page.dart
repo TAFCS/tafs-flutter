@@ -98,12 +98,6 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
             final totalOutstanding = unpaidVouchers.fold<double>(
               0, (s, v) => s + v.totalBalance,
             );
-            final totalPaid = vouchers.fold<double>(
-              0, (s, v) => s + v.totalPaid,
-            );
-            final totalCharged = vouchers
-                .where((v) => v.status != 'VOID')
-                .fold<double>(0, (s, v) => s + v.totalPayableBeforeDue);
             
             final runningOutstanding = totalOutstanding;
 
@@ -115,8 +109,6 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
                     child: StudentProfileCard(),
                   ),
                 _SummaryStrip(
-                  totalCharged: totalCharged,
-                  totalPaid: totalPaid,
                   totalOutstanding: totalOutstanding,
                   runningOutstanding: runningOutstanding,
                   monthsCount: months.length,
@@ -181,15 +173,11 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
 }
 
 class _SummaryStrip extends StatelessWidget {
-  final double totalCharged;
-  final double totalPaid;
   final double totalOutstanding;
   final double runningOutstanding;
   final int monthsCount;
 
   const _SummaryStrip({
-    required this.totalCharged,
-    required this.totalPaid,
     required this.totalOutstanding,
     required this.runningOutstanding,
     required this.monthsCount,
@@ -230,74 +218,13 @@ class _SummaryStrip extends StatelessWidget {
                   color: AppTheme.white.withValues(alpha: 0.8),
                 ),
           ),
-          const SizedBox(height: AppTheme.space5),
-          Row(
-            children: [
-              _StatPill(label: 'Charged', value: fmt.format(totalCharged)),
-              const SizedBox(width: AppTheme.space2),
-              _StatPill(
-                label: 'Paid',
-                value: fmt.format(totalPaid),
-                isSuccess: true,
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 }
 
-class _StatPill extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool isSuccess;
 
-  const _StatPill({
-    required this.label,
-    required this.value,
-    this.isSuccess = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space3, vertical: AppTheme.space1),
-      decoration: BoxDecoration(
-        color: isSuccess
-            ? AppTheme.success.withValues(alpha: 0.2)
-            : AppTheme.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-        border: Border.all(
-          color: isSuccess 
-              ? AppTheme.success.withValues(alpha: 0.3) 
-              : AppTheme.white.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '$label: ',
-            style: TextStyle(
-              color: isSuccess ? AppTheme.white : AppTheme.white.withValues(alpha: 0.7),
-              fontSize: 11,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-          Text(
-            'Rs. $value',
-            style: const TextStyle(
-              color: AppTheme.white,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _MonthCard extends StatelessWidget {
   final FeeMonthStatus month;
@@ -573,8 +500,8 @@ class _FeeMonthDetailPage extends StatelessWidget {
                 ),
                 child: ElevatedButton.icon(
                   onPressed: () => _resolveAndOpen(context),
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
-                  label: const Text('DOWNLOAD CHALLAN'),
+                  icon: const Icon(Icons.visibility_outlined),
+                  label: const Text('VIEW CHALLAN'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
@@ -972,8 +899,8 @@ class _ActiveVoucherCard extends StatelessWidget {
                   ),
                 );
               },
-              icon: const Icon(Icons.picture_as_pdf_rounded),
-              label: const Text('DOWNLOAD CHALLAN'),
+              icon: const Icon(Icons.visibility_rounded),
+              label: const Text('VIEW CHALLAN'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.navy,
                 foregroundColor: AppTheme.white,

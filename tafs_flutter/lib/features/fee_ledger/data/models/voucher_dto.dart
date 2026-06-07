@@ -43,6 +43,28 @@ class VoucherHeadDto extends VoucherHead {
   }
 }
 
+class VoucherArrearSurchargeDto extends VoucherArrearSurcharge {
+  const VoucherArrearSurchargeDto({
+    required super.id,
+    required super.arrearMonth,
+    required super.arrearYear,
+    required super.amount,
+    required super.amountPaid,
+    super.waived,
+  });
+
+  factory VoucherArrearSurchargeDto.fromJson(Map<String, dynamic> json) {
+    return VoucherArrearSurchargeDto(
+      id: (json['id'] as int?) ?? 0,
+      arrearMonth: (json['arrear_month'] as int?) ?? 0,
+      arrearYear: json['arrear_year'] as String? ?? '',
+      amount: _toDouble(json['amount']),
+      amountPaid: _toDouble(json['amount_paid']),
+      waived: json['waived'] as bool? ?? false,
+    );
+  }
+}
+
 class BankInfoDto extends BankInfo {
   const BankInfoDto({
     required super.bankName,
@@ -78,15 +100,29 @@ class VoucherDto extends Voucher {
     super.month,
     required super.lateFeeCharge,
     required super.heads,
+    super.arrearSurcharges,
     super.bankInfo,
     super.campusName,
     super.className,
+    super.serverTotalBalance,
+    super.surchargeBalance,
+    super.headBalance,
+    super.serverTotalDeposited,
   });
 
   factory VoucherDto.fromJson(Map<String, dynamic> json) {
     final heads = (json['voucher_heads'] as List<dynamic>? ?? [])
         .map((h) => VoucherHeadDto.fromJson(h as Map<String, dynamic>))
         .toList();
+
+    final arrearSurcharges =
+        (json['voucher_arrear_surcharges'] as List<dynamic>? ?? [])
+            .map(
+              (s) => VoucherArrearSurchargeDto.fromJson(
+                s as Map<String, dynamic>,
+              ),
+            )
+            .toList();
 
     final bank = json['bank_accounts'] != null
         ? BankInfoDto.fromJson(json['bank_accounts'] as Map<String, dynamic>)
@@ -112,12 +148,17 @@ class VoucherDto extends Voucher {
       month: json['month'] as int?,
       lateFeeCharge: json['late_fee_charge'] as bool? ?? false,
       heads: heads,
+      arrearSurcharges: arrearSurcharges,
       bankInfo: bank,
       campusName:
           (json['campuses'] as Map<String, dynamic>?)?['campus_name']
               as String?,
       className:
           (json['classes'] as Map<String, dynamic>?)?['description'] as String?,
+      serverTotalBalance: _toOptionalDouble(json['total_balance']),
+      surchargeBalance: _toOptionalDouble(json['surcharge_balance']),
+      headBalance: _toOptionalDouble(json['head_balance']),
+      serverTotalDeposited: _toOptionalDouble(json['total_deposited']),
     );
   }
 }
@@ -126,4 +167,10 @@ double _toDouble(dynamic value) {
   if (value == null) return 0.0;
   if (value is num) return value.toDouble();
   return double.tryParse(value.toString()) ?? 0.0;
+}
+
+double? _toOptionalDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString());
 }

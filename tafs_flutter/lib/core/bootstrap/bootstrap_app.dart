@@ -7,34 +7,57 @@ import '../../injection_container.dart';
 import '../../app.dart';
 import '../theme/app_theme.dart';
 import 'app_bootstrap.dart';
+import '../app_status/app_status_screens.dart';
+import '../app_status/app_status_service.dart';
 
 /// Shows UI immediately, then completes env/storage/DI without blocking the native splash.
 class BootstrapApp extends StatefulWidget {
-  const BootstrapApp({super.key});
+  /// Optional override for tests.
+  final AppStatusService? appStatusService;
+
+  const BootstrapApp({super.key, this.appStatusService});
 
   @override
   State<BootstrapApp> createState() => _BootstrapAppState();
 }
 
-class _BootstrapAppState extends State<BootstrapApp> {
+class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver {
   _BootstrapPhase _phase = _BootstrapPhase.loading;
   String? _errorMessage;
+  String _storeUrl = '';
+  String _maintenanceMessage = '';
+  bool _recheckInProgress = false;
+  bool _firebaseScheduled = false;
+
+  late final AppStatusService _appStatusService;
 
   @override
   void initState() {
     super.initState();
+    _appStatusService = widget.appStatusService ?? AppStatusService();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(_run());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _phase == _BootstrapPhase.ready &&
+        !_recheckInProgress) {
+      unawaited(_recheckRemoteStatus(showLoading: false));
+    }
   }
 
   Future<void> _run() async {
     try {
       await AppBootstrap.prepareCore();
-      InjectionContainer.init();
-      if (!mounted) return;
-      setState(() => _phase = _BootstrapPhase.ready);
-
-      // After first frame: Firebase/push (must not block initial paint).
-      unawaited(AppBootstrap.initFirebaseAndNotifications());
+      await _recheckRemoteStatus(showLoading: true);
     } catch (e, st) {
       debugPrint('Bootstrap failed: $e\n$st');
       if (!mounted) return;
@@ -48,12 +71,68 @@ class _BootstrapAppState extends State<BootstrapApp> {
     }
   }
 
-  void _retry() {
-    setState(() {
-      _phase = _BootstrapPhase.loading;
-      _errorMessage = null;
-    });
-    unawaited(_run());
+  Future<void> _recheckRemoteStatus({required bool showLoading}) async {
+    if (_recheckInProgress) return;
+    _recheckInProgress = true;
+
+    if (showLoading && mounted) {
+      setState(() {
+        _phase = _BootstrapPhase.loading;
+        _errorMessage = null;
+      });
+    }
+
+    try {
+      final status = await _appStatusService.checkStatus();
+      if (!mounted) return;
+
+      if (status.maintenanceMode) {
+        setState(() {
+          _phase = _BootstrapPhase.maintenance;
+          _maintenanceMessage = status.maintenanceMessage;
+        });
+        return;
+      }
+
+      if (status.forceUpdate) {
+        setState(() {
+          _phase = _BootstrapPhase.forceUpdate;
+          _storeUrl = status.storeUrl;
+        });
+        return;
+      }
+
+      if (!InjectionContainer.isInitialized) {
+        InjectionContainer.init();
+      }
+
+      if (!mounted) return;
+      setState(() => _phase = _BootstrapPhase.ready);
+
+      if (!_firebaseScheduled) {
+        _firebaseScheduled = true;
+        unawaited(AppBootstrap.initFirebaseAndNotifications());
+      }
+    } catch (e, st) {
+      debugPrint('Remote status recheck failed: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        _phase = _BootstrapPhase.error;
+        _errorMessage = ApiErrorMapper.fromObject(
+          e,
+          fallback: 'Unable to start the app. Please try again.',
+        );
+      });
+    } finally {
+      _recheckInProgress = false;
+    }
+  }
+
+  Future<void> _retry() {
+    if (_phase == _BootstrapPhase.error) {
+      return _run();
+    }
+    return _recheckRemoteStatus(showLoading: true);
   }
 
   @override
@@ -61,6 +140,24 @@ class _BootstrapAppState extends State<BootstrapApp> {
     switch (_phase) {
       case _BootstrapPhase.ready:
         return const MyApp();
+      case _BootstrapPhase.maintenance:
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          home: MaintenanceScreen(
+            onRetry: _retry,
+            message: _maintenanceMessage,
+          ),
+        );
+      case _BootstrapPhase.forceUpdate:
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          home: ForceUpdateScreen(
+            storeUrl: _storeUrl,
+            onRetry: _retry,
+          ),
+        );
       case _BootstrapPhase.loading:
         return MaterialApp(
           debugShowCheckedModeBanner: false,
@@ -108,7 +205,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
                     ),
                     const SizedBox(height: 24),
                     FilledButton(
-                      onPressed: _retry,
+                      onPressed: () => unawaited(_retry()),
                       child: const Text('Try again'),
                     ),
                   ],
@@ -121,4 +218,4 @@ class _BootstrapAppState extends State<BootstrapApp> {
   }
 }
 
-enum _BootstrapPhase { loading, ready, error }
+enum _BootstrapPhase { loading, ready, error, maintenance, forceUpdate }

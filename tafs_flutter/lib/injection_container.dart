@@ -50,7 +50,13 @@ class InjectionContainer {
   static late final NoticeBoardBloc noticeBoardBloc;
   static late final ProfileBloc profileBloc;
 
+  static bool _initialized = false;
+
+  static bool get isInitialized => _initialized;
+
   static void init() {
+    if (_initialized) return;
+    _initialized = true;
     // Core
     dio = Dio(BaseOptions(
       baseUrl: AppConfig.apiBaseUrl,
