@@ -5,10 +5,10 @@ import '../../../../injection_container.dart';
 import '../../domain/entities/origination_options.dart';
 import '../bloc/support_ticket_list_bloc.dart';
 import '../bloc/support_ticket_list_event.dart';
-import '../bloc/ticket_thread_cubit.dart';
-import '../widgets/mcq_question_card.dart';
-import 'ticket_thread_page.dart';
 import '../bloc/support_ticket_list_state.dart';
+import '../widgets/mcq_question_card.dart';
+import '../widgets/ticket_status_badge.dart';
+import 'ticket_thread_page.dart';
 
 class TicketListPage extends StatefulWidget {
   const TicketListPage({super.key});
@@ -26,15 +26,25 @@ class _TicketListPageState extends State<TicketListPage> {
     context.read<SupportTicketListBloc>().add(const SupportTicketListLoadRequested());
   }
 
+  String _categoryLabel(String name) {
+    if (name == 'financial') return 'Financial';
+    if (name == 'general') return 'General';
+    return name;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text('My Queries'),
         backgroundColor: AppTheme.white,
         foregroundColor: AppTheme.navy,
+        elevation: 0,
       ),
       floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppTheme.navy,
+        foregroundColor: AppTheme.white,
         onPressed: () async {
           await Navigator.push(
             context,
@@ -56,12 +66,22 @@ class _TicketListPageState extends State<TicketListPage> {
                 ChoiceChip(
                   label: const Text('Open'),
                   selected: _showOpen,
+                  selectedColor: AppTheme.navy,
+                  labelStyle: TextStyle(
+                    color: _showOpen ? AppTheme.white : AppTheme.navy,
+                    fontWeight: FontWeight.w600,
+                  ),
                   onSelected: (_) => setState(() => _showOpen = true),
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
                   label: const Text('History'),
                   selected: !_showOpen,
+                  selectedColor: AppTheme.navy,
+                  labelStyle: TextStyle(
+                    color: !_showOpen ? AppTheme.white : AppTheme.navy,
+                    fontWeight: FontWeight.w600,
+                  ),
                   onSelected: (_) => setState(() => _showOpen = false),
                 ),
               ],
@@ -71,10 +91,32 @@ class _TicketListPageState extends State<TicketListPage> {
             child: BlocBuilder<SupportTicketListBloc, SupportTicketListState>(
               builder: (context, state) {
                 if (state is SupportTicketListLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppTheme.navy),
+                  );
                 }
                 if (state is SupportTicketListError) {
-                  return Center(child: Text(state.message));
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Could not load your queries.',
+                            style: TextStyle(color: Theme.of(context).colorScheme.error),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: () => context
+                                .read<SupportTicketListBloc>()
+                                .add(const SupportTicketListLoadRequested()),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 }
                 if (state is! SupportTicketListLoaded) {
                   return const SizedBox.shrink();
@@ -82,37 +124,87 @@ class _TicketListPageState extends State<TicketListPage> {
                 final tickets = _showOpen ? state.openTickets : state.closedTickets;
                 if (tickets.isEmpty) {
                   return Center(
-                    child: Text(_showOpen ? 'No open queries' : 'No closed queries yet'),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.support_agent_outlined, size: 48, color: Colors.grey[400]),
+                          const SizedBox(height: 12),
+                          Text(
+                            _showOpen ? 'No open queries' : 'No closed queries yet',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          if (_showOpen)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 8),
+                              child: Text(
+                                'Tap the button below to raise a new query.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: AppTheme.blue300, fontSize: 13),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   );
                 }
                 return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   itemCount: tickets.length,
                   itemBuilder: (context, index) {
                     final ticket = tickets[index];
-                    return ListTile(
-                      title: Text(ticket.subtopic ?? ticket.category.name),
-                      subtitle: Text(
-                        ticket.lastMessageSnippet ?? ticket.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: ticket.unreadByParent > 0
-                          ? Text('${ticket.unreadByParent} new',
-                              style: const TextStyle(color: Colors.red, fontSize: 10))
-                          : null,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => BlocProvider(
-                              create: (_) => TicketThreadCubit(
-                                repository: InjectionContainer.supportTicketRepository,
-                              )..load(ticket.id),
-                              child: TicketThreadPage(ticketId: ticket.id),
-                            ),
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        title: Text(
+                          ticket.subtopic ?? _categoryLabel(ticket.category.name),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            ticket.lastMessageSnippet ?? ticket.description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        );
-                      },
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (ticket.unreadByParent > 0)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '${ticket.unreadByParent}',
+                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            const SizedBox(width: 8),
+                            TicketStatusBadge(status: ticket.status),
+                          ],
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TicketThreadPage(ticketId: ticket.id),
+                            ),
+                          ).then((_) {
+                            if (context.mounted) {
+                              context.read<SupportTicketListBloc>().add(
+                                    const SupportTicketListLoadRequested(),
+                                  );
+                            }
+                          });
+                        },
+                      ),
                     );
                   },
                 );
@@ -142,6 +234,8 @@ class _TicketOriginationPageState extends State<TicketOriginationPage> {
   OriginationOptions? _options;
   List<Map<String, dynamic>> _students = [];
   bool _loading = true;
+  bool _submitting = false;
+  String? _loadError;
 
   @override
   void initState() {
@@ -149,22 +243,40 @@ class _TicketOriginationPageState extends State<TicketOriginationPage> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
-    final repo = InjectionContainer.supportTicketRepository;
-    final options = await repo.getOriginationOptions();
-    final dio = InjectionContainer.dio;
-    final studentsRes = await dio.get('/chat/students');
-    final students = (studentsRes.data as List).cast<Map<String, dynamic>>();
     setState(() {
-      _options = options;
-      _students = students;
-      _loading = false;
-      // Pre-select sole child for Q2 skip — category (Q1) must still be answered first.
-      if (students.length == 1) {
-        _studentId = students.first['cc'] as int;
-        _childLabel = _studentLabel(students.first);
-      }
+      _loading = true;
+      _loadError = null;
     });
+    try {
+      final repo = InjectionContainer.supportTicketRepository;
+      final options = await repo.getOriginationOptions();
+      final dio = InjectionContainer.dio;
+      final studentsRes = await dio.get('/chat/students');
+      final students = (studentsRes.data as List).cast<Map<String, dynamic>>();
+      if (!mounted) return;
+      setState(() {
+        _options = options;
+        _students = students;
+        _loading = false;
+        if (students.length == 1) {
+          _studentId = students.first['cc'] as int;
+          _childLabel = _studentLabel(students.first);
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _loadError = 'Could not load query options. Please try again.';
+      });
+    }
   }
 
   String _studentLabel(Map<String, dynamic> s) {
@@ -237,30 +349,75 @@ class _TicketOriginationPageState extends State<TicketOriginationPage> {
       );
       return;
     }
-    final ticket = await InjectionContainer.supportTicketRepository.createTicket(
-      category: _category!,
-      studentId: _studentId,
-      subtopic: _subtopic!,
-      description: _descriptionController.text.trim(),
-    );
-    if (!mounted) return;
-    Navigator.pop(context);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => TicketThreadPage(ticketId: ticket.id),
-      ),
-    );
+    setState(() => _submitting = true);
+    try {
+      final ticket = await InjectionContainer.supportTicketRepository.createTicket(
+        category: _category!,
+        studentId: _studentId,
+        subtopic: _subtopic!,
+        description: _descriptionController.text.trim(),
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TicketThreadPage(ticketId: ticket.id),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not submit your query. Please try again.')),
+      );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading || _options == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Raise a query'),
+          backgroundColor: AppTheme.white,
+          foregroundColor: AppTheme.navy,
+        ),
+        body: const Center(child: CircularProgressIndicator(color: AppTheme.navy)),
+      );
+    }
+
+    if (_loadError != null || _options == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Raise a query'),
+          backgroundColor: AppTheme.white,
+          foregroundColor: AppTheme.navy,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_loadError ?? 'Something went wrong', textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                ElevatedButton(onPressed: _load, child: const Text('Retry')),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Raise a query')),
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: const Text('Raise a query'),
+        backgroundColor: AppTheme.white,
+        foregroundColor: AppTheme.navy,
+      ),
       body: ListView(
         children: [
           if (_step == 0)
@@ -291,33 +448,52 @@ class _TicketOriginationPageState extends State<TicketOriginationPage> {
                     ),
                   )
                 : McqQuestionCard(
-              question: 'What is the topic?',
-              options: _topicOptions,
-              selected: _subtopic,
-              onSelected: (t) => setState(() {
-                _subtopic = t;
-                _step = 3;
-              }),
-            ),
+                    question: 'What is the topic?',
+                    options: _topicOptions,
+                    selected: _subtopic,
+                    onSelected: (t) => setState(() {
+                      _subtopic = t;
+                      _step = 3;
+                    }),
+                  ),
           if (_step == 3)
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('Please describe your question in your own words',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Please describe your question in your own words',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _descriptionController,
                     maxLines: 5,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: AppTheme.white,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       hintText: 'At least 20 characters...',
                     ),
                   ),
                   const SizedBox(height: 16),
-                  FilledButton(onPressed: _submit, child: const Text('Submit query')),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.navy,
+                      foregroundColor: AppTheme.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: _submitting ? null : _submit,
+                    child: _submitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white),
+                          )
+                        : const Text('Submit query'),
+                  ),
                 ],
               ),
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/in_app_notification_service.dart';
@@ -13,6 +14,9 @@ import '../../support_tickets/presentation/bloc/support_ticket_list_event.dart';
 import '../../support_tickets/presentation/bloc/support_ticket_list_state.dart';
 import '../../chat/presentation/pages/chat_page.dart';
 import '../../support_tickets/presentation/pages/ticket_list_page.dart';
+import '../../support_tickets/presentation/pages/ticket_thread_page.dart';
+import '../../support_tickets/presentation/utils/ticket_thread_presence.dart';
+import '../../../../injection_container.dart';
 import '../../notice_board/presentation/bloc/notice_board_bloc.dart';
 import '../../notice_board/presentation/bloc/notice_board_event.dart';
 import '../../notice_board/presentation/bloc/notice_board_state.dart';
@@ -36,6 +40,7 @@ class MainShellPage extends StatefulWidget {
 
 class _MainShellPageState extends State<MainShellPage> {
   int _selectedIndex = 0;
+  StreamSubscription? _ticketMessageSub;
 
   @override
   void initState() {
@@ -45,6 +50,31 @@ class _MainShellPageState extends State<MainShellPage> {
       context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
     }
     context.read<NoticeBoardBloc>().add(const NoticeBoardLoadRequested());
+
+    _ticketMessageSub = InjectionContainer.supportTicketRepository.onTicketMessage.listen((msg) {
+      if (!mounted) return;
+      if (TicketThreadPresence.isViewing(msg.ticketId)) return;
+      InAppNotificationService.show(
+        context: context,
+        title: 'New reply on your query',
+        message: msg.content.length > 80 ? '${msg.content.substring(0, 80)}…' : msg.content,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TicketThreadPage(ticketId: msg.ticketId),
+            ),
+          );
+        },
+      );
+      context.read<SupportTicketListBloc>().add(const SupportTicketListLoadRequested());
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticketMessageSub?.cancel();
+    super.dispose();
   }
 
   void _onTabTapped(int index) {

@@ -39,7 +39,7 @@ class SupportTicketListBloc
         showingOpen: event.open,
       ));
     } catch (e) {
-      emit(SupportTicketListError(e.toString()));
+      emit(SupportTicketListError('Could not load your queries. Please try again.'));
     }
   }
 

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../domain/entities/origination_options.dart';
@@ -88,13 +90,62 @@ class SupportTicketRepositoryImpl implements SupportTicketRepository {
     return TicketMessageDto.fromJson(res.data as Map<String, dynamic>);
   }
 
+  String _mimeFromFilename(String filename) {
+    final ext = filename.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'webm':
+        return 'audio/webm';
+      case 'opus':
+        return 'audio/ogg; codecs=opus';
+      case 'm4a':
+        return 'audio/mp4';
+      case 'mp3':
+        return 'audio/mpeg';
+      case 'ogg':
+        return 'audio/ogg';
+      case 'wav':
+        return 'audio/wav';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      case 'pdf':
+        return 'application/pdf';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
   @override
   Future<Map<String, dynamic>> uploadMedia(XFile file) async {
-    final form = FormData.fromMap({
-      'file': await MultipartFile.fromFile(file.path, filename: file.name),
-    });
+    MultipartFile multipartFile;
+    if (kIsWeb) {
+      final bytes = await file.readAsBytes();
+      final filename = file.name.isNotEmpty ? file.name : 'upload';
+      final mime = file.mimeType ?? _mimeFromFilename(filename);
+      multipartFile = MultipartFile.fromBytes(
+        bytes,
+        filename: filename,
+        contentType: MediaType.parse(mime),
+      );
+    } else {
+      multipartFile = await MultipartFile.fromFile(
+        file.path,
+        filename: file.name.isNotEmpty ? file.name : file.path.split('/').last,
+      );
+    }
+    final form = FormData.fromMap({'file': multipartFile});
     final res = await dio.post('/support-tickets/media', data: form);
-    return Map<String, dynamic>.from(res.data as Map);
+    final data = res.data;
+    if (data is Map<String, dynamic>) {
+      return Map<String, dynamic>.from(data['data'] ?? data);
+    }
+    return Map<String, dynamic>.from(data as Map);
   }
 
   @override
