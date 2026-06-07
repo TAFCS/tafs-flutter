@@ -8,6 +8,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
 
   ProfileBloc({required this.repository}) : super(ProfileInitial()) {
     on<GuardianChangeSubmitted>(_onGuardianChangeSubmitted);
+    on<ProfileResetRequested>(_onReset);
   }
 
   Future<void> _onGuardianChangeSubmitted(
@@ -24,5 +25,12 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       (failure) => emit(ProfileError(failure.message)),
       (_) => emit(ProfileSuccess()),
     );
+  }
+
+  void _onReset(
+    ProfileResetRequested event,
+    Emitter<ProfileState> emit,
+  ) {
+    emit(ProfileInitial());
   }
 }

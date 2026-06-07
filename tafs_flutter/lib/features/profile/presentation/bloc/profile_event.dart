@@ -21,3 +21,7 @@ class GuardianChangeSubmitted extends ProfileEvent {
   @override
   List<Object?> get props => [guardianId, familyId, changes];
 }
+
+class ProfileResetRequested extends ProfileEvent {
+  const ProfileResetRequested();
+}

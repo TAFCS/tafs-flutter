@@ -11,6 +11,7 @@ class NoticeBoardBloc extends Bloc<NoticeBoardEvent, NoticeBoardState> {
     on<NoticeBoardLoadRequested>(_onLoad);
     on<NoticeBoardNextPageRequested>(_onNextPage);
     on<NoticeBoardPostRead>(_onPostRead);
+    on<NoticeBoardResetRequested>(_onReset);
   }
 
   Future<void> _onLoad(
@@ -65,7 +66,14 @@ class NoticeBoardBloc extends Bloc<NoticeBoardEvent, NoticeBoardState> {
       emit(current.copyWith(posts: updated, unreadCount: unread));
     }
 
-    // Fire-and-forget — ignore errors, the user already saw the post
     repository.markRead(event.postId).catchError((_) {});
+  }
+
+  void _onReset(
+    NoticeBoardResetRequested event,
+    Emitter<NoticeBoardState> emit,
+  ) {
+    _markedReadIds.clear();
+    emit(const NoticeBoardInitial());
   }
 }

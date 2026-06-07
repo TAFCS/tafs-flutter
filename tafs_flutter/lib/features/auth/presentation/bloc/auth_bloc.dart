@@ -1,5 +1,6 @@
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import '../../data/models/parent_dto.dart';
+import '../../domain/entities/parent.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/parent_login_usecase.dart';
 import 'auth_event.dart';
@@ -22,6 +23,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     on<AuthSignupResetRequested>(_onSignupResetRequested);
     on<AuthSignupExitToLoginRequested>(_onSignupExitToLoginRequested);
     on<AuthRefreshRequested>(_onAuthRefreshRequested);
+    on<AuthProfileRefreshFailureAcknowledged>(_onProfileRefreshFailureAcknowledged);
     on<AuthTokenRefreshed>(_onAuthTokenRefreshed);
   }
 
@@ -75,11 +77,29 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     AuthRefreshRequested event,
     Emitter<AuthState> emit,
   ) async {
+    final Parent? currentParent = switch (state) {
+      AuthAuthenticated(:final parent) => parent,
+      AuthProfileRefreshFailed(:final parent) => parent,
+      _ => null,
+    };
+
+    if (currentParent == null) return;
+
     final result = await repository.refreshProfile();
     result.fold(
-      (failure) => null, // Keep existing state on failure
+      (failure) => emit(AuthProfileRefreshFailed(
+        parent: currentParent,
+        message: failure.message,
+      )),
       (parent) => emit(AuthAuthenticated(parent)),
     );
+  }
+
+  void _onProfileRefreshFailureAcknowledged(
+    AuthProfileRefreshFailureAcknowledged event,
+    Emitter<AuthState> emit,
+  ) {
+    emit(AuthAuthenticated(event.parent));
   }
 
   /// Called by [TokenInterceptor] when it silently refreshes the access token

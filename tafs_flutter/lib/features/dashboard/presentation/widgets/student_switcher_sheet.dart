@@ -4,10 +4,6 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../auth/presentation/bloc/selected_student_cubit.dart';
-import '../../../fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
-import '../../../fee_ledger/presentation/bloc/fee_ledger_event.dart';
-import '../../../fee_ledger/presentation/bloc/fee_summary_bloc.dart';
-import '../../../fee_ledger/presentation/bloc/fee_summary_event.dart';
 
 class StudentSwitcherSheet extends StatelessWidget {
   const StudentSwitcherSheet({super.key});
@@ -98,12 +94,6 @@ class StudentSwitcherSheet extends StatelessWidget {
                 isThreeLine: true,
                 onTap: () {
                   context.read<SelectedStudentCubit>().select(student);
-                  context
-                      .read<FeeSummaryBloc>()
-                      .add(FeeSummaryLoadRequested(student.cc));
-                  context
-                      .read<FeeLedgerBloc>()
-                      .add(LedgerLoadRequested(student.cc));
                   Navigator.pop(context);
                 },
               ),

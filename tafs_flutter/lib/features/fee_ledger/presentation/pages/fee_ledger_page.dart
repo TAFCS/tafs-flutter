@@ -28,9 +28,23 @@ class FeeLedgerPage extends StatefulWidget {
 }
 
 class _FeeLedgerPageState extends State<FeeLedgerPage> {
+  bool _autoReloadScheduled = false;
+
   @override
   void initState() {
     super.initState();
+    _loadFees();
+  }
+
+  @override
+  void didUpdateWidget(covariant FeeLedgerPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.studentCc != widget.studentCc) {
+      _loadFees();
+    }
+  }
+
+  void _loadFees() {
     context.read<FeeLedgerBloc>().add(FeeLedgerLoadRequested(widget.studentCc));
   }
 
@@ -57,9 +71,7 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
           if (state is FeeLedgerError) {
             return _ErrorView(
               message: state.message,
-              onRetry: () => context.read<FeeLedgerBloc>().add(
-                FeeLedgerLoadRequested(widget.studentCc),
-              ),
+              onRetry: _loadFees,
             );
           }
 
@@ -112,9 +124,7 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () async {
-                      context.read<FeeLedgerBloc>().add(
-                        FeeLedgerLoadRequested(widget.studentCc),
-                      );
+                      _loadFees();
                     },
                     child: ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
@@ -154,7 +164,16 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
             );
           }
 
-          return const SizedBox.shrink();
+          if (!_autoReloadScheduled) {
+            _autoReloadScheduled = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _autoReloadScheduled = false;
+              if (mounted) _loadFees();
+            });
+          }
+          return const Center(
+            child: CircularProgressIndicator(color: AppTheme.navy),
+          );
         },
       ),
     );

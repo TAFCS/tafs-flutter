@@ -21,6 +21,20 @@ class AuthAuthenticated extends AuthState {
   List<Object> get props => [parent];
 }
 
+/// One-shot state when profile refresh fails; keeps last known [parent] for UI.
+class AuthProfileRefreshFailed extends AuthState {
+  final Parent parent;
+  final String message;
+
+  const AuthProfileRefreshFailed({
+    required this.parent,
+    required this.message,
+  });
+
+  @override
+  List<Object> get props => [parent, message];
+}
+
 class AuthUnauthenticated extends AuthState {}
 
 class AuthError extends AuthState {

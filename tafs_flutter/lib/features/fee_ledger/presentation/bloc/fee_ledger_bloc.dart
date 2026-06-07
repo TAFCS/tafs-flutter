@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/fee_month_status.dart';
 import '../../domain/entities/voucher_resolution.dart';
-import '../../domain/usecases/get_ledger_usecase.dart';
 import '../../domain/usecases/get_student_fee_months_usecase.dart';
 import '../../domain/usecases/resolve_voucher_for_month_usecase.dart';
 import '../../domain/usecases/get_student_vouchers_usecase.dart';
@@ -12,23 +11,21 @@ class FeeLedgerBloc extends Bloc<FeeLedgerEvent, FeeLedgerState> {
   final GetStudentFeeMonthsUseCase getStudentFeeMonths;
   final GetStudentVouchersUseCase getStudentVouchers;
   final ResolveVoucherForMonthUseCase resolveVoucherForMonthUseCase;
-  final GetLedgerUseCase getLedger;
 
   FeeLedgerBloc({
     required this.getStudentFeeMonths,
     required this.getStudentVouchers,
     required this.resolveVoucherForMonthUseCase,
-    required this.getLedger,
-  }) : super(FeeLedgerInitial()) {
+  }) : super(const FeeLedgerInitial()) {
     on<FeeLedgerLoadRequested>(_onLoad);
-    on<LedgerLoadRequested>(_onLedgerLoad);
+    on<FeeLedgerResetRequested>(_onReset);
   }
 
   Future<void> _onLoad(
     FeeLedgerLoadRequested event,
     Emitter<FeeLedgerState> emit,
   ) async {
-    emit(FeeLedgerLoading());
+    emit(const FeeLedgerLoading());
     final monthsResult = await getStudentFeeMonths(event.studentCc);
 
     String? monthsError;
@@ -50,25 +47,11 @@ class FeeLedgerBloc extends Bloc<FeeLedgerEvent, FeeLedgerState> {
     );
   }
 
-  Future<void> _onLedgerLoad(
-    LedgerLoadRequested event,
+  void _onReset(
+    FeeLedgerResetRequested event,
     Emitter<FeeLedgerState> emit,
-  ) async {
-    emit(FeeLedgerLoading());
-    
-    // Fetch ledger and vouchers in parallel for responsiveness
-    final ledgerResult = await getLedger(event.studentCc);
-    final vouchersResult = await getStudentVouchers(event.studentCc);
-
-    ledgerResult.fold(
-      (failure) => emit(FeeLedgerError(failure.message)),
-      (ledger) {
-        vouchersResult.fold(
-          (_) => emit(LedgerLoaded(ledger: ledger, vouchers: const [])),
-          (vouchers) => emit(LedgerLoaded(ledger: ledger, vouchers: vouchers)),
-        );
-      },
-    );
+  ) {
+    emit(const FeeLedgerInitial());
   }
 
   Future<VoucherResolution> resolveVoucherForMonth({

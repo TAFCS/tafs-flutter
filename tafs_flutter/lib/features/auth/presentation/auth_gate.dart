@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/session/session_reset.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/domain/entities/parent.dart';
 import '../../auth/domain/entities/student.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
 import '../../auth/presentation/bloc/auth_event.dart';
@@ -33,37 +35,58 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
-      // Only react to actual session transitions: login or logout.
-      // Token refresh and profile updates re-emit AuthAuthenticated without
-      // changing the session, so we must NOT restart the chat for those.
-      listenWhen: (previous, current) {
-        // Only clear the nav stack on real logout — not signup CNIC reset / exit.
-        if (current is AuthUnauthenticated) {
-          return previous is AuthAuthenticated;
-        }
-        return current is AuthAuthenticated && previous is! AuthAuthenticated;
-      },
-      listener: (context, state) {
-        // If the user logs out from deep within the app, pop all pushed routes
-        // so we return to this root widget (which will now render LoginPage).
-        if (state is AuthUnauthenticated) {
-          Navigator.popUntil(context, (route) => route.isFirst);
-          context.read<ChatBloc>().add(ChatSessionStopRequested());
-        } else if (state is AuthAuthenticated) {
-          context.read<ChatBloc>().add(ChatSessionStartRequested());
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<AuthBloc, AuthState>(
+          listenWhen: (previous, current) =>
+              current is AuthUnauthenticated &&
+              (previous is AuthAuthenticated || previous is AuthLoading),
+          listener: (context, state) {
+            Navigator.popUntil(context, (route) => route.isFirst);
+            resetSessionState(context);
+          },
+        ),
+        BlocListener<AuthBloc, AuthState>(
+          listenWhen: (previous, current) =>
+              current is AuthAuthenticated &&
+              previous is! AuthAuthenticated &&
+              previous is! AuthProfileRefreshFailed,
+          listener: (context, state) {
+            if (state is AuthAuthenticated) {
+              syncSelectedStudent(context, state.parent.students);
+            }
+            context.read<ChatBloc>().add(ChatSessionStartRequested());
+          },
+        ),
+        BlocListener<AuthBloc, AuthState>(
+          listenWhen: (previous, current) {
+            if (current is! AuthAuthenticated || previous is! AuthAuthenticated) {
+              return false;
+            }
+            return previous.parent.students != current.parent.students;
+          },
+          listener: (context, state) {
+            if (state is AuthAuthenticated) {
+              syncSelectedStudent(context, state.parent.students);
+            }
+          },
+        ),
+      ],
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
-          if (authState is AuthAuthenticated) {
-            final students = authState.parent.students;
+          final Parent? sessionParent = switch (authState) {
+            AuthAuthenticated(:final parent) => parent,
+            AuthProfileRefreshFailed(:final parent) => parent,
+            _ => null,
+          };
+
+          if (sessionParent != null) {
+            final students = sessionParent.students;
 
             return BlocBuilder<SelectedStudentCubit, Student?>(
               builder: (context, selectedStudent) {
                 final cubit = context.read<SelectedStudentCubit>();
 
-                // Select first student post-frame if none selected
                 if (selectedStudent == null && students.isNotEmpty) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (cubit.state == null && students.isNotEmpty) {
@@ -72,7 +95,6 @@ class _AuthGateState extends State<AuthGate> {
                   });
                 }
 
-                // If multiple students and none picked yet, go to selection page
                 if (students.length > 1 && selectedStudent == null) {
                   return StudentSelectionPage(students: students);
                 }
@@ -95,7 +117,6 @@ class _AuthGateState extends State<AuthGate> {
             return const LoginPage();
           }
 
-          // AuthInitial — branded splash while session check runs
           return Scaffold(
             body: Container(
               width: double.infinity,
@@ -107,7 +128,6 @@ class _AuthGateState extends State<AuthGate> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Image.asset('assets/logo.png', height: 80, color: Colors.white),
                     SizedBox(height: 24),
                     CircularProgressIndicator(
                       strokeWidth: 2,

@@ -8,6 +8,7 @@ import 'features/auth/presentation/bloc/selected_student_cubit.dart';
 import 'features/chat/presentation/bloc/chat_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
+import 'features/fee_ledger/presentation/bloc/student_ledger_bloc.dart';
 import 'features/notice_board/presentation/bloc/notice_board_bloc.dart';
 import 'features/profile/presentation/bloc/profile_bloc.dart';
 import 'injection_container.dart';
@@ -27,6 +28,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<FeeSummaryBloc>(
           create: (_) => InjectionContainer.feeSummaryBloc,
+        ),
+        BlocProvider<StudentLedgerBloc>(
+          create: (_) => InjectionContainer.studentLedgerBloc,
         ),
         BlocProvider<SelectedStudentCubit>(
           create: (_) => InjectionContainer.selectedStudentCubit,

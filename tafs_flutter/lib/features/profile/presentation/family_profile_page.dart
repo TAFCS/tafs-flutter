@@ -41,7 +41,22 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (_, current) => current is AuthProfileRefreshFailed,
+      listener: (context, state) {
+        if (state is AuthProfileRefreshFailed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+          context.read<AuthBloc>().add(
+            AuthProfileRefreshFailureAcknowledged(state.parent),
+          );
+        }
+      },
+      child: Scaffold(
       backgroundColor: AppTheme.white,
       appBar: widget.showAppBar
           ? AppBar(
@@ -56,7 +71,13 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
           : null,
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
-          if (authState is! AuthAuthenticated) {
+          final Parent? parent = switch (authState) {
+            AuthAuthenticated(:final parent) => parent,
+            AuthProfileRefreshFailed(:final parent) => parent,
+            _ => null,
+          };
+
+          if (parent == null) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(AppTheme.space6),
@@ -80,8 +101,6 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
               ),
             );
           }
-
-          final Parent parent = authState.parent;
 
           return BlocBuilder<SelectedStudentCubit, Student?>(
             builder: (context, activeStudent) {
@@ -200,6 +219,7 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
           );
         },
       ),
+    ),
     );
   }
 }

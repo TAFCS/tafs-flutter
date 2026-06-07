@@ -12,6 +12,15 @@ class AuthCheckRequested extends AuthEvent {}
 
 class AuthRefreshRequested extends AuthEvent {}
 
+class AuthProfileRefreshFailureAcknowledged extends AuthEvent {
+  final Parent parent;
+
+  const AuthProfileRefreshFailureAcknowledged(this.parent);
+
+  @override
+  List<Object?> get props => [parent];
+}
+
 class AuthLoginRequested extends AuthEvent {
   final String username;
   final String password;

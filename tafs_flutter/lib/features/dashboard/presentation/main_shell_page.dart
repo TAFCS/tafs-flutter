@@ -14,6 +14,7 @@ import '../../notice_board/presentation/bloc/notice_board_event.dart';
 import '../../notice_board/presentation/bloc/notice_board_state.dart';
 import '../../fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import '../../fee_ledger/presentation/bloc/fee_ledger_event.dart';
+import '../../fee_ledger/presentation/bloc/fee_ledger_state.dart';
 import '../../fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import '../../fee_ledger/presentation/bloc/fee_summary_event.dart';
 import '../../fee_ledger/presentation/pages/fee_ledger_page.dart';
@@ -38,7 +39,6 @@ class _MainShellPageState extends State<MainShellPage> {
     final student = context.read<SelectedStudentCubit>().state;
     if (student != null) {
       context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
-      context.read<FeeLedgerBloc>().add(FeeLedgerLoadRequested(student.cc));
     }
     context.read<NoticeBoardBloc>().add(const NoticeBoardLoadRequested());
   }
@@ -46,6 +46,21 @@ class _MainShellPageState extends State<MainShellPage> {
   void _onTabTapped(int index) {
     if (_selectedIndex == index) return;
     setState(() => _selectedIndex = index);
+    if (index == 1) {
+      _ensureFeesLoaded();
+    }
+  }
+
+  void _ensureFeesLoaded() {
+    final student = context.read<SelectedStudentCubit>().state;
+    if (student == null) return;
+
+    final ledgerState = context.read<FeeLedgerBloc>().state;
+    if (ledgerState is! FeeLedgerLoaded) {
+      context
+          .read<FeeLedgerBloc>()
+          .add(FeeLedgerLoadRequested(student.cc));
+    }
   }
 
   @override

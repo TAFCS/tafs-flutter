@@ -12,3 +12,7 @@ class FeeSummaryLoadRequested extends FeeSummaryEvent {
   @override
   List<Object?> get props => [studentCc];
 }
+
+class FeeSummaryResetRequested extends FeeSummaryEvent {
+  const FeeSummaryResetRequested();
+}

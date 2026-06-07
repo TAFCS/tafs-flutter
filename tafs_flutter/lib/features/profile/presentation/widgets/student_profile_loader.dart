@@ -1,26 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
-import '../../../fee_ledger/presentation/bloc/fee_ledger_event.dart';
-import '../../../fee_ledger/presentation/bloc/fee_ledger_state.dart';
+import '../../../fee_ledger/presentation/bloc/student_ledger_bloc.dart';
+import '../../../fee_ledger/presentation/bloc/student_ledger_event.dart';
+import '../../../fee_ledger/presentation/bloc/student_ledger_state.dart';
 import '../../../fee_ledger/presentation/pages/student_profile_page.dart';
 
-class StudentProfileLoader extends StatelessWidget {
+class StudentProfileLoader extends StatefulWidget {
   final int studentCc;
 
   const StudentProfileLoader({super.key, required this.studentCc});
 
   @override
-  Widget build(BuildContext context) {
-    // Trigger loading if not already in progress or loaded for this student
-    context.read<FeeLedgerBloc>().add(LedgerLoadRequested(studentCc));
+  State<StudentProfileLoader> createState() => _StudentProfileLoaderState();
+}
 
-    return BlocBuilder<FeeLedgerBloc, FeeLedgerState>(
+class _StudentProfileLoaderState extends State<StudentProfileLoader> {
+  @override
+  void initState() {
+    super.initState();
+    context
+        .read<StudentLedgerBloc>()
+        .add(StudentLedgerLoadRequested(widget.studentCc));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<StudentLedgerBloc, StudentLedgerState>(
       builder: (context, state) {
-        if (state is LedgerLoaded && state.ledger.student.cc == studentCc) {
+        if (state is StudentLedgerLoaded &&
+            state.ledger.student.cc == widget.studentCc) {
           return StudentProfilePage(student: state.ledger.student);
         }
-        if (state is FeeLedgerError) {
+        if (state is StudentLedgerError) {
           return Scaffold(
             appBar: AppBar(title: const Text('Student Profile')),
             body: Center(
@@ -39,7 +50,9 @@ class StudentProfileLoader extends StatelessWidget {
                     const SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: () {
-                        context.read<FeeLedgerBloc>().add(LedgerLoadRequested(studentCc));
+                        context.read<StudentLedgerBloc>().add(
+                              StudentLedgerLoadRequested(widget.studentCc),
+                            );
                       },
                       child: const Text('Retry'),
                     ),

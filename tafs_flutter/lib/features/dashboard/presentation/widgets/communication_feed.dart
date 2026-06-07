@@ -15,10 +15,8 @@ class CommunicationFeed extends StatelessWidget {
       builder: (context, state) {
         List<Widget> notifications = [];
 
-        if (state is FeeLedgerLoaded || state is LedgerLoaded) {
-          final List<Voucher> vouchers = (state is FeeLedgerLoaded) 
-              ? state.vouchers 
-              : (state as LedgerLoaded).vouchers;
+        if (state is FeeLedgerLoaded) {
+          final List<Voucher> vouchers = state.vouchers;
 
           final outstanding = vouchers.where((v) => 
             v.status == 'ISSUED' || v.status == 'PARTIALLY_PAID'

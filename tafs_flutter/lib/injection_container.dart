@@ -20,6 +20,7 @@ import 'features/fee_ledger/domain/usecases/get_ledger_usecase.dart';
 import 'features/fee_ledger/domain/usecases/resolve_voucher_for_month_usecase.dart';
 import 'features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
+import 'features/fee_ledger/presentation/bloc/student_ledger_bloc.dart';
 import 'features/auth/presentation/bloc/selected_student_cubit.dart';
 import 'features/chat/data/datasources/chat_outbox_local_data_source.dart';
 import 'features/chat/data/repositories/chat_repository_impl.dart';
@@ -36,6 +37,7 @@ import 'core/config/app_config.dart';
 class InjectionContainer {
   static late final AuthBloc authBloc;
   static late final FeeLedgerBloc feeLedgerBloc;
+  static late final StudentLedgerBloc studentLedgerBloc;
   static late final FeeSummaryBloc feeSummaryBloc;
   static late final SelectedStudentCubit selectedStudentCubit;
   static late final ChatBloc chatBloc;
@@ -100,7 +102,11 @@ class InjectionContainer {
       getStudentFeeMonths: getStudentFeeMonthsUseCase,
       getStudentVouchers: getStudentVouchersUseCase,
       resolveVoucherForMonthUseCase: resolveVoucherForMonthUseCase,
+    );
+
+    studentLedgerBloc = StudentLedgerBloc(
       getLedger: getLedgerUseCase,
+      getStudentVouchers: getStudentVouchersUseCase,
     );
 
     feeSummaryBloc = FeeSummaryBloc(getFeeSummary: getFeeSummaryUseCase);

@@ -8,17 +8,28 @@ class FeeSummaryBloc extends Bloc<FeeSummaryEvent, FeeSummaryState> {
 
   FeeSummaryBloc({required this.getFeeSummary}) : super(FeeSummaryInitial()) {
     on<FeeSummaryLoadRequested>(_onLoad);
+    on<FeeSummaryResetRequested>(_onReset);
   }
 
   Future<void> _onLoad(
     FeeSummaryLoadRequested event,
     Emitter<FeeSummaryState> emit,
   ) async {
-    emit(FeeSummaryLoading());
+    if (state is! FeeSummaryLoaded) {
+      emit(FeeSummaryLoading());
+    }
+
     final result = await getFeeSummary(event.studentCc);
     result.fold(
       (failure) => emit(FeeSummaryError(failure.message)),
       (summary) => emit(FeeSummaryLoaded(summary)),
     );
+  }
+
+  void _onReset(
+    FeeSummaryResetRequested event,
+    Emitter<FeeSummaryState> emit,
+  ) {
+    emit(FeeSummaryInitial());
   }
 }
