@@ -48,6 +48,7 @@ class AuthRegisterRequested extends AuthEvent {
   final String cnic;
   final String email;
   final String password;
+  final String guardianName;
   final String? fcmToken;
   final String? deviceType;
 
@@ -55,12 +56,14 @@ class AuthRegisterRequested extends AuthEvent {
     required this.cnic,
     required this.email,
     required this.password,
+    required this.guardianName,
     this.fcmToken,
     this.deviceType,
   });
 
   @override
-  List<Object?> get props => [cnic, email, password, fcmToken, deviceType];
+  List<Object?> get props =>
+      [cnic, email, password, guardianName, fcmToken, deviceType];
 }
 
 /// Return to signup step 1 (verify CNIC) without leaving the signup screen.

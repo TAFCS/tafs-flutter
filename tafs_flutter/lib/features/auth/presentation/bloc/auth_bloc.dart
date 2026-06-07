@@ -171,7 +171,11 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
       deviceType: event.deviceType,
     );
     result.fold(
-      (failure) => emit(AuthError(failure.message)),
+      (failure) => emit(SignupRegisterFailed(
+        message: failure.message,
+        cnic: event.cnic,
+        guardianName: event.guardianName,
+      )),
       (parent) => emit(SignupSuccess(parent)),
     );
   }

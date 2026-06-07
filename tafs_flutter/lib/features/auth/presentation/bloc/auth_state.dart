@@ -59,6 +59,21 @@ class SignupCnicInvalid extends AuthState {
 
 class SignupRegistering extends AuthState {}
 
+class SignupRegisterFailed extends AuthState {
+  final String message;
+  final String cnic;
+  final String guardianName;
+
+  const SignupRegisterFailed({
+    required this.message,
+    required this.cnic,
+    required this.guardianName,
+  });
+
+  @override
+  List<Object> get props => [message, cnic, guardianName];
+}
+
 class SignupSuccess extends AuthState {
   final Parent parent;
 

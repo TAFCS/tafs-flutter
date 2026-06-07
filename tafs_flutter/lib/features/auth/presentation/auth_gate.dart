@@ -89,7 +89,9 @@ class _AuthGateState extends State<AuthGate> {
               authState is SignupCnicVerifying ||
               authState is SignupCnicValid ||
               authState is SignupCnicInvalid ||
-              authState is SignupRegistering) {
+              authState is SignupRegistering ||
+              authState is SignupRegisterFailed ||
+              authState is SignupSuccess) {
             return const LoginPage();
           }
 

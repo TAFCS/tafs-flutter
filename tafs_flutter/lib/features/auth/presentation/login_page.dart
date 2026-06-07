@@ -203,13 +203,23 @@ class _LoginPageState extends State<LoginPage> {
                                       ),
                                 ),
                                 TextButton(
-                                  onPressed: () {
-                                    Navigator.push(
+                                  onPressed: () async {
+                                    final email = await Navigator.push<String>(
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) => const SignupPage(),
                                       ),
                                     );
+                                    if (email != null && mounted) {
+                                      _emailController.text = email;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Account created. Please log in.',
+                                          ),
+                                        ),
+                                      );
+                                    }
                                   },
                                   child: Text(
                                     'Sign Up',

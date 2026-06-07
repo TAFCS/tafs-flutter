@@ -1,18 +1,12 @@
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../profile/presentation/student_selection_page.dart';
 import 'bloc/auth_bloc.dart';
 import 'bloc/auth_event.dart';
 import 'bloc/auth_state.dart';
-import '../../dashboard/presentation/main_shell_page.dart';
-import 'bloc/selected_student_cubit.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -30,6 +24,8 @@ class _SignupPageState extends State<SignupPage> {
 
   String? _verifiedCnic;
   String? _guardianName;
+  bool _isSubmitting = false;
+  bool _successDialogShown = false;
 
   @override
   void dispose() {
@@ -56,42 +52,29 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  void _register() async {
-    if (_formKey.currentState!.validate()) {
-      if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Passwords do not match'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-        return;
-      }
+  void _register() {
+    if (!_formKey.currentState!.validate()) return;
 
-      // FCM and Platform.isAndroid are mobile-only — both crash on web.
-      String? fcmToken;
-      String? deviceType;
-      if (!kIsWeb) {
-        try {
-          fcmToken = await FirebaseMessaging.instance.getToken();
-          deviceType = Platform.isAndroid ? 'ANDROID' : 'IOS';
-        } catch (e) {
-          print('Error getting FCM token on register: $e');
-        }
-      }
-
-      if (!mounted) return;
-
-      context.read<AuthBloc>().add(
-        AuthRegisterRequested(
-          cnic: _verifiedCnic!,
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          fcmToken: fcmToken,
-          deviceType: deviceType,
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Passwords do not match'),
+          backgroundColor: Colors.redAccent,
         ),
       );
+      return;
     }
+
+    setState(() => _isSubmitting = true);
+
+    context.read<AuthBloc>().add(
+      AuthRegisterRequested(
+        cnic: _verifiedCnic!,
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        guardianName: _guardianName ?? 'Guardian',
+      ),
+    );
   }
 
   void _resetSignup() {
@@ -102,37 +85,50 @@ class _SignupPageState extends State<SignupPage> {
     _confirmPasswordController.clear();
     _verifiedCnic = null;
     _guardianName = null;
+    _isSubmitting = false;
+    _successDialogShown = false;
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AuthBloc, AuthState>(
+      listenWhen: (previous, current) =>
+          current is SignupSuccess ||
+          current is SignupRegisterFailed ||
+          current is SignupCnicInvalid,
       listener: (context, state) {
         if (state is SignupSuccess) {
-          final students = state.parent.students;
-          if (students.length > 1) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => StudentSelectionPage(students: students),
-              ),
-            );
-          } else if (students.length == 1) {
-            context.read<SelectedStudentCubit>().select(students.first);
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const MainShellPage(),
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('No students linked to this account.'),
-              ),
-            );
-          }
-        } else if (state is AuthError) {
+          if (_successDialogShown) return;
+          _successDialogShown = true;
+          setState(() => _isSubmitting = false);
+
+          final email = _emailController.text.trim();
+          showDialog<void>(
+            context: context,
+            barrierDismissible: false,
+            builder: (dialogContext) {
+              return AlertDialog(
+                title: const Text('Account Created'),
+                content: const Text(
+                  'Your account has been created successfully. Please log in with your email and password.',
+                ),
+                actions: [
+                  FilledButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      context.read<AuthBloc>().add(
+                        const AuthSignupExitToLoginRequested(),
+                      );
+                      Navigator.pop(context, email);
+                    },
+                    child: const Text('Go to Login'),
+                  ),
+                ],
+              );
+            },
+          );
+        } else if (state is SignupRegisterFailed) {
+          setState(() => _isSubmitting = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
@@ -150,10 +146,16 @@ class _SignupPageState extends State<SignupPage> {
       },
       builder: (context, state) {
         final isCnicVerifying = state is SignupCnicVerifying;
-        final isCnicValid = state is SignupCnicValid;
-        final isRegistering = state is SignupRegistering;
+        final isCnicValid = state is SignupCnicValid ||
+            state is SignupRegistering ||
+            state is SignupRegisterFailed ||
+            state is SignupSuccess;
+        final isRegistering = _isSubmitting || state is SignupRegistering;
 
-        if (isCnicValid) {
+        if (state is SignupCnicValid) {
+          _verifiedCnic = state.cnic;
+          _guardianName = state.guardianName;
+        } else if (state is SignupRegisterFailed) {
           _verifiedCnic = state.cnic;
           _guardianName = state.guardianName;
         }

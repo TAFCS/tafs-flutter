@@ -120,7 +120,6 @@ class AuthRepositoryImpl implements AuthRepository {
         fcmToken: fcmToken,
         deviceType: deviceType,
       );
-      await localDataSource.cacheParent(parentDto);
       return Right(parentDto);
     } on Failure catch (failure) {
       return Left(failure);
