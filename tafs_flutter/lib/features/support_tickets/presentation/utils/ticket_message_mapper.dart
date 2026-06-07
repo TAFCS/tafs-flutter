@@ -17,6 +17,11 @@ ChatMessage ticketMessageToChatMessage(TicketMessage message) {
       type = ChatMessageType.text;
   }
 
+  final mediaUrl = message.mediaMetadata?['url'] as String?;
+  final content = type == ChatMessageType.text
+      ? message.content
+      : (mediaUrl ?? message.content);
+
   return ChatMessage(
     id: message.id,
     conversationId: message.ticketId,
@@ -26,7 +31,7 @@ ChatMessage ticketMessageToChatMessage(TicketMessage message) {
     senderName: message.senderName ??
         (message.senderType == TicketMessageSenderType.guardian ? 'You' : 'School'),
     messageType: type,
-    content: message.content,
+    content: content,
     mediaMetadata: message.mediaMetadata,
     isRead: true,
     createdAt: message.createdAt,

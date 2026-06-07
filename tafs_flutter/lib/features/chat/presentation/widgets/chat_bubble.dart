@@ -389,8 +389,8 @@ class ChatBubble extends StatelessWidget {
       case ChatMessageType.voice:
         return _VoiceNotePlayer(
           key: ValueKey(message.id),
-          url: message.content,
-          localPath: message.mediaMetadata?['localPath'],
+          url: message.mediaMetadata?['url'] as String? ?? message.content,
+          localPath: message.mediaMetadata?['localPath'] as String?,
           isMe: isMe,
         );
       case ChatMessageType.document:

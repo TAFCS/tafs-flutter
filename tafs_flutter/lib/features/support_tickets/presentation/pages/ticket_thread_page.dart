@@ -230,6 +230,7 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
                             final cubit = context.read<TicketThreadCubit>();
                             if (file != null) {
                               final media = await InjectionContainer.supportTicketRepository.uploadMedia(file);
+                              final mediaUrl = media['url'] as String?;
                               final messageType = type == ChatMessageType.voice
                                   ? 'VOICE'
                                   : type == ChatMessageType.image
@@ -237,7 +238,7 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
                                       : 'DOCUMENT';
                               await cubit.sendMedia(
                                 messageType: messageType,
-                                content: content.isEmpty ? file.name : content,
+                                content: mediaUrl ?? (content.isEmpty ? file.name : content),
                                 mediaMetadata: media,
                               );
                             } else {
