@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../error/api_error_mapper.dart';
 import '../../injection_container.dart';
 import '../../app.dart';
 import '../theme/app_theme.dart';
@@ -39,7 +40,10 @@ class _BootstrapAppState extends State<BootstrapApp> {
       if (!mounted) return;
       setState(() {
         _phase = _BootstrapPhase.error;
-        _errorMessage = e.toString();
+        _errorMessage = ApiErrorMapper.fromObject(
+          e,
+          fallback: 'Unable to start the app. Please try again.',
+        );
       });
     }
   }

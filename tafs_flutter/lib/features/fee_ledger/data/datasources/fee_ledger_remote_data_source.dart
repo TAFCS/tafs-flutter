@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../../../core/error/failures.dart';
 import '../models/fee_month_status_dto.dart';
 import '../models/ledger_response_dto.dart';
@@ -37,9 +38,17 @@ class FeeLedgerRemoteDataSourceImpl implements FeeLedgerRemoteDataSource {
       }
       throw const ServerFailure('Failed to load ledger');
     } on DioException catch (e) {
-      throw ServerFailure(e.message ?? 'Network error');
+      throw ServerFailure(ApiErrorMapper.fromDioException(
+        e,
+        fallback: 'Unable to load fee details right now. Please try again.',
+      ));
+    } on Failure {
+      rethrow;
     } catch (e) {
-      throw ServerFailure(e.toString());
+      throw ServerFailure(ApiErrorMapper.fromObject(
+        e,
+        fallback: 'Unable to load fee details right now. Please try again.',
+      ));
     }
   }
 
@@ -63,9 +72,17 @@ class FeeLedgerRemoteDataSourceImpl implements FeeLedgerRemoteDataSource {
       }
       throw const ServerFailure('Failed to load vouchers');
     } on DioException catch (e) {
-      throw ServerFailure(e.message ?? 'Network error');
+      throw ServerFailure(ApiErrorMapper.fromDioException(
+        e,
+        fallback: 'Unable to load fee details right now. Please try again.',
+      ));
+    } on Failure {
+      rethrow;
     } catch (e) {
-      throw ServerFailure(e.toString());
+      throw ServerFailure(ApiErrorMapper.fromObject(
+        e,
+        fallback: 'Unable to load fee details right now. Please try again.',
+      ));
     }
   }
 
@@ -118,9 +135,17 @@ class FeeLedgerRemoteDataSourceImpl implements FeeLedgerRemoteDataSource {
         final vouchers = await getStudentVouchers(studentCc);
         return _buildFallbackMonths(vouchers);
       }
-      throw ServerFailure(e.message ?? 'Network error');
+      throw ServerFailure(ApiErrorMapper.fromDioException(
+        e,
+        fallback: 'Unable to load fee details right now. Please try again.',
+      ));
+    } on Failure {
+      rethrow;
     } catch (e) {
-      throw ServerFailure(e.toString());
+      throw ServerFailure(ApiErrorMapper.fromObject(
+        e,
+        fallback: 'Unable to load fee details right now. Please try again.',
+      ));
     }
   }
 
@@ -185,9 +210,17 @@ class FeeLedgerRemoteDataSourceImpl implements FeeLedgerRemoteDataSource {
         matches.sort((a, b) => b.issueDate.compareTo(a.issueDate));
         return VoucherResolutionDto(exists: true, voucher: matches.first);
       }
-      throw ServerFailure(e.message ?? 'Network error');
+      throw ServerFailure(ApiErrorMapper.fromDioException(
+        e,
+        fallback: 'Unable to load fee details right now. Please try again.',
+      ));
+    } on Failure {
+      rethrow;
     } catch (e) {
-      throw ServerFailure(e.toString());
+      throw ServerFailure(ApiErrorMapper.fromObject(
+        e,
+        fallback: 'Unable to load fee details right now. Please try again.',
+      ));
     }
   }
 

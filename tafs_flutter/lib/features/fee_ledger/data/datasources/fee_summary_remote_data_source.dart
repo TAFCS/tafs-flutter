@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../../../core/error/failures.dart';
 import '../models/fee_summary_dto.dart';
 
@@ -22,9 +23,17 @@ class FeeSummaryRemoteDataSourceImpl implements FeeSummaryRemoteDataSource {
       }
       throw const ServerFailure('Failed to load fee summary');
     } on DioException catch (e) {
-      throw ServerFailure(e.message ?? 'Network error');
+      throw ServerFailure(ApiErrorMapper.fromDioException(
+        e,
+        fallback: 'Unable to load fee summary right now. Please try again.',
+      ));
+    } on Failure {
+      rethrow;
     } catch (e) {
-      throw ServerFailure(e.toString());
+      throw ServerFailure(ApiErrorMapper.fromObject(
+        e,
+        fallback: 'Unable to load fee summary right now. Please try again.',
+      ));
     }
   }
 }

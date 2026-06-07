@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/fee_summary.dart';
 import '../../domain/repositories/fee_summary_repository.dart';
@@ -16,7 +17,7 @@ class FeeSummaryRepositoryImpl implements FeeSummaryRepository {
     } on Failure catch (f) {
       return Left(f);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
     }
   }
 }

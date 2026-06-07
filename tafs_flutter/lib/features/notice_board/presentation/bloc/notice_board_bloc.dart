@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../domain/repositories/notice_board_repository.dart';
 import 'notice_board_event.dart';
 import 'notice_board_state.dart';
@@ -28,7 +29,7 @@ class NoticeBoardBloc extends Bloc<NoticeBoardEvent, NoticeBoardState> {
         unreadCount: unread,
       ));
     } catch (e) {
-      emit(NoticeBoardError(e.toString()));
+      emit(NoticeBoardError(ApiErrorMapper.fromObject(e)));
     }
   }
 

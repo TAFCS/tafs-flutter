@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../domain/entities/fee_month_status.dart';
 import '../../domain/entities/voucher_resolution.dart';
 import '../../domain/usecases/get_student_fee_months_usecase.dart';
@@ -31,7 +32,7 @@ class FeeLedgerBloc extends Bloc<FeeLedgerEvent, FeeLedgerState> {
     String? monthsError;
     List<FeeMonthStatus> months = const [];
     monthsResult.fold(
-      (failure) => monthsError = failure.message,
+      (failure) => monthsError = ApiErrorMapper.userMessage(failure),
       (value) => months = value,
     );
 
@@ -66,7 +67,10 @@ class FeeLedgerBloc extends Bloc<FeeLedgerEvent, FeeLedgerState> {
     );
 
     return result.fold(
-      (failure) => VoucherResolution(exists: false, message: failure.message),
+      (failure) => VoucherResolution(
+        exists: false,
+        message: ApiErrorMapper.userMessage(failure),
+      ),
       (value) => value,
     );
   }

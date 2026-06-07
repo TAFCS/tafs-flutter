@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/cnic_verification_result.dart';
 import '../../domain/entities/parent.dart';
@@ -34,7 +35,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } on Failure catch (failure) {
       return Left(failure);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
     }
   }
 
@@ -42,13 +43,12 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, void>> logout() async {
     try {
       try {
-        // Read the cached access token so the server can revoke the refresh token
         final cached = await localDataSource.getCachedParent();
         if (cached != null) {
           await remoteDataSource.logout(cached.accessToken);
         }
-      } catch (e) {
-        // We still want to clear local cache even if remote fails (e.g. no internet)
+      } catch (_) {
+        // Still clear local cache even if remote fails.
       }
       await localDataSource.clearCache();
       return const Right(null);
@@ -62,19 +62,17 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final cached = await localDataSource.getCachedParent();
       if (cached == null) {
-        // If there's no cached user, treat as already logged out/deleted.
         await localDataSource.clearCache();
         return const Right(null);
       }
 
-      // If remote deletion fails (e.g. no internet), do not delete locally.
       await remoteDataSource.deleteAccount(cached.accessToken);
       await localDataSource.clearCache();
       return const Right(null);
     } on Failure catch (failure) {
       return Left(failure);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
     }
   }
 
@@ -100,7 +98,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } on Failure catch (failure) {
       return Left(failure);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
     }
   }
 
@@ -124,7 +122,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } on Failure catch (failure) {
       return Left(failure);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
     }
   }
 
@@ -137,8 +135,7 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       final parentDto = await remoteDataSource.getProfile(cached.accessToken);
-      
-      // Merge with existing refresh token since remote getProfile doesn't provide it
+
       final updatedParent = parentDto.copyWith(
         refreshToken: cached.refreshToken,
       );
@@ -148,7 +145,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } on Failure catch (failure) {
       return Left(failure);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
     }
   }
 }

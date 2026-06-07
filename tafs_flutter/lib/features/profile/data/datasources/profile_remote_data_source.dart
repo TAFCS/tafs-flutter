@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../../../core/error/failures.dart';
 
 abstract class ProfileRemoteDataSource {
@@ -30,12 +31,17 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
         },
       );
     } on DioException catch (e) {
-      final message = e.response?.data?['message'] as String?
-          ?? e.message
-          ?? 'Failed to submit change request';
-      throw ServerFailure(message);
+      throw ServerFailure(ApiErrorMapper.fromDioException(
+        e,
+        fallback: 'Unable to submit your request right now. Please try again.',
+      ));
+    } on Failure {
+      rethrow;
     } catch (e) {
-      throw ServerFailure(e.toString());
+      throw ServerFailure(ApiErrorMapper.fromObject(
+        e,
+        fallback: 'Unable to submit your request right now. Please try again.',
+      ));
     }
   }
 }

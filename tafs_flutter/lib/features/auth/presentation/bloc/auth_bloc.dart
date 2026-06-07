@@ -1,4 +1,5 @@
 import 'package:hydrated_bloc/hydrated_bloc.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../data/models/parent_dto.dart';
 import '../../domain/entities/parent.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -89,7 +90,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     result.fold(
       (failure) => emit(AuthProfileRefreshFailed(
         parent: currentParent,
-        message: failure.message,
+        message: ApiErrorMapper.userMessage(failure),
       )),
       (parent) => emit(AuthAuthenticated(parent)),
     );
@@ -126,7 +127,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
       deviceType: event.deviceType,
     );
     result.fold(
-      (failure) => emit(AuthError(failure.message)),
+      (failure) => emit(AuthError(ApiErrorMapper.userMessage(failure))),
       (parent) => emit(AuthAuthenticated(parent)),
     );
   }
@@ -147,7 +148,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     emit(AuthLoading());
     final result = await repository.deleteAccount();
     result.fold(
-      (failure) => emit(AuthError(failure.message)),
+      (failure) => emit(AuthError(ApiErrorMapper.userMessage(failure))),
       (_) async {
         await clear(); // Wipe hydrated_bloc disk cache so restart shows login
         emit(AuthUnauthenticated());
@@ -164,7 +165,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     emit(SignupCnicVerifying());
     final result = await repository.verifyCnic(event.cnic);
     result.fold(
-      (failure) => emit(SignupCnicInvalid(failure.message)),
+      (failure) => emit(SignupCnicInvalid(ApiErrorMapper.userMessage(failure))),
       (result) {
         if (result.exists) {
           emit(SignupCnicValid(
@@ -172,7 +173,12 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
             guardianName: result.guardianName ?? 'Guardian',
           ));
         } else {
-          emit(SignupCnicInvalid(result.message ?? 'CNIC not found'));
+          emit(SignupCnicInvalid(
+            ApiErrorMapper.sanitize(
+              result.message,
+              fallback: 'CNIC not found in system.',
+            ),
+          ));
         }
       },
     );
@@ -192,7 +198,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     );
     result.fold(
       (failure) => emit(SignupRegisterFailed(
-        message: failure.message,
+        message: ApiErrorMapper.userMessage(failure),
         cnic: event.cnic,
         guardianName: event.guardianName,
       )),

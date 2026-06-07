@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/chat_outbox_entry.dart';
 import '../../domain/repositories/chat_repository.dart';
@@ -116,7 +117,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         repository.markAsRead();
       }
     } catch (e) {
-      emit(ChatError(e.toString()));
+      emit(ChatError(ApiErrorMapper.fromObject(
+        e,
+        fallback: 'Unable to load messages right now. Please try again.',
+      )));
     }
   }
 

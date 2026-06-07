@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/repositories/profile_repository.dart';
 import '../datasources/profile_remote_data_source.dart';
@@ -24,7 +25,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
     } on Failure catch (failure) {
       return Left(failure);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
     }
   }
 }

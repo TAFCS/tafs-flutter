@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../domain/usecases/get_ledger_usecase.dart';
 import '../../domain/usecases/get_student_vouchers_usecase.dart';
 import 'student_ledger_event.dart';
@@ -26,7 +27,7 @@ class StudentLedgerBloc extends Bloc<StudentLedgerEvent, StudentLedgerState> {
     final vouchersResult = await getStudentVouchers(event.studentCc);
 
     ledgerResult.fold(
-      (failure) => emit(StudentLedgerError(failure.message)),
+      (failure) => emit(StudentLedgerError(ApiErrorMapper.userMessage(failure))),
       (ledger) {
         vouchersResult.fold(
           (_) => emit(StudentLedgerLoaded(ledger: ledger, vouchers: const [])),

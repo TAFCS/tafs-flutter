@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../domain/usecases/get_fee_summary_usecase.dart';
 import 'fee_summary_event.dart';
 import 'fee_summary_state.dart';
@@ -21,7 +22,7 @@ class FeeSummaryBloc extends Bloc<FeeSummaryEvent, FeeSummaryState> {
 
     final result = await getFeeSummary(event.studentCc);
     result.fold(
-      (failure) => emit(FeeSummaryError(failure.message)),
+      (failure) => emit(FeeSummaryError(ApiErrorMapper.userMessage(failure))),
       (summary) => emit(FeeSummaryLoaded(summary)),
     );
   }

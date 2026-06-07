@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../../../core/theme/app_theme.dart';
 
 import '../../../../core/widgets/student_profile_card.dart';
@@ -522,7 +523,14 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ApiErrorMapper.fromObject(
+              e,
+              fallback: 'Could not open the challan. Please try again.',
+            )),
+          ),
+        );
       }
     }
   }
@@ -540,7 +548,14 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(ApiErrorMapper.fromObject(
+                e,
+                fallback: 'Download failed. Please try again.',
+              )),
+            ),
+          );
         }
       }
       return;
@@ -629,7 +644,14 @@ class _ChallanOptionsSheetState extends State<_ChallanOptionsSheet> {
     } catch (e) {
       setState(() => _isDownloading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ApiErrorMapper.fromObject(
+              e,
+              fallback: 'Download failed. Please try again.',
+            )),
+          ),
+        );
       }
     }
   }
