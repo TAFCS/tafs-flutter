@@ -40,12 +40,33 @@ class _AuthGateState extends State<AuthGate> {
     return MultiBlocListener(
       listeners: [
         BlocListener<AuthBloc, AuthState>(
-          listenWhen: (previous, current) =>
-              current is AuthUnauthenticated &&
-              (previous is AuthAuthenticated || previous is AuthLoading),
+          listenWhen: (previous, current) {
+            if (current is! AuthUnauthenticated) return false;
+            return previous is AuthAuthenticated ||
+                previous is AuthLoading ||
+                previous is AuthProfileRefreshFailed ||
+                previous is AuthAccountDeletionRequested;
+          },
           listener: (context, state) {
             Navigator.popUntil(context, (route) => route.isFirst);
             resetSessionState(context);
+          },
+        ),
+        BlocListener<AuthBloc, AuthState>(
+          listenWhen: (previous, current) =>
+              current is AuthAccountDeletionRequested,
+          listener: (context, state) {
+            if (state is! AuthAccountDeletionRequested) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Account deletion request submitted. An admin will review it shortly.',
+                ),
+              ),
+            );
+            context.read<AuthBloc>().add(
+                  AuthAccountDeletionRequestedAcknowledged(state.parent),
+                );
           },
         ),
         BlocListener<AuthBloc, AuthState>(
@@ -82,6 +103,7 @@ class _AuthGateState extends State<AuthGate> {
           final Parent? sessionParent = switch (authState) {
             AuthAuthenticated(:final parent) => parent,
             AuthProfileRefreshFailed(:final parent) => parent,
+            AuthAccountDeletionRequested(:final parent) => parent,
             _ => null,
           };
 

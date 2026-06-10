@@ -19,6 +19,9 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     on<AuthLoginRequested>(_onAuthLoginRequested);
     on<AuthLogoutRequested>(_onAuthLogoutRequested);
     on<AuthDeleteAccountRequested>(_onAuthDeleteAccountRequested);
+    on<AuthAccountDeletionRequestedAcknowledged>(
+      _onAccountDeletionRequestedAcknowledged,
+    );
     on<AuthVerifyCnicRequested>(_onVerifyCnicRequested);
     on<AuthRegisterRequested>(_onRegisterRequested);
     on<AuthSignupResetRequested>(_onSignupResetRequested);
@@ -145,15 +148,28 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     AuthDeleteAccountRequested event,
     Emitter<AuthState> emit,
   ) async {
-    emit(AuthLoading());
-    final result = await repository.deleteAccount();
+    final Parent? currentParent = switch (state) {
+      AuthAuthenticated(:final parent) => parent,
+      AuthProfileRefreshFailed(:final parent) => parent,
+      _ => null,
+    };
+    if (currentParent == null) return;
+
+    final result = await repository.requestAccountDeletion();
     result.fold(
-      (failure) => emit(AuthError(ApiErrorMapper.userMessage(failure))),
-      (_) async {
-        await clear(); // Wipe hydrated_bloc disk cache so restart shows login
-        emit(AuthUnauthenticated());
-      },
+      (failure) => emit(AuthProfileRefreshFailed(
+        parent: currentParent,
+        message: ApiErrorMapper.userMessage(failure),
+      )),
+      (_) => emit(AuthAccountDeletionRequested(currentParent)),
     );
+  }
+
+  void _onAccountDeletionRequestedAcknowledged(
+    AuthAccountDeletionRequestedAcknowledged event,
+    Emitter<AuthState> emit,
+  ) {
+    emit(AuthAuthenticated(event.parent));
   }
 
   // ─── Signup handlers ───────────────────────────────────────────────────────

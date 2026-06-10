@@ -11,7 +11,7 @@ abstract class AuthRepository {
     String? deviceType,
   });
   Future<Either<Failure, void>> logout();
-  Future<Either<Failure, void>> deleteAccount();
+  Future<Either<Failure, void>> requestAccountDeletion();
   Future<Either<Failure, Parent?>> getCachedUser();
 
   // Signup methods

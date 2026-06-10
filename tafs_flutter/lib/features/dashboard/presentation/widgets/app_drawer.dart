@@ -200,7 +200,7 @@ class AppDrawer extends StatelessWidget {
           _buildDrawerItem(
             context: context,
             icon: Icons.delete_forever_rounded,
-            text: 'Delete Account',
+            text: 'Request Account Deletion',
             onTap: () async {
               Navigator.pop(context);
 
@@ -241,13 +241,14 @@ class AppDrawer extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Delete account?'),
+          title: const Text('Request account deletion?'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'This will permanently delete your app account and you will be signed out.',
+                'Your request will be sent to the school admin for review. '
+                'Your account stays active until it is approved.',
               ),
               const SizedBox(height: 12),
               const Text('Type DELETE to confirm:'),
@@ -269,7 +270,7 @@ class AppDrawer extends StatelessWidget {
                 if (!ok) return;
                 Navigator.of(dialogContext).pop(true);
               },
-              child: const Text('Delete'),
+              child: const Text('Submit request'),
             ),
           ],
         );

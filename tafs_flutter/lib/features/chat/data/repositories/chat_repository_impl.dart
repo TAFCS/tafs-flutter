@@ -34,6 +34,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   bool _isDrainingOutbox = false;
 
   /// Fires when the refresh token is also expired — the app should redirect to login.
+  @override
   Stream<void> get onSessionExpired => _sessionExpiredController.stream;
 
   ChatRepositoryImpl({

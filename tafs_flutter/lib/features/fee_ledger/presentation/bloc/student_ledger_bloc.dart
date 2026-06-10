@@ -30,7 +30,8 @@ class StudentLedgerBloc extends Bloc<StudentLedgerEvent, StudentLedgerState> {
       (failure) => emit(StudentLedgerError(ApiErrorMapper.userMessage(failure))),
       (ledger) {
         vouchersResult.fold(
-          (_) => emit(StudentLedgerLoaded(ledger: ledger, vouchers: const [])),
+          (failure) =>
+              emit(StudentLedgerError(ApiErrorMapper.userMessage(failure))),
           (vouchers) =>
               emit(StudentLedgerLoaded(ledger: ledger, vouchers: vouchers)),
         );

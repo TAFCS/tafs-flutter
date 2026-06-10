@@ -79,7 +79,7 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
             final months = state.months;
             final vouchers = state.vouchers;
 
-            if (months.isEmpty) {
+            if (months.isEmpty && vouchers.isEmpty) {
               return const _NoMonthsView();
             }
 

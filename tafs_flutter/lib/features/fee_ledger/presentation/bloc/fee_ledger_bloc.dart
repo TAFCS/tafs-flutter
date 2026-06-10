@@ -43,7 +43,7 @@ class FeeLedgerBloc extends Bloc<FeeLedgerEvent, FeeLedgerState> {
 
     final vouchersResult = await getStudentVouchers(event.studentCc);
     vouchersResult.fold(
-      (_) => emit(FeeLedgerLoaded(months: months, vouchers: const [])),
+      (failure) => emit(FeeLedgerError(ApiErrorMapper.userMessage(failure))),
       (vouchers) => emit(FeeLedgerLoaded(months: months, vouchers: vouchers)),
     );
   }

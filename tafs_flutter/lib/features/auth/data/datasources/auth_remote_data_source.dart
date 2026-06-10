@@ -12,7 +12,7 @@ abstract class AuthRemoteDataSource {
     String? deviceType,
   });
   Future<void> logout(String accessToken);
-  Future<void> deleteAccount(String accessToken);
+  Future<void> requestAccountDeletion(String accessToken);
   Future<Map<String, dynamic>> verifyCnic(String cnic);
   Future<ParentDto> registerParent(
     String cnic,
@@ -107,11 +107,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> deleteAccount(String accessToken) async {
+  Future<void> requestAccountDeletion(String accessToken) async {
     final String baseUrl = AppConfig.apiBaseUrl;
     try {
-      await dio.delete(
-        '$baseUrl/auth/parent/account',
+      await dio.post(
+        '$baseUrl/auth/parent/account/deletion-request',
         options: Options(
           headers: {
             'Content-Type': 'application/json',
@@ -123,7 +123,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw ServerFailure(
         ApiErrorMapper.fromDioException(
           e,
-          fallback: 'Unable to delete your account right now. Please try again.',
+          fallback:
+              'Unable to submit your deletion request right now. Please try again.',
         ),
       );
     } on Failure {
@@ -132,7 +133,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw ServerFailure(
         ApiErrorMapper.fromObject(
           e,
-          fallback: 'Unable to delete your account right now. Please try again.',
+          fallback:
+              'Unable to submit your deletion request right now. Please try again.',
         ),
       );
     }

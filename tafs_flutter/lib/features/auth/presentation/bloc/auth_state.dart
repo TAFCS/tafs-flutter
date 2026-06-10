@@ -35,6 +35,16 @@ class AuthProfileRefreshFailed extends AuthState {
   List<Object> get props => [parent, message];
 }
 
+/// One-shot state after parent submits account deletion request (stays logged in).
+class AuthAccountDeletionRequested extends AuthState {
+  final Parent parent;
+
+  const AuthAccountDeletionRequested(this.parent);
+
+  @override
+  List<Object> get props => [parent];
+}
+
 class AuthUnauthenticated extends AuthState {}
 
 class AuthError extends AuthState {

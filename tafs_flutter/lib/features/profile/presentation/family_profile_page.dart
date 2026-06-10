@@ -182,7 +182,7 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                             color: AppTheme.danger,
                           ),
                           label: const Text(
-                            'Delete account',
+                            'Request account deletion',
                             style: TextStyle(
                               color: AppTheme.danger,
                               fontSize: 13,
@@ -231,13 +231,14 @@ Future<bool?> _showDeleteAccountDialog(BuildContext context) async {
     context: context,
     builder: (dialogContext) {
       return AlertDialog(
-        title: const Text('Delete account?'),
+        title: const Text('Request account deletion?'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'This will permanently delete your app account and you will be signed out.',
+              'Your request will be sent to the school admin for review. '
+              'Your account stays active until it is approved.',
             ),
             const SizedBox(height: 12),
             const Text('Type DELETE to confirm:'),
@@ -259,7 +260,7 @@ Future<bool?> _showDeleteAccountDialog(BuildContext context) async {
               if (!ok) return;
               Navigator.of(dialogContext).pop(true);
             },
-            child: const Text('Delete'),
+            child: const Text('Submit request'),
           ),
         ],
       );

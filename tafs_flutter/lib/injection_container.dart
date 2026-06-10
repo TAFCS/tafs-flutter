@@ -127,6 +127,10 @@ class InjectionContainer {
 
     chatBloc = ChatBloc(repository: chatRepository);
 
+    chatRepository.onSessionExpired.listen((_) {
+      authBloc.add(AuthLogoutRequested());
+    });
+
     supportTicketRepository = SupportTicketRepositoryImpl(
       dio: dio,
       chatRepository: chatRepository,

@@ -58,16 +58,14 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, void>> deleteAccount() async {
+  Future<Either<Failure, void>> requestAccountDeletion() async {
     try {
       final cached = await localDataSource.getCachedParent();
       if (cached == null) {
-        await localDataSource.clearCache();
-        return const Right(null);
+        return Left(CacheFailure('No cached user found. Please login again.'));
       }
 
-      await remoteDataSource.deleteAccount(cached.accessToken);
-      await localDataSource.clearCache();
+      await remoteDataSource.requestAccountDeletion(cached.accessToken);
       return const Right(null);
     } on Failure catch (failure) {
       return Left(failure);

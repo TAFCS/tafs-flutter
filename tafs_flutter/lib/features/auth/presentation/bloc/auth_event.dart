@@ -42,6 +42,15 @@ class AuthLogoutRequested extends AuthEvent {}
 
 class AuthDeleteAccountRequested extends AuthEvent {}
 
+class AuthAccountDeletionRequestedAcknowledged extends AuthEvent {
+  final Parent parent;
+
+  const AuthAccountDeletionRequestedAcknowledged(this.parent);
+
+  @override
+  List<Object?> get props => [parent];
+}
+
 // ─── Signup Events ────────────────────────────────────────────────────────
 
 class AuthVerifyCnicRequested extends AuthEvent {
