@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/parent.dart';
+import '../../domain/entities/staff_user.dart';
 
 abstract class AuthEvent extends Equatable {
   const AuthEvent();
@@ -19,6 +20,19 @@ class AuthProfileRefreshFailureAcknowledged extends AuthEvent {
 
   @override
   List<Object?> get props => [parent];
+}
+
+class AuthStaffLoginRequested extends AuthEvent {
+  final String username;
+  final String password;
+
+  const AuthStaffLoginRequested({
+    required this.username,
+    required this.password,
+  });
+
+  @override
+  List<Object?> get props => [username, password];
 }
 
 class AuthLoginRequested extends AuthEvent {
@@ -104,4 +118,13 @@ class AuthTokenRefreshed extends AuthEvent {
 
   @override
   List<Object?> get props => [parent];
+}
+
+class AuthStaffTokenRefreshed extends AuthEvent {
+  final StaffUser staff;
+
+  const AuthStaffTokenRefreshed(this.staff);
+
+  @override
+  List<Object?> get props => [staff];
 }

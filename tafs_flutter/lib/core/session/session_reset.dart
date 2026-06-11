@@ -7,6 +7,8 @@ import '../../features/chat/presentation/bloc/chat_bloc.dart';
 import '../../features/chat/presentation/bloc/chat_event.dart';
 import '../../features/support_tickets/presentation/bloc/support_ticket_list_bloc.dart';
 import '../../features/support_tickets/presentation/bloc/support_ticket_list_event.dart';
+import '../../features/support_tickets/staff/presentation/bloc/staff_pending_approvals_cubit.dart';
+import '../../features/support_tickets/staff/presentation/bloc/staff_ticket_queue_bloc.dart';
 import '../../features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import '../../features/fee_ledger/presentation/bloc/fee_ledger_event.dart';
 import '../../features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
@@ -28,6 +30,13 @@ void resetSessionState(BuildContext context) {
   context.read<ProfileBloc>().add(const ProfileResetRequested());
   context.read<ChatBloc>().add(ChatSessionStopRequested());
   context.read<SupportTicketListBloc>().add(const SupportTicketListResetRequested());
+}
+
+/// Clears staff support-ticket state on staff logout.
+void resetStaffSessionState(BuildContext context) {
+  context.read<StaffTicketQueueBloc>().add(StaffQueueReset());
+  context.read<StaffPendingApprovalsCubit>().reset();
+  context.read<ChatBloc>().add(ChatSessionStopRequested());
 }
 
 /// Keeps [SelectedStudentCubit] aligned with the authenticated student list.

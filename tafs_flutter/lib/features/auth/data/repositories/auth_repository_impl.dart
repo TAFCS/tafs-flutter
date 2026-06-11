@@ -3,6 +3,7 @@ import '../../../../core/error/api_error_mapper.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/cnic_verification_result.dart';
 import '../../domain/entities/parent.dart';
+import '../../domain/entities/staff_user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_data_source.dart';
 import '../datasources/auth_remote_data_source.dart';
@@ -30,6 +31,7 @@ class AuthRepositoryImpl implements AuthRepository {
         fcmToken: fcmToken,
         deviceType: deviceType,
       );
+      await localDataSource.clearStaffCache();
       await localDataSource.cacheParent(parentDto);
       return Right(parentDto);
     } on Failure catch (failure) {
@@ -43,17 +45,47 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, void>> logout() async {
     try {
       try {
-        final cached = await localDataSource.getCachedParent();
-        if (cached != null) {
-          await remoteDataSource.logout(cached.accessToken);
+        final staff = await localDataSource.getCachedStaff();
+        if (staff != null) {
+          await remoteDataSource.staffLogout(staff.accessToken);
+        } else {
+          final cached = await localDataSource.getCachedParent();
+          if (cached != null) {
+            await remoteDataSource.logout(cached.accessToken);
+          }
         }
-      } catch (_) {
-        // Still clear local cache even if remote fails.
-      }
+      } catch (_) {}
       await localDataSource.clearCache();
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure('Failed to logout locally'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, StaffUser>> staffLogin(
+    String username,
+    String password,
+  ) async {
+    try {
+      final staffDto = await remoteDataSource.staffLogin(username, password);
+      await localDataSource.clearParentCache();
+      await localDataSource.cacheStaff(staffDto);
+      return Right(staffDto);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (e) {
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
+    }
+  }
+
+  @override
+  Future<Either<Failure, StaffUser?>> getCachedStaff() async {
+    try {
+      final staff = await localDataSource.getCachedStaff();
+      return Right(staff);
+    } catch (e) {
+      return Left(CacheFailure('Failed to get cached staff'));
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/parent.dart';
+import '../../domain/entities/staff_user.dart';
 
 abstract class AuthState extends Equatable {
   const AuthState();
@@ -19,6 +20,15 @@ class AuthAuthenticated extends AuthState {
 
   @override
   List<Object> get props => [parent];
+}
+
+class AuthAuthenticatedStaff extends AuthState {
+  final StaffUser staff;
+
+  const AuthAuthenticatedStaff(this.staff);
+
+  @override
+  List<Object> get props => [staff];
 }
 
 /// One-shot state when profile refresh fails; keeps last known [parent] for UI.

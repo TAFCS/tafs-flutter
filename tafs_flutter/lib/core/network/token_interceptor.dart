@@ -3,44 +3,26 @@ import 'package:dio/dio.dart';
 import '../config/app_config.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/models/parent_dto.dart';
+import '../../features/auth/data/models/staff_user_dto.dart';
 
-/// Dio interceptor that transparently refreshes the parent access token on 401.
-///
-/// Flow:
-///   1. Original request → 401 response
-///   2. Read cached [ParentDto] from [AuthLocalDataSource] for the refresh token
-///   3. POST /auth/parent/refresh → get a new token pair
-///   4. Persist updated [ParentDto] back to secure storage
-///   5. Notify [AuthBloc] via [onTokenRefreshed] so in-memory state + HydratedBloc
-///      cache are kept in sync with FlutterSecureStorage (fixes dual-storage desync)
-///   6. Retry the original request (and any queued concurrent requests)
-///   7. If refresh also fails → clear storage + call [onLogout] (triggers AuthBloc)
+/// Dio interceptor that transparently refreshes access tokens on 401 for parent or staff sessions.
 class TokenInterceptor extends Interceptor {
   final Dio dio;
   final AuthLocalDataSource localDataSource;
-
-  /// Called when refresh fails or no cached session exists.
-  /// In practice: `() => InjectionContainer.authBloc.add(AuthLogoutRequested())`
   final void Function() onLogout;
-
-  /// Called after a successful silent token refresh with the updated [ParentDto].
-  /// In practice: `(parent) => authBloc.add(AuthTokenRefreshed(parent))`
-  /// This keeps [AuthBloc] state and HydratedBloc JSON cache in sync with
-  /// [FlutterSecureStorage] — preventing stale-token loops after app restart.
-  final void Function(ParentDto parent) onTokenRefreshed;
+  final void Function(ParentDto parent) onParentTokenRefreshed;
+  final void Function(StaffUserDto staff) onStaffTokenRefreshed;
 
   bool _isRefreshing = false;
   final List<_PendingRequest> _pendingQueue = [];
-
-  /// Dedicated Dio for the refresh call — must NOT carry this interceptor
-  /// to avoid an infinite loop when the refresh endpoint itself returns 401.
   final Dio _refreshDio = Dio();
 
   TokenInterceptor({
     required this.dio,
     required this.localDataSource,
     required this.onLogout,
-    required this.onTokenRefreshed,
+    required this.onParentTokenRefreshed,
+    required this.onStaffTokenRefreshed,
   });
 
   @override
@@ -50,21 +32,19 @@ class TokenInterceptor extends Interceptor {
   ) async {
     final alreadyRetried = err.requestOptions.extra['__retried_after_refresh'] == true;
     final path = err.requestOptions.path;
-    final isAuthPath =
-        path.contains('/auth/parent/login') ||
+    final isAuthPath = path.contains('/auth/parent/login') ||
         path.contains('/auth/parent/refresh') ||
-        path.contains('/auth/parent/logout');
+        path.contains('/auth/parent/logout') ||
+        path.contains('/auth/staff/mobile/login') ||
+        path.contains('/auth/staff/mobile/refresh') ||
+        path.contains('/auth/staff/mobile/logout');
 
-    // Only intercept 401s that are not from the refresh endpoint itself
-    if (err.response?.statusCode != 401 ||
-        isAuthPath ||
-        alreadyRetried) {
+    if (err.response?.statusCode != 401 || isAuthPath || alreadyRetried) {
       return handler.next(err);
     }
 
     final RequestOptions original = err.requestOptions;
 
-    // ── Concurrent request during an ongoing refresh ──────────────────────
     if (_isRefreshing) {
       final completer = Completer<Response<dynamic>>();
       _pendingQueue.add(
@@ -79,51 +59,66 @@ class TokenInterceptor extends Interceptor {
     }
 
     _isRefreshing = true;
-
     String? newAccess;
-    try {
-      // ── 1. Read cached session ──────────────────────────────────────────
-      final cached = await localDataSource.getCachedParent();
-      if (cached == null) {
-        _failAll(err);
-        await _clearAndLogout();
-        return handler.next(err);
-      }
 
-      // ── 2. Call refresh endpoint ────────────────────────────────────────
+    try {
+      final isStaff = await localDataSource.hasStaffSession();
       final String baseUrl = AppConfig.apiBaseUrl;
 
-      final refreshResponse = await _refreshDio.post<Map<String, dynamic>>(
-        '$baseUrl/auth/parent/refresh',
-        data: {'refreshToken': cached.refreshToken},
-        options: Options(headers: {'Content-Type': 'application/json'}),
-      );
+      if (isStaff) {
+        final cached = await localDataSource.getCachedStaff();
+        if (cached == null) {
+          _failAll(err);
+          await _clearAndLogout();
+          return handler.next(err);
+        }
 
-      // ── 3. Unwrap { data: { accessToken, refreshToken } } envelope ───────
-      final innerData = (refreshResponse.data!['data'] as Map<String, dynamic>);
-      newAccess = innerData['accessToken'] as String;
-      final newRefresh = innerData['refreshToken'] as String;
+        final refreshResponse = await _refreshDio.post<Map<String, dynamic>>(
+          '$baseUrl/auth/staff/mobile/refresh',
+          data: {'refreshToken': cached.refreshToken},
+          options: Options(headers: {'Content-Type': 'application/json'}),
+        );
 
-      // ── 4. Persist updated tokens ───────────────────────────────────────
-      final updated = ParentDto(
-        id: cached.id,
-        username: cached.username,
-        householdName: cached.householdName,
-        students: cached.students,
-        guardians: cached.guardians,
-        accessToken: newAccess,
-        refreshToken: newRefresh,
-        photographUrl: cached.photographUrl,
-      );
-      await localDataSource.cacheParent(updated);
+        final inner = refreshResponse.data!['data'] as Map<String, dynamic>;
+        newAccess = inner['accessToken'] as String;
+        final newRefresh = inner['refreshToken'] as String;
+        final updated = cached.copyWith(
+          accessToken: newAccess,
+          refreshToken: newRefresh,
+        );
+        await localDataSource.cacheStaff(updated);
+        onStaffTokenRefreshed(updated);
+      } else {
+        final cached = await localDataSource.getCachedParent();
+        if (cached == null) {
+          _failAll(err);
+          await _clearAndLogout();
+          return handler.next(err);
+        }
 
-      // ── 5. Sync AuthBloc + HydratedBloc cache with new tokens ───────────
-      // This is critical: without this, AuthBloc holds the old expired token
-      // in memory and in its HydratedBloc JSON file. After a cold restart,
-      // the old token would be restored and cause an immediate 401 on launch.
-      onTokenRefreshed(updated);
+        final refreshResponse = await _refreshDio.post<Map<String, dynamic>>(
+          '$baseUrl/auth/parent/refresh',
+          data: {'refreshToken': cached.refreshToken},
+          options: Options(headers: {'Content-Type': 'application/json'}),
+        );
 
-      // ── 6. Drain queue — retry all waiting requests ─────────────────────
+        final inner = refreshResponse.data!['data'] as Map<String, dynamic>;
+        newAccess = inner['accessToken'] as String;
+        final newRefresh = inner['refreshToken'] as String;
+        final updated = ParentDto(
+          id: cached.id,
+          username: cached.username,
+          householdName: cached.householdName,
+          students: cached.students,
+          guardians: cached.guardians,
+          accessToken: newAccess,
+          refreshToken: newRefresh,
+          photographUrl: cached.photographUrl,
+        );
+        await localDataSource.cacheParent(updated);
+        onParentTokenRefreshed(updated);
+      }
+
       for (final pending in _pendingQueue) {
         pending.options.headers['Authorization'] = 'Bearer $newAccess';
         pending.options.extra['__retried_after_refresh'] = true;
@@ -136,14 +131,14 @@ class TokenInterceptor extends Interceptor {
       }
       _pendingQueue.clear();
 
-      // ── 7. Retry the original request ───────────────────────────────────
       original.headers['Authorization'] = 'Bearer $newAccess';
       original.extra['__retried_after_refresh'] = true;
       final retriedResponse = await dio.fetch<dynamic>(original);
       return handler.resolve(retriedResponse);
     } on DioException catch (refreshErr) {
-      // Logout only when refresh itself is rejected/unauthorized.
-      if (refreshErr.requestOptions.path.contains('/auth/parent/refresh') &&
+      final refreshPath = refreshErr.requestOptions.path;
+      if ((refreshPath.contains('/auth/parent/refresh') ||
+              refreshPath.contains('/auth/staff/mobile/refresh')) &&
           (refreshErr.response?.statusCode == 401 ||
               refreshErr.response?.statusCode == 403)) {
         _failAll(err);
@@ -153,7 +148,6 @@ class TokenInterceptor extends Interceptor {
       _failAll(refreshErr);
       return handler.next(refreshErr);
     } catch (_) {
-      // Refresh parsing/storage failed — treat as auth session failure.
       _failAll(err);
       await _clearAndLogout();
       return handler.next(err);
@@ -161,8 +155,6 @@ class TokenInterceptor extends Interceptor {
       _isRefreshing = false;
     }
   }
-
-  // ─── Helpers ──────────────────────────────────────────────────────────────
 
   void _failAll(DioException err) {
     for (final pending in _pendingQueue) {

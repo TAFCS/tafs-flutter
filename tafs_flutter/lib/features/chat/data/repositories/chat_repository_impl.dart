@@ -120,13 +120,13 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
   @override
   void connect() async {
-    final cached = await localDataSource.getCachedParent();
-    if (cached == null) return;
+    final token = await localDataSource.getActiveAccessToken();
+    if (token == null) return;
 
     final socketUrl = baseUrl.replaceAll('/api/v1', '');
 
     if (_socket != null) {
-      _socket!.io.options?['auth'] = {'token': cached.accessToken};
+      _socket!.io.options?['auth'] = {'token': token};
       if (!_socket!.connected) {
         _socket!.connect();
       }
@@ -135,7 +135,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
     _socket = io.io(socketUrl, io.OptionBuilder()
       .setTransports(['websocket', 'polling'])
-      .setAuth({'token': cached.accessToken})
+      .setAuth({'token': token})
       .enableAutoConnect()
       .enableReconnection()
       .setReconnectionDelay(1000)
@@ -158,46 +158,71 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
         // Pause auto-reconnect while we refresh
         _socket?.io.options?['reconnectionAttempts'] = 0;
         try {
-          final cached = await localDataSource.getCachedParent();
-          if (cached == null || cached.refreshToken.isEmpty) {
-            _socket?.io.options?['reconnectionAttempts'] = 0;
-            _socket?.disconnect();
-            _sessionExpiredController.add(null);
-            return;
-          }
+          final isStaff = await localDataSource.hasStaffSession();
+          final refreshBaseUrl = AppConfig.apiBaseUrl;
+          String? newAccessToken;
 
-          final refreshBaseUrl =
-              AppConfig.apiBaseUrl;
-          final response = await Dio().post(
-            '$refreshBaseUrl/auth/parent/refresh',
-            data: {'refreshToken': cached.refreshToken},
-            options: Options(
-              headers: {'Content-Type': 'application/json'},
-              validateStatus: (s) => s != null && s < 500,
-            ),
-          );
-
-          if (response.statusCode == 200 && response.data != null) {
-            final body = response.data['data'] ?? response.data;
-            final newAccessToken = body['accessToken'] as String?;
-            final newRefreshToken = body['refreshToken'] as String?;
-
-            if (newAccessToken != null) {
-              final updated = cached.copyWith(
-                accessToken: newAccessToken,
-                refreshToken: newRefreshToken ?? cached.refreshToken,
-              );
-              await localDataSource.cacheParent(updated);
-
-              if (_socket != null) {
-                _socket!.io.options?['auth'] = {'token': newAccessToken};
-                _socket!.io.options?['reconnectionAttempts'] = 99999;
-                _socket!.connect(); // reconnect with fresh token
-              }
-            } else {
+          if (isStaff) {
+            final cached = await localDataSource.getCachedStaff();
+            if (cached == null || cached.refreshToken.isEmpty) {
+              _socket?.io.options?['reconnectionAttempts'] = 0;
               _socket?.disconnect();
               _sessionExpiredController.add(null);
+              return;
             }
+            final response = await Dio().post(
+              '$refreshBaseUrl/auth/staff/mobile/refresh',
+              data: {'refreshToken': cached.refreshToken},
+              options: Options(
+                headers: {'Content-Type': 'application/json'},
+                validateStatus: (s) => s != null && s < 500,
+              ),
+            );
+            if (response.statusCode == 200 && response.data != null) {
+              final body = response.data['data'] ?? response.data;
+              newAccessToken = body['accessToken'] as String?;
+              final newRefresh = body['refreshToken'] as String?;
+              if (newAccessToken != null) {
+                await localDataSource.cacheStaff(cached.copyWith(
+                  accessToken: newAccessToken,
+                  refreshToken: newRefresh ?? cached.refreshToken,
+                ));
+              }
+            }
+          } else {
+            final cached = await localDataSource.getCachedParent();
+            if (cached == null || cached.refreshToken.isEmpty) {
+              _socket?.io.options?['reconnectionAttempts'] = 0;
+              _socket?.disconnect();
+              _sessionExpiredController.add(null);
+              return;
+            }
+            final response = await Dio().post(
+              '$refreshBaseUrl/auth/parent/refresh',
+              data: {'refreshToken': cached.refreshToken},
+              options: Options(
+                headers: {'Content-Type': 'application/json'},
+                validateStatus: (s) => s != null && s < 500,
+              ),
+            );
+            if (response.statusCode == 200 && response.data != null) {
+              final body = response.data['data'] ?? response.data;
+              newAccessToken = body['accessToken'] as String?;
+              final newRefreshToken = body['refreshToken'] as String?;
+              if (newAccessToken != null) {
+                final updated = cached.copyWith(
+                  accessToken: newAccessToken,
+                  refreshToken: newRefreshToken ?? cached.refreshToken,
+                );
+                await localDataSource.cacheParent(updated);
+              }
+            }
+          }
+
+          if (newAccessToken != null && _socket != null) {
+            _socket!.io.options?['auth'] = {'token': newAccessToken};
+            _socket!.io.options?['reconnectionAttempts'] = 99999;
+            _socket!.connect();
           } else {
             _socket?.disconnect();
             _sessionExpiredController.add(null);
@@ -217,18 +242,17 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
         _sessionExpiredController.add(null);
       } else if (!isJwtExpired && !isUnauthorized) {
         // Network / other error — just update the token for the next attempt
-        final latest = await localDataSource.getCachedParent();
+        final latest = await localDataSource.getActiveAccessToken();
         if (latest != null && _socket != null) {
-          _socket!.io.options?['auth'] = {'token': latest.accessToken};
+          _socket!.io.options?['auth'] = {'token': latest};
         }
       }
     });
 
     _socket!.on('reconnect_attempt', (_) async {
-      // Token is updated in connect_error handler; just ensure latest is applied.
-      final latest = await localDataSource.getCachedParent();
+      final latest = await localDataSource.getActiveAccessToken();
       if (latest != null && _socket != null) {
-        _socket!.io.options?['auth'] = {'token': latest.accessToken};
+        _socket!.io.options?['auth'] = {'token': latest};
       }
     });
 
@@ -245,9 +269,10 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       if (!kIsWeb) {
         try {
           final fcmToken = await FcmRegistrationService.instance.getToken();
-          if (fcmToken != null) {
+          final parent = await localDataSource.getCachedParent();
+          if (parent != null && fcmToken != null) {
             _socket!.emit('registerFcmToken', {
-              'familyId': cached.id,
+              'familyId': parent.id,
               'token': fcmToken,
               'deviceType': Platform.isAndroid ? 'ANDROID' : 'IOS',
             });

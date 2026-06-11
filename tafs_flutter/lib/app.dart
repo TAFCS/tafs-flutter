@@ -8,6 +8,8 @@ import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/selected_student_cubit.dart';
 import 'features/chat/presentation/bloc/chat_bloc.dart';
 import 'features/support_tickets/presentation/bloc/support_ticket_list_bloc.dart';
+import 'features/support_tickets/staff/presentation/bloc/staff_pending_approvals_cubit.dart';
+import 'features/support_tickets/staff/presentation/bloc/staff_ticket_queue_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/student_ledger_bloc.dart';
@@ -40,6 +42,12 @@ class MyApp extends StatelessWidget {
         BlocProvider<SupportTicketListBloc>(
           create: (_) => InjectionContainer.supportTicketListBloc,
         ),
+        BlocProvider<StaffTicketQueueBloc>(
+          create: (_) => InjectionContainer.staffTicketQueueBloc,
+        ),
+        BlocProvider<StaffPendingApprovalsCubit>(
+          create: (_) => InjectionContainer.staffPendingApprovalsCubit,
+        ),
         BlocProvider<ChatBloc>(
           create: (_) => InjectionContainer.chatBloc,
         ),
@@ -52,7 +60,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         navigatorKey: appNavigatorKey,
-        title: 'TAFS Parent Portal',
+        title: 'TAFS',
         theme: AppTheme.lightTheme,
         home: const AuthGate(),
         debugShowCheckedModeBanner: false,

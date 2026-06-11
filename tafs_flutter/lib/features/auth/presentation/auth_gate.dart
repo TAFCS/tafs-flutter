@@ -16,6 +16,7 @@ import '../../auth/presentation/bloc/selected_student_cubit.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../dashboard/presentation/main_shell_page.dart';
 import '../../profile/presentation/student_selection_page.dart';
+import '../../support_tickets/staff/presentation/pages/staff_support_tickets_shell.dart';
 
 /// AuthGate is the app root widget.
 class AuthGate extends StatefulWidget {
@@ -67,6 +68,7 @@ class _AuthGateState extends State<AuthGate> {
           listenWhen: (previous, current) {
             if (current is! AuthUnauthenticated) return false;
             return previous is AuthAuthenticated ||
+                previous is AuthAuthenticatedStaff ||
                 previous is AuthLoading ||
                 previous is AuthProfileRefreshFailed ||
                 previous is AuthAccountDeletionRequested;
@@ -74,6 +76,7 @@ class _AuthGateState extends State<AuthGate> {
           listener: (context, state) {
             Navigator.popUntil(context, (route) => route.isFirst);
             resetSessionState(context);
+            resetStaffSessionState(context);
           },
         ),
         BlocListener<AuthBloc, AuthState>(
@@ -124,6 +127,10 @@ class _AuthGateState extends State<AuthGate> {
       ],
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
+          if (authState is AuthAuthenticatedStaff) {
+            return StaffSupportTicketsShell(staff: authState.staff);
+          }
+
           final Parent? sessionParent = switch (authState) {
             AuthAuthenticated(:final parent) => parent,
             AuthProfileRefreshFailed(:final parent) => parent,

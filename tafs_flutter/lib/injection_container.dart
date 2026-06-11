@@ -5,8 +5,13 @@ import 'features/auth/data/datasources/auth_local_data_source.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/domain/usecases/parent_login_usecase.dart';
+import 'features/auth/domain/usecases/staff_login_usecase.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
+import 'features/support_tickets/staff/data/repositories/staff_support_ticket_repository_impl.dart';
+import 'features/support_tickets/staff/domain/repositories/staff_support_ticket_repository.dart';
+import 'features/support_tickets/staff/presentation/bloc/staff_pending_approvals_cubit.dart';
+import 'features/support_tickets/staff/presentation/bloc/staff_ticket_queue_bloc.dart';
 
 // Fee Ledger
 import 'features/fee_ledger/data/datasources/fee_ledger_remote_data_source.dart';
@@ -46,6 +51,9 @@ class InjectionContainer {
   static late final ChatBloc chatBloc;
   static late final SupportTicketListBloc supportTicketListBloc;
   static late final SupportTicketRepository supportTicketRepository;
+  static late final StaffSupportTicketRepository staffSupportTicketRepository;
+  static late final StaffTicketQueueBloc staffTicketQueueBloc;
+  static late final StaffPendingApprovalsCubit staffPendingApprovalsCubit;
   static late final Dio dio;
   static late final NoticeBoardBloc noticeBoardBloc;
   static late final ProfileBloc profileBloc;
@@ -92,6 +100,7 @@ class InjectionContainer {
 
     // Use cases
     final parentLoginUseCase = ParentLoginUseCase(authRepository);
+    final staffLoginUseCase = StaffLoginUseCase(authRepository);
     final getStudentFeeMonthsUseCase = GetStudentFeeMonthsUseCase(
       feeLedgerRepository,
     );
@@ -107,6 +116,7 @@ class InjectionContainer {
     // BLoCs
     authBloc = AuthBloc(
       loginUseCase: parentLoginUseCase,
+      staffLoginUseCase: staffLoginUseCase,
       repository: authRepository,
     );
 
@@ -139,6 +149,17 @@ class InjectionContainer {
       repository: supportTicketRepository,
     );
 
+    staffSupportTicketRepository = StaffSupportTicketRepositoryImpl(
+      dio: dio,
+      chatRepository: chatRepository,
+    );
+    staffTicketQueueBloc = StaffTicketQueueBloc(
+      repository: staffSupportTicketRepository,
+    );
+    staffPendingApprovalsCubit = StaffPendingApprovalsCubit(
+      repository: staffSupportTicketRepository,
+    );
+
     final noticeBoardRemoteDataSource = NoticeBoardRemoteDataSource(dio);
     final noticeBoardRepository = NoticeBoardRepositoryImpl(
       remoteDataSource: noticeBoardRemoteDataSource,
@@ -159,9 +180,9 @@ class InjectionContainer {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final cached = await localDataSource.getCachedParent();
-          if (cached != null && !options.headers.containsKey('Authorization')) {
-            options.headers['Authorization'] = 'Bearer ${cached.accessToken}';
+          final token = await localDataSource.getActiveAccessToken();
+          if (token != null && !options.headers.containsKey('Authorization')) {
+            options.headers['Authorization'] = 'Bearer $token';
           }
           handler.next(options);
         },
@@ -176,7 +197,8 @@ class InjectionContainer {
         dio: dio,
         localDataSource: localDataSource,
         onLogout: () => authBloc.add(AuthLogoutRequested()),
-        onTokenRefreshed: (parent) => authBloc.add(AuthTokenRefreshed(parent)),
+        onParentTokenRefreshed: (parent) => authBloc.add(AuthTokenRefreshed(parent)),
+        onStaffTokenRefreshed: (staff) => authBloc.add(AuthStaffTokenRefreshed(staff)),
       ),
     );
   }

@@ -9,6 +9,8 @@ import 'bloc/auth_event.dart';
 import 'bloc/auth_state.dart';
 import 'signup_page.dart';
 
+enum _LoginMode { parent, staff }
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -18,42 +20,61 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  _LoginMode _mode = _LoginMode.parent;
   String? _loginError;
 
   @override
   void initState() {
     super.initState();
-    _emailController.addListener(() {
-      if (_loginError != null) setState(() => _loginError = null);
-    });
-    _passwordController.addListener(() {
-      if (_loginError != null) setState(() => _loginError = null);
+    _usernameController.addListener(_clearError);
+    _passwordController.addListener(_clearError);
+  }
+
+  void _clearError() {
+    if (_loginError != null) setState(() => _loginError = null);
+  }
+
+  void _setMode(_LoginMode mode) {
+    if (_mode == mode) return;
+    setState(() {
+      _mode = mode;
+      _loginError = null;
+      _usernameController.clear();
     });
   }
 
   void _login() async {
-    if (_formKey.currentState!.validate()) {
-      final fcmToken = await FcmRegistrationService.instance.getToken();
-      final deviceType = await FcmRegistrationService.instance.getDeviceType();
+    if (!_formKey.currentState!.validate()) return;
 
-      if (!mounted) return;
-
+    if (_mode == _LoginMode.staff) {
       context.read<AuthBloc>().add(
-        AuthLoginRequested(
-          username: _emailController.text.trim(),
-          password: _passwordController.text,
-          fcmToken: fcmToken,
-          deviceType: deviceType,
-        ),
-      );
+            AuthStaffLoginRequested(
+              username: _usernameController.text.trim(),
+              password: _passwordController.text,
+            ),
+          );
+      return;
     }
+
+    final fcmToken = await FcmRegistrationService.instance.getToken();
+    final deviceType = await FcmRegistrationService.instance.getDeviceType();
+    if (!mounted) return;
+
+    context.read<AuthBloc>().add(
+          AuthLoginRequested(
+            username: _usernameController.text.trim(),
+            password: _passwordController.text,
+            fcmToken: fcmToken,
+            deviceType: deviceType,
+          ),
+        );
   }
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -70,17 +91,17 @@ class _LoginPageState extends State<LoginPage> {
       },
       builder: (context, state) {
         final isLoading = state is AuthLoading;
+        final isStaff = _mode == _LoginMode.staff;
 
         return Scaffold(
           body: SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                // Adaptive spacing: tighter on small screens (< 680px), normal otherwise.
                 final h = constraints.maxHeight;
                 final vertPad = (h * 0.06).clamp(16.0, 40.0);
-                final sectionGap = (h * 0.06).clamp(16.0, 48.0);
+                final sectionGap = (h * 0.05).clamp(16.0, 40.0);
                 final fieldGap = (h * 0.035).clamp(12.0, 24.0);
-                final logoHeight = (h * 0.14).clamp(60.0, 100.0);
+                final logoHeight = (h * 0.12).clamp(56.0, 88.0);
 
                 return SingleChildScrollView(
                   padding: EdgeInsets.symmetric(
@@ -95,8 +116,7 @@ class _LoginPageState extends State<LoginPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            SizedBox(height: sectionGap),
-                            // Logo
+                            SizedBox(height: sectionGap * 0.5),
                             Center(
                               child: Image.asset(
                                 'assets/logo.png',
@@ -105,30 +125,41 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                             SizedBox(height: sectionGap),
-                            // Welcome text
                             Text(
-                              'Welcome Back',
+                              'Sign in to TAFS',
                               style: Theme.of(context).textTheme.displayMedium,
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: AppTheme.space2),
                             Text(
-                              'Log in to your parent portal to manage fees and stay updated.',
+                              isStaff
+                                  ? 'Staff portal — support tickets and school operations.'
+                                  : 'Parent portal — fees, updates, and school queries.',
                               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                     color: AppTheme.blue300,
                                   ),
                               textAlign: TextAlign.center,
                             ),
                             SizedBox(height: sectionGap),
-                            // Form fields
+                            _LoginModeSwitcher(
+                              mode: _mode,
+                              onChanged: _setMode,
+                            ),
+                            const SizedBox(height: AppTheme.space5),
                             CustomTextField(
-                              label: 'Email Address',
-                              hint: 'e.g. parent@example.com',
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
+                              label: isStaff ? 'Username' : 'Email Address',
+                              hint: isStaff
+                                  ? 'e.g. general.respondent'
+                                  : 'e.g. parent@example.com',
+                              controller: _usernameController,
+                              keyboardType: isStaff
+                                  ? TextInputType.text
+                                  : TextInputType.emailAddress,
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
-                                  return 'Please enter your email address';
+                                  return isStaff
+                                      ? 'Please enter your username'
+                                      : 'Please enter your email address';
                                 }
                                 return null;
                               },
@@ -156,16 +187,25 @@ class _LoginPageState extends State<LoginPage> {
                                 decoration: BoxDecoration(
                                   color: AppTheme.danger.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                                  border: Border.all(color: AppTheme.danger.withValues(alpha: 0.3)),
+                                  border: Border.all(
+                                    color: AppTheme.danger.withValues(alpha: 0.3),
+                                  ),
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.error_outline_rounded, color: AppTheme.danger, size: 16),
+                                    const Icon(
+                                      Icons.error_outline_rounded,
+                                      color: AppTheme.danger,
+                                      size: 16,
+                                    ),
                                     const SizedBox(width: AppTheme.space2),
                                     Expanded(
                                       child: Text(
                                         _loginError!,
-                                        style: const TextStyle(color: AppTheme.danger, fontSize: 13),
+                                        style: const TextStyle(
+                                          color: AppTheme.danger,
+                                          fontSize: 13,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -173,52 +213,52 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ],
                             SizedBox(height: sectionGap),
-                            // Login button
                             CustomButton(
-                              text: 'Log In',
+                              text: isStaff ? 'Sign in as Staff' : 'Sign in as Parent',
                               isLoading: isLoading,
                               onPressed: _login,
                             ),
-                            const SizedBox(height: AppTheme.space4),
-                            // Sign up link
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "Don't have an account? ",
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                        color: AppTheme.blue300,
-                                      ),
-                                ),
-                                TextButton(
-                                  onPressed: () async {
-                                    final email = await Navigator.push<String>(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const SignupPage(),
-                                      ),
-                                    );
-                                    if (email != null && mounted) {
-                                      _emailController.text = email;
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Account created. Please log in.',
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  child: Text(
-                                    'Sign Up',
+                            if (!isStaff) ...[
+                              const SizedBox(height: AppTheme.space4),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "Don't have an account? ",
                                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                          color: AppTheme.navy,
-                                          fontWeight: FontWeight.w700,
+                                          color: AppTheme.blue300,
                                         ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                  TextButton(
+                                    onPressed: () async {
+                                      final email = await Navigator.push<String>(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const SignupPage(),
+                                        ),
+                                      );
+                                      if (email != null && mounted) {
+                                        _usernameController.text = email;
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Account created. Please log in.',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    child: Text(
+                                      'Sign Up',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                            color: AppTheme.navy,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                             SizedBox(height: sectionGap),
                           ],
                         ),
@@ -235,3 +275,109 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
+/// Compact role picker sitting above the credential fields.
+class _LoginModeSwitcher extends StatelessWidget {
+  final _LoginMode mode;
+  final ValueChanged<_LoginMode> onChanged;
+
+  const _LoginModeSwitcher({
+    required this.mode,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppTheme.surface2,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.blue100.withValues(alpha: 0.6)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ModeTab(
+              label: 'Parent',
+              icon: Icons.family_restroom_outlined,
+              selected: mode == _LoginMode.parent,
+              onTap: () => onChanged(_LoginMode.parent),
+            ),
+          ),
+          Expanded(
+            child: _ModeTab(
+              label: 'Staff',
+              icon: Icons.badge_outlined,
+              selected: mode == _LoginMode.staff,
+              onTap: () => onChanged(_LoginMode.staff),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModeTab extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ModeTab({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
+        color: selected ? AppTheme.navy : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: AppTheme.navy.withValues(alpha: 0.18),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: selected ? AppTheme.white : AppTheme.blue300,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: selected ? AppTheme.white : AppTheme.navy,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

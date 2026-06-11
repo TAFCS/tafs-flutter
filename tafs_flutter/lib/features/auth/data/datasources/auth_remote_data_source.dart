@@ -3,6 +3,7 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/error/api_error_mapper.dart';
 import '../../../../core/error/failures.dart';
 import '../models/parent_dto.dart';
+import '../models/staff_user_dto.dart';
 
 abstract class AuthRemoteDataSource {
   Future<ParentDto> login(
@@ -22,6 +23,8 @@ abstract class AuthRemoteDataSource {
     String? deviceType,
   });
   Future<ParentDto> getProfile(String accessToken);
+  Future<StaffUserDto> staffLogin(String username, String password);
+  Future<void> staffLogout(String accessToken);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -235,6 +238,52 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         ),
       );
     }
+  }
+
+  @override
+  Future<StaffUserDto> staffLogin(String username, String password) async {
+    final String baseUrl = AppConfig.apiBaseUrl;
+    try {
+      final response = await dio.post(
+        '$baseUrl/auth/staff/mobile/login',
+        data: {'username': username, 'password': password},
+        options: Options(headers: {'Content-Type': 'application/json'}),
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return StaffUserDto.fromJson(response.data as Map<String, dynamic>);
+      }
+      throw const ServerFailure('Unable to log in right now. Please try again.');
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw const InvalidCredentialsFailure();
+      }
+      throw ServerFailure(
+        ApiErrorMapper.fromDioException(
+          e,
+          fallback: 'Unable to log in right now. Please try again.',
+        ),
+      );
+    } on Failure {
+      rethrow;
+    } catch (e) {
+      throw ServerFailure(ApiErrorMapper.fromObject(e));
+    }
+  }
+
+  @override
+  Future<void> staffLogout(String accessToken) async {
+    final String baseUrl = AppConfig.apiBaseUrl;
+    try {
+      await dio.post(
+        '$baseUrl/auth/staff/mobile/logout',
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+        ),
+      );
+    } catch (_) {}
   }
 
   @override

@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../entities/cnic_verification_result.dart';
 import '../entities/parent.dart';
+import '../entities/staff_user.dart';
 
 abstract class AuthRepository {
   Future<Either<Failure, Parent>> login(
@@ -13,6 +14,8 @@ abstract class AuthRepository {
   Future<Either<Failure, void>> logout();
   Future<Either<Failure, void>> requestAccountDeletion();
   Future<Either<Failure, Parent?>> getCachedUser();
+  Future<Either<Failure, StaffUser?>> getCachedStaff();
+  Future<Either<Failure, StaffUser>> staffLogin(String username, String password);
 
   // Signup methods
   Future<Either<Failure, CnicVerificationResult>> verifyCnic(String cnic);

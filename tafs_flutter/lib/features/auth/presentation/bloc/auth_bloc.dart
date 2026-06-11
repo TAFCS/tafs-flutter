@@ -1,22 +1,27 @@
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import '../../../../core/error/api_error_mapper.dart';
 import '../../data/models/parent_dto.dart';
+import '../../data/models/staff_user_dto.dart';
 import '../../domain/entities/parent.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/parent_login_usecase.dart';
+import '../../domain/usecases/staff_login_usecase.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
 class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
   final ParentLoginUseCase loginUseCase;
+  final StaffLoginUseCase staffLoginUseCase;
   final AuthRepository repository;
 
   AuthBloc({
     required this.loginUseCase,
+    required this.staffLoginUseCase,
     required this.repository,
   }) : super(AuthInitial()) {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<AuthLoginRequested>(_onAuthLoginRequested);
+    on<AuthStaffLoginRequested>(_onAuthStaffLoginRequested);
     on<AuthLogoutRequested>(_onAuthLogoutRequested);
     on<AuthDeleteAccountRequested>(_onAuthDeleteAccountRequested);
     on<AuthAccountDeletionRequestedAcknowledged>(
@@ -29,16 +34,19 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     on<AuthRefreshRequested>(_onAuthRefreshRequested);
     on<AuthProfileRefreshFailureAcknowledged>(_onProfileRefreshFailureAcknowledged);
     on<AuthTokenRefreshed>(_onAuthTokenRefreshed);
+    on<AuthStaffTokenRefreshed>(_onAuthStaffTokenRefreshed);
   }
-
-  // ─── HydratedBloc serialization ────────────────────────────────────────────
-  // Only persist AuthAuthenticated. All transient / signup states return null,
-  // meaning hydrated_bloc falls back to the initial state (AuthInitial).
 
   @override
   Map<String, dynamic>? toJson(AuthState state) {
     if (state is AuthAuthenticated) {
-      return (state.parent as ParentDto).toJson();
+      return {
+        'sessionType': 'parent',
+        ...(state.parent as ParentDto).toJson(),
+      };
+    }
+    if (state is AuthAuthenticatedStaff) {
+      return (state.staff as StaffUserDto).toJson();
     }
     return null;
   }
@@ -46,24 +54,30 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
   @override
   AuthState? fromJson(Map<String, dynamic> json) {
     try {
-      final parent = ParentDto.fromJson(json);
-      if (parent.accessToken.isEmpty || parent.refreshToken.isEmpty) {
-        return null;
+      if (json['sessionType'] == 'staff') {
+        final staff = StaffUserDto.fromJson(json);
+        if (staff.accessToken.isEmpty || staff.refreshToken.isEmpty) return null;
+        return AuthAuthenticatedStaff(staff);
       }
+      final parent = ParentDto.fromJson(json);
+      if (parent.accessToken.isEmpty || parent.refreshToken.isEmpty) return null;
       return AuthAuthenticated(parent);
     } catch (_) {
-      // Any deserialization error → start fresh (show login)
       return null;
     }
   }
 
-  // ─── Event handlers ────────────────────────────────────────────────────────
-
-  /// Still kept so other parts of the code can trigger a manual check.
   Future<void> _onAuthCheckRequested(
     AuthCheckRequested event,
     Emitter<AuthState> emit,
   ) async {
+    final staffResult = await repository.getCachedStaff();
+    final staff = staffResult.fold((_) => null, (s) => s);
+    if (staff != null) {
+      emit(AuthAuthenticatedStaff(staff));
+      return;
+    }
+
     final result = await repository.getCachedUser();
     result.fold(
       (failure) => emit(AuthUnauthenticated()),
@@ -106,16 +120,18 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     emit(AuthAuthenticated(event.parent));
   }
 
-  /// Called by [TokenInterceptor] when it silently refreshes the access token
-  /// on a 401 response. Emitting [AuthAuthenticated] with the updated parent
-  /// keeps the in-memory BLoC state and the HydratedBloc JSON cache in sync
-  /// with [FlutterSecureStorage] — preventing the dual-storage desync that
-  /// caused stale-token loops after app restart.
   Future<void> _onAuthTokenRefreshed(
     AuthTokenRefreshed event,
     Emitter<AuthState> emit,
   ) async {
     emit(AuthAuthenticated(event.parent));
+  }
+
+  Future<void> _onAuthStaffTokenRefreshed(
+    AuthStaffTokenRefreshed event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthAuthenticatedStaff(event.staff));
   }
 
   Future<void> _onAuthLoginRequested(
@@ -135,12 +151,24 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     );
   }
 
+  Future<void> _onAuthStaffLoginRequested(
+    AuthStaffLoginRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    final result = await staffLoginUseCase(event.username, event.password);
+    result.fold(
+      (failure) => emit(AuthError(ApiErrorMapper.userMessage(failure))),
+      (staff) => emit(AuthAuthenticatedStaff(staff)),
+    );
+  }
+
   Future<void> _onAuthLogoutRequested(
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
     await repository.logout();
-    await clear(); // Wipe hydrated_bloc disk cache so restart shows login
+    await clear();
     emit(AuthUnauthenticated());
   }
 
@@ -171,8 +199,6 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
   ) {
     emit(AuthAuthenticated(event.parent));
   }
-
-  // ─── Signup handlers ───────────────────────────────────────────────────────
 
   Future<void> _onVerifyCnicRequested(
     AuthVerifyCnicRequested event,
