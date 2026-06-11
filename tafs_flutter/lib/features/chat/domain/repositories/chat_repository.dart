@@ -31,6 +31,23 @@ abstract class ChatRepository {
   Stream<void> get onDisconnect;
   Stream<void> get onSessionExpired;
   Stream<Map<String, dynamic>> get onTicketMessagePayload;
+  Stream<void> get onTicketQueueChanged;
+  Stream<void> get onReplyPendingApproval;
   void enterTicket(String ticketId);
   void leaveTicket(String ticketId);
+
+  Future<List<ChatMessage>> getAdminAnnouncementHistory({
+    int take = 50,
+    int skip = 0,
+  });
+
+  void sendAnnouncement({
+    required String messageType,
+    required String content,
+    Map<String, dynamic>? mediaMetadata,
+    String? targetGrade,
+    String? targetSection,
+  });
+
+  Stream<ChatMessage> get onAnnouncementReceived;
 }

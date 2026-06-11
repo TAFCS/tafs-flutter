@@ -12,6 +12,9 @@ import 'features/support_tickets/staff/data/repositories/staff_support_ticket_re
 import 'features/support_tickets/staff/domain/repositories/staff_support_ticket_repository.dart';
 import 'features/support_tickets/staff/presentation/bloc/staff_pending_approvals_cubit.dart';
 import 'features/support_tickets/staff/presentation/bloc/staff_ticket_queue_bloc.dart';
+import 'features/chat/staff/data/repositories/staff_announcements_repository_impl.dart';
+import 'features/chat/staff/domain/repositories/staff_announcements_repository.dart';
+import 'features/chat/staff/presentation/bloc/staff_announcements_cubit.dart';
 
 // Fee Ledger
 import 'features/fee_ledger/data/datasources/fee_ledger_remote_data_source.dart';
@@ -54,6 +57,8 @@ class InjectionContainer {
   static late final StaffSupportTicketRepository staffSupportTicketRepository;
   static late final StaffTicketQueueBloc staffTicketQueueBloc;
   static late final StaffPendingApprovalsCubit staffPendingApprovalsCubit;
+  static late final StaffAnnouncementsRepository staffAnnouncementsRepository;
+  static late final StaffAnnouncementsCubit staffAnnouncementsCubit;
   static late final Dio dio;
   static late final NoticeBoardBloc noticeBoardBloc;
   static late final ProfileBloc profileBloc;
@@ -158,6 +163,14 @@ class InjectionContainer {
     );
     staffPendingApprovalsCubit = StaffPendingApprovalsCubit(
       repository: staffSupportTicketRepository,
+    );
+
+    staffAnnouncementsRepository = StaffAnnouncementsRepositoryImpl(
+      dio: dio,
+      chatRepository: chatRepository,
+    );
+    staffAnnouncementsCubit = StaffAnnouncementsCubit(
+      repository: staffAnnouncementsRepository,
     );
 
     final noticeBoardRemoteDataSource = NoticeBoardRemoteDataSource(dio);

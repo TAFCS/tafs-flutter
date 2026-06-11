@@ -15,8 +15,13 @@ import 'staff_ticket_thread_page.dart';
 
 class StaffSupportTicketsShell extends StatefulWidget {
   final StaffUser staff;
+  final bool embedded;
 
-  const StaffSupportTicketsShell({super.key, required this.staff});
+  const StaffSupportTicketsShell({
+    super.key,
+    required this.staff,
+    this.embedded = false,
+  });
 
   @override
   State<StaffSupportTicketsShell> createState() => _StaffSupportTicketsShellState();
@@ -32,7 +37,9 @@ class _StaffSupportTicketsShellState extends State<StaffSupportTicketsShell> {
     if (!canViewSupportTickets(widget.staff)) return;
     context.read<StaffTicketQueueBloc>().add(StaffQueueInit(widget.staff.role));
     if (widget.staff.role == 'SUPER_ADMIN') {
-      context.read<StaffPendingApprovalsCubit>().load();
+      final approvalsCubit = context.read<StaffPendingApprovalsCubit>();
+      approvalsCubit.startListening();
+      approvalsCubit.load();
     }
     _searchController.addListener(() => setState(() => _search = _searchController.text));
   }
@@ -75,6 +82,17 @@ class _StaffSupportTicketsShellState extends State<StaffSupportTicketsShell> {
   @override
   Widget build(BuildContext context) {
     if (!canViewSupportTickets(widget.staff)) {
+      if (widget.embedded) {
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Your account does not have access to Support Tickets.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        );
+      }
       return Scaffold(
         appBar: AppBar(title: const Text('Support Tickets')),
         body: const Center(
@@ -93,33 +111,7 @@ class _StaffSupportTicketsShellState extends State<StaffSupportTicketsShell> {
     final showFinance = showFinanceTab(widget.staff.role);
     final showOversight = showOversightTab(widget.staff.role);
 
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: const Text('Support Tickets'),
-        backgroundColor: AppTheme.white,
-        foregroundColor: AppTheme.navy,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              context.read<StaffTicketQueueBloc>().add(StaffQueueRefreshRequested());
-              if (widget.staff.role == 'SUPER_ADMIN') {
-                context.read<StaffPendingApprovalsCubit>().load();
-              }
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              resetStaffSessionState(context);
-              context.read<AuthBloc>().add(AuthLogoutRequested());
-            },
-          ),
-        ],
-      ),
-      body: Column(
+    final body = Column(
         children: [
           if (widget.staff.role == 'SUPER_ADMIN')
             StaffApprovalQueueWidget(onOpenTicket: _openThread),
@@ -284,7 +276,37 @@ class _StaffSupportTicketsShellState extends State<StaffSupportTicketsShell> {
             ),
           ),
         ],
+      );
+
+    if (widget.embedded) return body;
+
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: const Text('Support Tickets'),
+        backgroundColor: AppTheme.white,
+        foregroundColor: AppTheme.navy,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              context.read<StaffTicketQueueBloc>().add(StaffQueueRefreshRequested());
+              if (widget.staff.role == 'SUPER_ADMIN') {
+                context.read<StaffPendingApprovalsCubit>().load();
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              resetStaffSessionState(context);
+              context.read<AuthBloc>().add(AuthLogoutRequested());
+            },
+          ),
+        ],
       ),
+      body: body,
     );
   }
 

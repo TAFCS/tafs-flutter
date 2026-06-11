@@ -16,6 +16,8 @@ import '../datasources/chat_outbox_local_data_source.dart';
 import '../models/chat_message_dto.dart';
 import '../../../auth/data/datasources/auth_local_data_source.dart';
 
+const announcementConversationId = '00000000-0000-0000-0000-000000000000';
+
 class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   final Dio dio;
   final AuthLocalDataSource localDataSource;
@@ -30,6 +32,9 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   final _disconnectController = StreamController<void>.broadcast();
   final _sessionExpiredController = StreamController<void>.broadcast();
   final _ticketMessageController = StreamController<Map<String, dynamic>>.broadcast();
+  final _ticketQueueChangedController = StreamController<void>.broadcast();
+  final _replyPendingApprovalController = StreamController<void>.broadcast();
+  final _announcementController = StreamController<ChatMessage>.broadcast();
   bool _isRefreshingToken = false;
   bool _isDrainingOutbox = false;
 
@@ -50,6 +55,20 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   @override
   Stream<Map<String, dynamic>> get onTicketMessagePayload =>
       _ticketMessageController.stream;
+
+  @override
+  Stream<void> get onTicketQueueChanged =>
+      _ticketQueueChangedController.stream;
+
+  @override
+  Stream<void> get onReplyPendingApproval =>
+      _replyPendingApprovalController.stream;
+
+  void _emitTicketQueueChanged() {
+    if (!_ticketQueueChangedController.isClosed) {
+      _ticketQueueChangedController.add(null);
+    }
+  }
 
   @override
   void enterTicket(String ticketId) {
@@ -292,6 +311,9 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
         final messageJson = data['message'];
         final message = ChatMessageDto.fromJson(messageJson);
         _messageController.add(message);
+        if (_isAnnouncementMessage(message)) {
+          _announcementController.add(message);
+        }
       } catch (e) {
         print('Error parsing receiveMessage: $e');
       }
@@ -312,8 +334,27 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
         if (data is Map) {
           _ticketMessageController.add(Map<String, dynamic>.from(data));
         }
+        _emitTicketQueueChanged();
       } catch (e) {
         print('Error parsing ticketMessageReceived: $e');
+      }
+    });
+
+    for (final event in [
+      'ticketCreated',
+      'ticketClaimed',
+      'ticketTransferred',
+      'ticketForwarded',
+      'ticketClosed',
+      'replyReviewed',
+    ]) {
+      _socket!.on(event, (_) => _emitTicketQueueChanged());
+    }
+
+    _socket!.on('replyPendingApproval', (_) {
+      _emitTicketQueueChanged();
+      if (!_replyPendingApprovalController.isClosed) {
+        _replyPendingApprovalController.add(null);
       }
     });
 
@@ -623,4 +664,53 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
   @override
   Stream<void> get onDisconnect => _disconnectController.stream;
+
+  bool _isAnnouncementMessage(ChatMessage message) {
+    return message.isAnnouncement ||
+        message.conversationId == announcementConversationId;
+  }
+
+  @override
+  Future<List<ChatMessage>> getAdminAnnouncementHistory({
+    int take = 50,
+    int skip = 0,
+  }) async {
+    final response = await dio.get(
+      '/chat/history/admin/0',
+      queryParameters: {'take': take, 'skip': skip},
+    );
+    final data = response.data;
+    final List<dynamic> items;
+    if (data is List) {
+      items = data;
+    } else if (data is Map && data['data'] is List) {
+      items = data['data'] as List;
+    } else {
+      items = const [];
+    }
+    return items
+        .map((json) => ChatMessageDto.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  void sendAnnouncement({
+    required String messageType,
+    required String content,
+    Map<String, dynamic>? mediaMetadata,
+    String? targetGrade,
+    String? targetSection,
+  }) {
+    _socket?.emit('sendAnnouncement', {
+      'messageType': messageType.toUpperCase(),
+      'content': content,
+      if (mediaMetadata != null) 'mediaMetadata': mediaMetadata,
+      if (targetGrade != null) 'targetGrade': targetGrade,
+      if (targetSection != null) 'targetSection': targetSection,
+    });
+  }
+
+  @override
+  Stream<ChatMessage> get onAnnouncementReceived =>
+      _announcementController.stream;
 }

@@ -313,7 +313,7 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                     Stack(
                       children: [
                         AbsorbPointer(
-                          absorbing: state.sending,
+                          absorbing: state.sending || !state.isSocketConnected,
                           child: MessageInput(
                             replyingTo: null,
                             onCancelReply: () {},
@@ -342,6 +342,23 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                             },
                           ),
                         ),
+                        if (!state.isSocketConnected)
+                          Positioned.fill(
+                            child: ColoredBox(
+                              color: Colors.white.withValues(alpha: 0.6),
+                              child: Center(
+                                child: Text(
+                                  'OFFLINE — RECONNECTING',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red.shade700,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         if (state.sending)
                           const Positioned.fill(
                             child: ColoredBox(

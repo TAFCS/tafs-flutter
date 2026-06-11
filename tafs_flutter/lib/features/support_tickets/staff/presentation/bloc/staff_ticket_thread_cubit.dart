@@ -10,6 +10,7 @@ class StaffTicketThreadState {
   final bool loading;
   final bool sending;
   final bool actionLoading;
+  final bool isSocketConnected;
   final String? error;
   final String? actionError;
 
@@ -19,6 +20,7 @@ class StaffTicketThreadState {
     this.loading = false,
     this.sending = false,
     this.actionLoading = false,
+    this.isSocketConnected = true,
     this.error,
     this.actionError,
   });
@@ -29,6 +31,7 @@ class StaffTicketThreadState {
     bool? loading,
     bool? sending,
     bool? actionLoading,
+    bool? isSocketConnected,
     String? error,
     String? actionError,
     bool clearError = false,
@@ -40,6 +43,7 @@ class StaffTicketThreadState {
         loading: loading ?? this.loading,
         sending: sending ?? this.sending,
         actionLoading: actionLoading ?? this.actionLoading,
+        isSocketConnected: isSocketConnected ?? this.isSocketConnected,
         error: clearError ? null : (error ?? this.error),
         actionError: clearActionError ? null : (actionError ?? this.actionError),
       );
@@ -48,6 +52,8 @@ class StaffTicketThreadState {
 class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
   final StaffSupportTicketRepository repository;
   StreamSubscription<TicketMessage>? _sub;
+  StreamSubscription<void>? _connectSub;
+  StreamSubscription<void>? _disconnectSub;
   String? _activeTicketId;
 
   StaffTicketThreadCubit({required this.repository})
@@ -56,7 +62,20 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
   Future<void> load(String ticketId) async {
     _activeTicketId = ticketId;
     await _sub?.cancel();
-    emit(state.copyWith(loading: true, clearError: true, clearActionError: true));
+    await _connectSub?.cancel();
+    await _disconnectSub?.cancel();
+    emit(state.copyWith(
+      loading: true,
+      clearError: true,
+      clearActionError: true,
+      isSocketConnected: repository.isSocketConnected,
+    ));
+    _connectSub = repository.onSocketConnect.listen((_) {
+      emit(state.copyWith(isSocketConnected: true));
+    });
+    _disconnectSub = repository.onSocketDisconnect.listen((_) {
+      emit(state.copyWith(isSocketConnected: false));
+    });
     try {
       await repository.enterTicket(ticketId);
       await repository.markRead(ticketId);
@@ -65,6 +84,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
         ticket: detail.ticket,
         messages: detail.messages.reversed.toList(),
         loading: false,
+        isSocketConnected: repository.isSocketConnected,
       ));
       _sub = repository.onTicketMessage.listen((msg) {
         if (msg.ticketId != ticketId) return;
@@ -88,6 +108,8 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
     final id = _activeTicketId;
     if (id != null) await repository.leaveTicket(id);
     await _sub?.cancel();
+    await _connectSub?.cancel();
+    await _disconnectSub?.cancel();
     _sub = null;
     _activeTicketId = null;
   }

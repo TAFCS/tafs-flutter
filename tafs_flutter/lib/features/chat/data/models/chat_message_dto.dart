@@ -15,6 +15,8 @@ class ChatMessageDto extends ChatMessage {
     super.isAnnouncement,
     super.requiresAcknowledgment,
     super.isAcknowledged,
+    super.targetGrade,
+    super.targetSection,
   });
 
   factory ChatMessageDto.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,8 @@ class ChatMessageDto extends ChatMessage {
       isAnnouncement: json['is_announcement'] as bool? ?? false,
       requiresAcknowledgment: json['requires_acknowledgment'] as bool? ?? false,
       isAcknowledged: json['is_acknowledged'] as bool? ?? false,
+      targetGrade: json['target_grade'] as String?,
+      targetSection: json['target_section'] as String?,
     );
   }
 

@@ -21,6 +21,8 @@ class ChatMessage extends Equatable {
   final bool isAnnouncement;
   final bool requiresAcknowledgment;
   final bool isAcknowledged;
+  final String? targetGrade;
+  final String? targetSection;
 
   const ChatMessage({
     required this.id,
@@ -37,6 +39,8 @@ class ChatMessage extends Equatable {
     this.isAnnouncement = false,
     this.requiresAcknowledgment = false,
     this.isAcknowledged = false,
+    this.targetGrade,
+    this.targetSection,
   });
 
   ChatMessage copyWith({
@@ -49,6 +53,8 @@ class ChatMessage extends Equatable {
     bool? isAnnouncement,
     String? senderName,
     bool? isAcknowledged,
+    String? targetGrade,
+    String? targetSection,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -65,6 +71,8 @@ class ChatMessage extends Equatable {
       isAnnouncement: isAnnouncement ?? this.isAnnouncement,
       requiresAcknowledgment: requiresAcknowledgment,
       isAcknowledged: isAcknowledged ?? this.isAcknowledged,
+      targetGrade: targetGrade ?? this.targetGrade,
+      targetSection: targetSection ?? this.targetSection,
     );
   }
 
@@ -84,5 +92,7 @@ class ChatMessage extends Equatable {
         isAnnouncement,
         requiresAcknowledgment,
         isAcknowledged,
+        targetGrade,
+        targetSection,
       ];
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/staff_support_ticket.dart';
 import '../../domain/repositories/staff_support_ticket_repository.dart';
@@ -28,9 +29,14 @@ class StaffPendingApprovalsState {
 
 class StaffPendingApprovalsCubit extends Cubit<StaffPendingApprovalsState> {
   final StaffSupportTicketRepository repository;
+  StreamSubscription<void>? _approvalSub;
 
   StaffPendingApprovalsCubit({required this.repository})
       : super(const StaffPendingApprovalsState());
+
+  void startListening() {
+    _approvalSub ??= repository.onReplyPendingApproval.listen((_) => load());
+  }
 
   Future<void> load() async {
     emit(state.copyWith(loading: true, clearError: true));
@@ -45,5 +51,15 @@ class StaffPendingApprovalsCubit extends Cubit<StaffPendingApprovalsState> {
     }
   }
 
-  void reset() => emit(const StaffPendingApprovalsState());
+  void reset() {
+    _approvalSub?.cancel();
+    _approvalSub = null;
+    emit(const StaffPendingApprovalsState());
+  }
+
+  @override
+  Future<void> close() {
+    _approvalSub?.cancel();
+    return super.close();
+  }
 }

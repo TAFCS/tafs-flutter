@@ -83,7 +83,7 @@ class StaffTicketQueueBloc extends Bloc<StaffTicketQueueEvent, StaffTicketQueueS
     add(StaffQueueRefreshRequested());
     await repository.connectSocket();
     await _socketSub?.cancel();
-    _socketSub = repository.onTicketMessage.listen((_) {
+    _socketSub = repository.onTicketQueueChanged.listen((_) {
       add(StaffQueueSocketMessage());
     });
   }

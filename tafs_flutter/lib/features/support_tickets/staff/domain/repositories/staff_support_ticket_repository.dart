@@ -4,6 +4,11 @@ import '../entities/staff_support_ticket.dart';
 
 abstract class StaffSupportTicketRepository {
   Stream<TicketMessage> get onTicketMessage;
+  Stream<void> get onTicketQueueChanged;
+  Stream<void> get onReplyPendingApproval;
+  bool get isSocketConnected;
+  Stream<void> get onSocketConnect;
+  Stream<void> get onSocketDisconnect;
 
   Future<void> connectSocket();
   Future<void> disconnectSocket();

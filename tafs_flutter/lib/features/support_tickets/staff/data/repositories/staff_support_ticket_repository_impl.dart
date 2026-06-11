@@ -32,6 +32,23 @@ class StaffSupportTicketRepositoryImpl implements StaffSupportTicketRepository {
       });
 
   @override
+  Stream<void> get onTicketQueueChanged =>
+      chatRepository.onTicketQueueChanged;
+
+  @override
+  Stream<void> get onReplyPendingApproval =>
+      chatRepository.onReplyPendingApproval;
+
+  @override
+  bool get isSocketConnected => chatRepository.isConnected;
+
+  @override
+  Stream<void> get onSocketConnect => chatRepository.onConnect;
+
+  @override
+  Stream<void> get onSocketDisconnect => chatRepository.onDisconnect;
+
+  @override
   Future<void> connectSocket() async {
     chatRepository.connect();
   }
