@@ -21,7 +21,7 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   late ChatBloc _chatBloc;
   ChatMessage? _replyingTo;
   final ItemScrollController _itemScrollController = ItemScrollController();
@@ -32,14 +32,28 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _chatBloc = context.read<ChatBloc>();
+    _chatBloc.add(ChatViewEntered());
     _itemPositionsListener.itemPositions.addListener(_onScrollPositionChanged);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _chatBloc.add(ChatViewLeft());
     _itemPositionsListener.itemPositions.removeListener(_onScrollPositionChanged);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _chatBloc.add(ChatViewLeft());
+    } else if (state == AppLifecycleState.resumed) {
+      _chatBloc.add(ChatViewEntered());
+    }
   }
 
   void _onScrollPositionChanged() {

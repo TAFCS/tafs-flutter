@@ -16,6 +16,24 @@ class AppBootstrap {
   static const Duration _storageTimeout = Duration(seconds: 8);
   static const Duration _firebaseTimeout = Duration(seconds: 12);
 
+  static Completer<void>? _firebaseReadyCompleter;
+  static bool _firebaseReady = false;
+
+  /// Completes when [initFirebaseAndNotifications] finishes (success or failure).
+  static Future<void> waitForFirebase() async {
+    if (_firebaseReady) return;
+    _firebaseReadyCompleter ??= Completer<void>();
+    return _firebaseReadyCompleter!.future;
+  }
+
+  static void _markFirebaseReady() {
+    _firebaseReady = true;
+    final completer = _firebaseReadyCompleter;
+    if (completer != null && !completer.isCompleted) {
+      completer.complete();
+    }
+  }
+
   /// Loads `.env` (optional) and HydratedBloc storage. Throws on storage failure.
   static Future<void> prepareCore() async {
     await _loadEnv();
@@ -31,6 +49,8 @@ class AppBootstrap {
         options: DefaultFirebaseOptions.currentPlatform,
       ).timeout(_firebaseTimeout);
 
+      await FirebaseMessaging.instance.setAutoInitEnabled(true);
+
       FirebaseMessaging.onBackgroundMessage(
         _firebaseMessagingBackgroundHandler,
       );
@@ -40,6 +60,8 @@ class AppBootstrap {
       notificationService.setupInteractions();
     } catch (e, st) {
       debugPrint('Firebase/notifications init failed (non-fatal): $e\n$st');
+    } finally {
+      _markFirebaseReady();
     }
   }
 

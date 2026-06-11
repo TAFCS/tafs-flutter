@@ -9,6 +9,8 @@ import '../theme/app_theme.dart';
 import 'app_bootstrap.dart';
 import '../app_status/app_status_screens.dart';
 import '../app_status/app_status_service.dart';
+import '../services/fcm_registration_service.dart';
+import '../../features/auth/presentation/bloc/auth_state.dart';
 
 /// Shows UI immediately, then completes env/storage/DI without blocking the native splash.
 class BootstrapApp extends StatefulWidget {
@@ -47,10 +49,28 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        _phase == _BootstrapPhase.ready &&
-        !_recheckInProgress) {
-      unawaited(_recheckRemoteStatus(showLoading: false));
+    if (state == AppLifecycleState.resumed && _phase == _BootstrapPhase.ready) {
+      if (!_recheckInProgress) {
+        unawaited(_recheckRemoteStatus(showLoading: false));
+      }
+      _reregisterFcmIfAuthenticated();
+    }
+  }
+
+  void _reregisterFcmIfAuthenticated() {
+    if (!InjectionContainer.isInitialized) return;
+
+    final authState = InjectionContainer.authBloc.state;
+    final isLoggedIn = authState is AuthAuthenticated ||
+        authState is AuthProfileRefreshFailed ||
+        authState is AuthAccountDeletionRequested;
+
+    if (isLoggedIn) {
+      unawaited(
+        FcmRegistrationService.instance.registerWithBackend(
+          InjectionContainer.dio,
+        ),
+      );
     }
   }
 
@@ -103,7 +123,12 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
       }
 
       if (!InjectionContainer.isInitialized) {
-        InjectionContainer.init();
+        try {
+          InjectionContainer.init();
+        } catch (e, st) {
+          debugPrint('InjectionContainer.init failed: $e\n$st');
+          rethrow;
+        }
       }
 
       if (!mounted) return;
@@ -111,7 +136,7 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
 
       if (!_firebaseScheduled) {
         _firebaseScheduled = true;
-        unawaited(AppBootstrap.initFirebaseAndNotifications());
+        unawaited(_initFirebaseAndFcm());
       }
     } catch (e, st) {
       debugPrint('Remote status recheck failed: $e\n$st');
@@ -126,6 +151,16 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
     } finally {
       _recheckInProgress = false;
     }
+  }
+
+  Future<void> _initFirebaseAndFcm() async {
+    await AppBootstrap.initFirebaseAndNotifications();
+    if (!InjectionContainer.isInitialized) return;
+
+    FcmRegistrationService.instance.listenForTokenRefresh(
+      InjectionContainer.dio,
+    );
+    _reregisterFcmIfAuthenticated();
   }
 
   Future<void> _retry() {

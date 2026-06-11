@@ -6,7 +6,7 @@ import '../../../../core/config/app_config.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
-import 'package:firebase_messaging/firebase_messaging.dart';
+import '../../../../core/services/fcm_registration_service.dart';
 import 'package:flutter/widgets.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/chat_outbox_entry.dart';
@@ -241,16 +241,10 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
     _socket!.onConnect((_) async {
       _connectController.add(null);
 
-      // FCM push tokens are only available on Android/iOS (Firebase not init'd on web)
+      // Backup socket registration; REST registration is primary (see FcmRegistrationService).
       if (!kIsWeb) {
         try {
-          await FirebaseMessaging.instance.requestPermission(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
-
-          final fcmToken = await FirebaseMessaging.instance.getToken();
+          final fcmToken = await FcmRegistrationService.instance.getToken();
           if (fcmToken != null) {
             _socket!.emit('registerFcmToken', {
               'familyId': cached.id,

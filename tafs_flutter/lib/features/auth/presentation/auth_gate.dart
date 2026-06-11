@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'dart:async';
+
+import '../../../core/services/fcm_registration_service.dart';
+import '../../../core/session/authenticated_session.dart';
 import '../../../core/session/session_reset.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/domain/entities/parent.dart';
@@ -10,10 +14,6 @@ import '../../auth/presentation/bloc/auth_event.dart';
 import '../../auth/presentation/bloc/auth_state.dart';
 import '../../auth/presentation/bloc/selected_student_cubit.dart';
 import '../../auth/presentation/login_page.dart';
-import '../../chat/presentation/bloc/chat_bloc.dart';
-import '../../chat/presentation/bloc/chat_event.dart';
-import '../../support_tickets/presentation/bloc/support_ticket_list_bloc.dart';
-import '../../support_tickets/presentation/bloc/support_ticket_list_event.dart';
 import '../../dashboard/presentation/main_shell_page.dart';
 import '../../profile/presentation/student_selection_page.dart';
 
@@ -25,6 +25,21 @@ class AuthGate extends StatefulWidget {
   State<AuthGate> createState() => _AuthGateState();
 }
 
+Future<void> _showNotificationPermissionHintIfNeeded(BuildContext context) async {
+  final granted =
+      await FcmRegistrationService.instance.isNotificationPermissionGranted();
+  if (granted || !context.mounted) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text(
+        'Enable notifications in Settings to receive school alerts.',
+      ),
+      duration: Duration(seconds: 5),
+    ),
+  );
+}
+
 class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
@@ -32,6 +47,15 @@ class _AuthGateState extends State<AuthGate> {
     final currentState = context.read<AuthBloc>().state;
     if (currentState is AuthInitial) {
       context.read<AuthBloc>().add(AuthCheckRequested());
+    } else if (currentState is AuthAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        startAuthenticatedSession(
+          context,
+          students: currentState.parent.students,
+        );
+        unawaited(_showNotificationPermissionHintIfNeeded(context));
+      });
     }
   }
 
@@ -76,12 +100,12 @@ class _AuthGateState extends State<AuthGate> {
               previous is! AuthProfileRefreshFailed,
           listener: (context, state) {
             if (state is AuthAuthenticated) {
-              syncSelectedStudent(context, state.parent.students);
+              startAuthenticatedSession(
+                context,
+                students: state.parent.students,
+              );
+              unawaited(_showNotificationPermissionHintIfNeeded(context));
             }
-            context.read<ChatBloc>().add(ChatSessionStartRequested());
-            context.read<SupportTicketListBloc>().add(
-                  const SupportTicketListLoadRequested(),
-                );
           },
         ),
         BlocListener<AuthBloc, AuthState>(

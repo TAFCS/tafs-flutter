@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../navigation/app_navigator.dart';
+import 'fcm_registration_service.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -16,6 +17,8 @@ class NotificationService {
       fln.FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
+    await FcmRegistrationService.instance.requestAndroidPermission();
+
     const fln.AndroidInitializationSettings androidSettings =
         fln.AndroidInitializationSettings(_androidNotificationIcon);
 
@@ -82,28 +85,32 @@ class NotificationService {
     final notification = message.notification;
     final android = message.notification?.android;
 
-    if (notification != null) {
-      await _localNotifications.show(
-        notification.hashCode,
-        notification.title,
-        notification.body,
-        fln.NotificationDetails(
-          android: fln.AndroidNotificationDetails(
-            'high_importance_channel',
-            'High Importance Notifications',
-            channelDescription: 'This channel is used for important notifications.',
-            importance: fln.Importance.max,
-            priority: fln.Priority.high,
-            icon: android?.smallIcon ?? _androidNotificationIcon,
-          ),
-          iOS: const fln.DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          ),
+    final title = notification?.title ?? message.data['title'];
+    final body = notification?.body ?? message.data['body'];
+    if (title == null && body == null) return;
+
+    await _localNotifications.show(
+      message.hashCode,
+      title,
+      body,
+      fln.NotificationDetails(
+        android: fln.AndroidNotificationDetails(
+          'high_importance_channel',
+          'High Importance Notifications',
+          channelDescription: 'This channel is used for important notifications.',
+          importance: fln.Importance.max,
+          priority: fln.Priority.high,
+          icon: android?.smallIcon ?? _androidNotificationIcon,
+          // Ensures heads-up on pre-Oreo devices that ignore channels.
+          ticker: title ?? body,
         ),
-        payload: jsonEncode(message.data),
-      );
-    }
+        iOS: const fln.DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: jsonEncode(message.data),
+    );
   }
 }

@@ -1,8 +1,6 @@
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import '../../../core/services/fcm_registration_service.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/theme/app_theme.dart';
@@ -37,18 +35,8 @@ class _LoginPageState extends State<LoginPage> {
 
   void _login() async {
     if (_formKey.currentState!.validate()) {
-      // FCM and Platform.isAndroid are mobile-only — both crash on web.
-      String? fcmToken;
-      String? deviceType;
-
-      if (!kIsWeb) {
-        try {
-          fcmToken = await FirebaseMessaging.instance.getToken();
-          deviceType = Platform.isAndroid ? 'ANDROID' : 'IOS';
-        } catch (e) {
-          print('Error getting FCM token on login: $e');
-        }
-      }
+      final fcmToken = await FcmRegistrationService.instance.getToken();
+      final deviceType = await FcmRegistrationService.instance.getDeviceType();
 
       if (!mounted) return;
 

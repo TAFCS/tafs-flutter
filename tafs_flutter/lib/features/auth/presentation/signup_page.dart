@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/services/fcm_registration_service.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/theme/app_theme.dart';
@@ -52,7 +53,7 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  void _register() {
+  Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (_passwordController.text != _confirmPasswordController.text) {
@@ -67,12 +68,19 @@ class _SignupPageState extends State<SignupPage> {
 
     setState(() => _isSubmitting = true);
 
+    final fcmToken = await FcmRegistrationService.instance.getToken();
+    final deviceType = await FcmRegistrationService.instance.getDeviceType();
+
+    if (!mounted) return;
+
     context.read<AuthBloc>().add(
       AuthRegisterRequested(
         cnic: _verifiedCnic!,
         email: _emailController.text.trim(),
         password: _passwordController.text,
         guardianName: _guardianName ?? 'Guardian',
+        fcmToken: fcmToken,
+        deviceType: deviceType,
       ),
     );
   }
