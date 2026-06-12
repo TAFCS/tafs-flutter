@@ -1,18 +1,39 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/error/api_error_mapper.dart';
+import '../../domain/entities/attendance_alert.dart';
+import '../../domain/entities/notice_feed_item.dart';
+import '../../domain/entities/notice_post.dart';
 import '../../domain/repositories/notice_board_repository.dart';
 import 'notice_board_event.dart';
 import 'notice_board_state.dart';
 
 class NoticeBoardBloc extends Bloc<NoticeBoardEvent, NoticeBoardState> {
   final NoticeBoardRepository repository;
-  final Set<int> _markedReadIds = {};
+  final Set<String> _markedReadIds = {};
 
   NoticeBoardBloc({required this.repository}) : super(const NoticeBoardInitial()) {
     on<NoticeBoardLoadRequested>(_onLoad);
     on<NoticeBoardNextPageRequested>(_onNextPage);
     on<NoticeBoardPostRead>(_onPostRead);
+    on<NoticeBoardAlertRead>(_onAlertRead);
     on<NoticeBoardResetRequested>(_onReset);
+  }
+
+  // Merges posts and attendance alerts into one feed, sorted by recency.
+  // Pinned posts are always pulled to the top, matching the existing
+  // notice-board ordering.
+  List<NoticeFeedItem> _mergeAndSort(List<NoticePost> posts, List<AttendanceAlert> alerts) {
+    final items = <NoticeFeedItem>[
+      ...posts.map((p) => NoticeFeedPost(p)),
+      ...alerts.map((a) => NoticeFeedAlert(a)),
+    ];
+    items.sort((a, b) {
+      final aPinned = a is NoticeFeedPost && a.post.isPinned;
+      final bPinned = b is NoticeFeedPost && b.post.isPinned;
+      if (aPinned != bPinned) return aPinned ? -1 : 1;
+      return b.timestamp.compareTo(a.timestamp);
+    });
+    return items;
   }
 
   Future<void> _onLoad(
@@ -21,10 +42,16 @@ class NoticeBoardBloc extends Bloc<NoticeBoardEvent, NoticeBoardState> {
   ) async {
     emit(const NoticeBoardLoading());
     try {
-      final posts = await repository.getPosts();
-      final unread = posts.where((p) => !p.isRead).length;
+      final results = await Future.wait([
+        repository.getPosts(),
+        repository.getAttendanceAlerts(),
+      ]);
+      final posts = results[0] as List<NoticePost>;
+      final alerts = results[1] as List<AttendanceAlert>;
+      final items = _mergeAndSort(posts, alerts);
+      final unread = items.where((i) => !i.isRead).length;
       emit(NoticeBoardLoaded(
-        posts: posts,
+        items: items,
         hasMore: posts.length == 20,
         unreadCount: unread,
       ));
@@ -41,10 +68,12 @@ class NoticeBoardBloc extends Bloc<NoticeBoardEvent, NoticeBoardState> {
     if (current is! NoticeBoardLoaded) return;
     try {
       final more = await repository.getPosts(cursor: event.cursor);
-      final merged = [...current.posts, ...more];
-      final unread = merged.where((p) => !p.isRead).length;
+      final existingPosts = current.items.whereType<NoticeFeedPost>().map((i) => i.post).toList();
+      final existingAlerts = current.items.whereType<NoticeFeedAlert>().map((i) => i.alert).toList();
+      final items = _mergeAndSort([...existingPosts, ...more], existingAlerts);
+      final unread = items.where((i) => !i.isRead).length;
       emit(current.copyWith(
-        posts: merged,
+        items: items,
         hasMore: more.length == 20,
         unreadCount: unread,
       ));
@@ -55,19 +84,46 @@ class NoticeBoardBloc extends Bloc<NoticeBoardEvent, NoticeBoardState> {
     NoticeBoardPostRead event,
     Emitter<NoticeBoardState> emit,
   ) async {
-    if (_markedReadIds.contains(event.postId)) return;
-    _markedReadIds.add(event.postId);
+    final key = 'post-${event.postId}';
+    if (_markedReadIds.contains(key)) return;
+    _markedReadIds.add(key);
 
     final current = state;
     if (current is NoticeBoardLoaded) {
-      final updated = current.posts.map((p) {
-        return p.id == event.postId ? p.copyWith(isRead: true) : p;
+      final updated = current.items.map((item) {
+        if (item is NoticeFeedPost && item.post.id == event.postId) {
+          return item.copyWith(isRead: true);
+        }
+        return item;
       }).toList();
-      final unread = updated.where((p) => !p.isRead).length;
-      emit(current.copyWith(posts: updated, unreadCount: unread));
+      final unread = updated.where((i) => !i.isRead).length;
+      emit(current.copyWith(items: updated, unreadCount: unread));
     }
 
     repository.markRead(event.postId).catchError((_) {});
+  }
+
+  Future<void> _onAlertRead(
+    NoticeBoardAlertRead event,
+    Emitter<NoticeBoardState> emit,
+  ) async {
+    final key = 'alert-${event.alertId}';
+    if (_markedReadIds.contains(key)) return;
+    _markedReadIds.add(key);
+
+    final current = state;
+    if (current is NoticeBoardLoaded) {
+      final updated = current.items.map((item) {
+        if (item is NoticeFeedAlert && item.alert.id == event.alertId) {
+          return item.copyWith(isRead: true);
+        }
+        return item;
+      }).toList();
+      final unread = updated.where((i) => !i.isRead).length;
+      emit(current.copyWith(items: updated, unreadCount: unread));
+    }
+
+    repository.markAlertRead(event.alertId).catchError((_) {});
   }
 
   void _onReset(

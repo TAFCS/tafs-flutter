@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../notice_board/domain/entities/notice_feed_item.dart';
 import '../../notice_board/presentation/bloc/notice_board_bloc.dart';
 import '../../notice_board/presentation/bloc/notice_board_event.dart';
 import '../../notice_board/presentation/bloc/notice_board_state.dart';
+import '../../notice_board/presentation/widgets/attendance_alert_card.dart';
 import '../../notice_board/presentation/widgets/notice_post_card.dart';
 
 class HomeTabBody extends StatefulWidget {
@@ -68,7 +70,7 @@ class _NoticeBoardSection extends StatelessWidget {
                   child: CircularProgressIndicator(color: AppTheme.navy, strokeWidth: 2),
                 ),
               )
-            else if (state is NoticeBoardLoaded && state.posts.isEmpty)
+            else if (state is NoticeBoardLoaded && state.items.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppTheme.space5),
                 child: Text(
@@ -77,7 +79,13 @@ class _NoticeBoardSection extends StatelessWidget {
                 ),
               )
             else if (state is NoticeBoardLoaded)
-              ...state.posts.map((post) => NoticePostCard(key: ValueKey(post.id), post: post))
+              ...state.items.map((item) {
+                if (item is NoticeFeedPost) {
+                  return NoticePostCard(key: ValueKey('post-${item.post.id}'), post: item.post);
+                }
+                final alert = (item as NoticeFeedAlert).alert;
+                return AttendanceAlertCard(key: ValueKey('alert-${alert.id}'), alert: alert);
+              })
             else if (state is NoticeBoardError)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppTheme.space5),

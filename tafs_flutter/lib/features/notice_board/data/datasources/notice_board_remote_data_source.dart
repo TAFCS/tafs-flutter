@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../models/attendance_alert_dto.dart';
 import '../models/notice_post_dto.dart';
 
 class NoticeBoardRemoteDataSource {
@@ -18,5 +19,19 @@ class NoticeBoardRemoteDataSource {
 
   Future<void> markRead(int postId) async {
     await dio.post('/notice-board/$postId/read');
+  }
+
+  Future<List<AttendanceAlertDto>> getAttendanceAlerts({int? cursor}) async {
+    final response = await dio.get(
+      '/attendance-notifications',
+      queryParameters: cursor != null ? {'cursor': cursor} : null,
+    );
+    final data = response.data;
+    final list = data is List ? data : (data['data'] as List? ?? []);
+    return list.map((e) => AttendanceAlertDto.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> markAlertRead(int alertId) async {
+    await dio.post('/attendance-notifications/$alertId/read');
   }
 }

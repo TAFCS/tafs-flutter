@@ -27,6 +27,14 @@ class NoticeBoardPostRead extends NoticeBoardEvent {
   List<Object?> get props => [postId];
 }
 
+class NoticeBoardAlertRead extends NoticeBoardEvent {
+  final int alertId;
+  const NoticeBoardAlertRead(this.alertId);
+
+  @override
+  List<Object?> get props => [alertId];
+}
+
 class NoticeBoardResetRequested extends NoticeBoardEvent {
   const NoticeBoardResetRequested();
 }

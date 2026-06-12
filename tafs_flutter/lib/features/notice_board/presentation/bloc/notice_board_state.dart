@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../../domain/entities/notice_post.dart';
+import '../../domain/entities/notice_feed_item.dart';
 
 abstract class NoticeBoardState extends Equatable {
   const NoticeBoardState();
@@ -17,30 +17,30 @@ class NoticeBoardLoading extends NoticeBoardState {
 }
 
 class NoticeBoardLoaded extends NoticeBoardState {
-  final List<NoticePost> posts;
+  final List<NoticeFeedItem> items;
   final bool hasMore;
   final int unreadCount;
 
   const NoticeBoardLoaded({
-    required this.posts,
+    required this.items,
     required this.hasMore,
     required this.unreadCount,
   });
 
   NoticeBoardLoaded copyWith({
-    List<NoticePost>? posts,
+    List<NoticeFeedItem>? items,
     bool? hasMore,
     int? unreadCount,
   }) {
     return NoticeBoardLoaded(
-      posts: posts ?? this.posts,
+      items: items ?? this.items,
       hasMore: hasMore ?? this.hasMore,
       unreadCount: unreadCount ?? this.unreadCount,
     );
   }
 
   @override
-  List<Object?> get props => [posts, hasMore, unreadCount];
+  List<Object?> get props => [items, hasMore, unreadCount];
 }
 
 class NoticeBoardError extends NoticeBoardState {
