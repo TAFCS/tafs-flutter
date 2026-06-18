@@ -16,6 +16,7 @@ class TicketMessage {
   final String? senderRole;
   final String? senderUserId;
   final Map<String, dynamic>? mediaMetadata;
+  final String? reviewComment;
 
   const TicketMessage({
     required this.id,
@@ -29,5 +30,6 @@ class TicketMessage {
     this.senderRole,
     this.senderUserId,
     this.mediaMetadata,
+    this.reviewComment,
   });
 }

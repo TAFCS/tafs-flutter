@@ -342,24 +342,53 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                                       onReply: (_) {},
                                     ),
                                   ),
-                                  if (isIncomingStaff)
+                                  if (isOutgoing &&
+                                      msg.senderType ==
+                                          TicketMessageSenderType.staff)
                                     Padding(
                                       padding: const EdgeInsets.only(
                                         bottom: 8,
-                                        left: 8,
+                                        right: 8,
                                       ),
                                       child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          statusLabel(msg.reviewStatus.name),
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: msg.reviewStatus.name ==
-                                                    'pending'
-                                                ? Colors.orange.shade800
-                                                : Colors.grey.shade600,
-                                          ),
+                                        alignment: Alignment.centerRight,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              statusLabel(
+                                                  msg.reviewStatus.name),
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: msg.reviewStatus.name ==
+                                                        'pending'
+                                                    ? Colors.orange.shade800
+                                                    : msg.reviewStatus.name ==
+                                                            'rejected'
+                                                        ? Colors.red.shade700
+                                                        : Colors.grey.shade600,
+                                              ),
+                                            ),
+                                            if (msg.reviewStatus ==
+                                                    TicketMessageReviewStatus
+                                                        .rejected &&
+                                                msg.reviewComment != null &&
+                                                msg.reviewComment!.isNotEmpty)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    top: 2),
+                                                child: Text(
+                                                  'Reason: ${msg.reviewComment}',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: Colors.red.shade700,
+                                                  ),
+                                                  textAlign: TextAlign.right,
+                                                ),
+                                              ),
+                                          ],
                                         ),
                                       ),
                                     ),
@@ -457,17 +486,38 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
 
   Future<void> _showRejectDialog(String messageId) async {
     final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Reject reply'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: 'Reason (optional)'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            autofocus: true,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              hintText: 'Rejection reason (required)',
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter a rejection reason';
+              }
+              return null;
+            },
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Reject')),
+          TextButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.pop(ctx, true);
+              }
+            },
+            child: const Text('Reject'),
+          ),
         ],
       ),
     );
@@ -475,7 +525,7 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
       await _cubit.reviewMessage(
         messageId: messageId,
         status: 'REJECTED',
-        comment: controller.text.trim().isEmpty ? null : controller.text.trim(),
+        comment: controller.text.trim(),
       );
     }
     controller.dispose();

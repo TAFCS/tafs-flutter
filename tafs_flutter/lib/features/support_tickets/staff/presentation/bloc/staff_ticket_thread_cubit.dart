@@ -113,11 +113,16 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
         final activeId = _activeTicketId;
         final payloadTicketId =
             (payload['ticket']?['id'] ?? payload['ticketId']) as String?;
-        final messageJson = payload['message'];
+        final rawMessage = payload['message'];
         if (activeId == null ||
             payloadTicketId != activeId ||
-            messageJson is! Map<String, dynamic>) {
+            rawMessage is! Map<String, dynamic>) {
           return;
+        }
+        final messageJson = Map<String, dynamic>.from(rawMessage);
+        if (messageJson['review_comment'] == null &&
+            payload['reviewComment'] != null) {
+          messageJson['review_comment'] = payload['reviewComment'];
         }
         final updated = StaffTicketMessageDto.fromJson(messageJson);
         final messages = state.messages
