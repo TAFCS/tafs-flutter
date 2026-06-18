@@ -14,6 +14,7 @@ class TicketMessage {
   final DateTime createdAt;
   final String? senderName;
   final String? senderRole;
+  final String? senderUserId;
   final Map<String, dynamic>? mediaMetadata;
 
   const TicketMessage({
@@ -26,6 +27,7 @@ class TicketMessage {
     required this.createdAt,
     this.senderName,
     this.senderRole,
+    this.senderUserId,
     this.mediaMetadata,
   });
 }

@@ -82,6 +82,7 @@ class StaffTicketMessageDto {
       senderName: json['sender_user']?['full_name'] as String? ??
           json['sender_guardian']?['full_name'] as String?,
       senderRole: json['sender_user']?['role'] as String?,
+      senderUserId: json['sender_user']?['id'] as String?,
       mediaMetadata: json['media_metadata'] as Map<String, dynamic>?,
     );
   }

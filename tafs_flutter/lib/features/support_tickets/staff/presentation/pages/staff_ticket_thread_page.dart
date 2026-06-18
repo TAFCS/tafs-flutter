@@ -243,48 +243,86 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                             itemCount: state.messages.length,
                             itemBuilder: (context, i) {
                               final msg = state.messages[i];
-                              final chatMsg = ticketMessageToChatMessage(msg);
+                              final viewerStaffId = widget.staff.id;
+                              final isOutgoing = isOwnStaffMessage(msg, viewerStaffId);
+                              final isIncomingStaff = msg.senderType ==
+                                      TicketMessageSenderType.staff &&
+                                  !isOutgoing;
+                              final chatMsg = staffTicketMessageToChatMessage(
+                                msg,
+                                viewerStaffId: viewerStaffId,
+                              );
+
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  if (msg.senderType == TicketMessageSenderType.staff)
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 4, left: 8),
-                                      child: Wrap(
-                                        spacing: 6,
-                                        crossAxisAlignment: WrapCrossAlignment.center,
-                                        children: [
-                                          Text(
-                                            msg.senderName ?? 'Staff',
-                                            style: const TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              color: AppTheme.blue300,
-                                            ),
-                                          ),
-                                          if (isSuperAdminTicketMessage(msg))
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                                vertical: 2,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.amber.shade200,
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                'SUPER ADMIN',
-                                                style: TextStyle(
-                                                  fontSize: 8,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.amber.shade900,
-                                                  letterSpacing: 0.5,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom: 4,
+                                      left: isOutgoing ? 0 : 8,
+                                      right: isOutgoing ? 8 : 0,
                                     ),
+                                    child: Align(
+                                      alignment: isOutgoing
+                                          ? Alignment.centerRight
+                                          : Alignment.centerLeft,
+                                      child: isOutgoing
+                                          ? Wrap(
+                                              spacing: 6,
+                                              crossAxisAlignment:
+                                                  WrapCrossAlignment.center,
+                                              alignment: WrapAlignment.end,
+                                              children: [
+                                                Text(
+                                                  msg.senderName ?? 'You',
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppTheme.blue300,
+                                                  ),
+                                                ),
+                                                if (isSuperAdminTicketMessage(msg))
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          Colors.amber.shade200,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              4),
+                                                    ),
+                                                    child: Text(
+                                                      'SUPER ADMIN',
+                                                      style: TextStyle(
+                                                        fontSize: 8,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            Colors.amber.shade900,
+                                                        letterSpacing: 0.5,
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            )
+                                          : Text(
+                                              staffViewMessageLabel(
+                                                msg,
+                                                viewerStaffId: viewerStaffId,
+                                              ),
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppTheme.blue300,
+                                              ),
+                                              textAlign: TextAlign.left,
+                                            ),
+                                    ),
+                                  ),
                                   Padding(
                                     padding: const EdgeInsets.only(bottom: 8),
                                     child: ChatBubble(
@@ -304,23 +342,30 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                                       onReply: (_) {},
                                     ),
                                   ),
-                                  if (msg.senderType == TicketMessageSenderType.staff)
+                                  if (isIncomingStaff)
                                     Padding(
-                                      padding: const EdgeInsets.only(bottom: 8, left: 8),
-                                      child: Text(
-                                        statusLabel(msg.reviewStatus.name),
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: msg.reviewStatus.name == 'pending'
-                                              ? Colors.orange.shade800
-                                              : Colors.grey.shade600,
+                                      padding: const EdgeInsets.only(
+                                        bottom: 8,
+                                        left: 8,
+                                      ),
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          statusLabel(msg.reviewStatus.name),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: msg.reviewStatus.name ==
+                                                    'pending'
+                                                ? Colors.orange.shade800
+                                                : Colors.grey.shade600,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  if (isSuperAdmin &&
-                                      msg.senderType == TicketMessageSenderType.staff &&
-                                      msg.reviewStatus == TicketMessageReviewStatus.pending)
+                                  if (isSuperAdmin && isIncomingStaff &&
+                                      msg.reviewStatus ==
+                                          TicketMessageReviewStatus.pending)
                                     Padding(
                                       padding: const EdgeInsets.only(bottom: 12),
                                       child: Row(

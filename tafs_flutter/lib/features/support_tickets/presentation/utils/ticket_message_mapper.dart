@@ -4,15 +4,27 @@ import '../../domain/entities/ticket_message.dart';
 bool isSuperAdminTicketMessage(TicketMessage message) =>
     message.senderRole == 'SUPER_ADMIN';
 
-String staffTicketSenderLabel(TicketMessage message) {
-  if (message.senderType != TicketMessageSenderType.staff) {
-    return message.senderName ?? 'Parent';
+bool isOwnStaffMessage(TicketMessage message, String viewerStaffId) =>
+    message.senderType == TicketMessageSenderType.staff &&
+    message.senderUserId == viewerStaffId;
+
+String staffViewMessageLabel(
+  TicketMessage message, {
+  required String viewerStaffId,
+}) {
+  if (message.senderType == TicketMessageSenderType.guardian) {
+    return message.senderName != null
+        ? 'Parent · ${message.senderName}'
+        : 'Parent';
   }
-  final name = message.senderName ?? 'Staff';
+  if (isOwnStaffMessage(message, viewerStaffId)) {
+    return message.senderName ?? 'You';
+  }
   if (isSuperAdminTicketMessage(message)) {
-    return '$name · Super Admin';
+    return '${message.senderName ?? 'Staff'} · Super Admin';
   }
-  return name;
+  final roleLabel = message.senderRole?.replaceAll('_', ' ') ?? 'Assignee';
+  return '${message.senderName ?? 'Staff'} · $roleLabel';
 }
 
 String parentTicketStaffSenderLabel(TicketMessage message) {
@@ -20,26 +32,49 @@ String parentTicketStaffSenderLabel(TicketMessage message) {
   return message.senderName ?? 'School';
 }
 
-ChatMessage ticketMessageToChatMessage(TicketMessage message) {
-  ChatMessageType type;
+ChatMessageType _ticketMessageType(TicketMessage message) {
   switch (message.messageType) {
     case TicketMessageType.image:
-      type = ChatMessageType.image;
-      break;
+      return ChatMessageType.image;
     case TicketMessageType.voice:
-      type = ChatMessageType.voice;
-      break;
+      return ChatMessageType.voice;
     case TicketMessageType.document:
-      type = ChatMessageType.document;
-      break;
+      return ChatMessageType.document;
     default:
-      type = ChatMessageType.text;
+      return ChatMessageType.text;
   }
+}
 
+String _ticketMessageContent(TicketMessage message, ChatMessageType type) {
   final mediaUrl = message.mediaMetadata?['url'] as String?;
-  final content = type == ChatMessageType.text
+  return type == ChatMessageType.text
       ? message.content
       : (mediaUrl ?? message.content);
+}
+
+ChatMessage staffTicketMessageToChatMessage(
+  TicketMessage message, {
+  required String viewerStaffId,
+}) {
+  final type = _ticketMessageType(message);
+  final isOutgoing = isOwnStaffMessage(message, viewerStaffId);
+
+  return ChatMessage(
+    id: message.id,
+    conversationId: message.ticketId,
+    senderType: isOutgoing ? ChatSenderType.guardian : ChatSenderType.admin,
+    senderName: staffViewMessageLabel(message, viewerStaffId: viewerStaffId),
+    messageType: type,
+    content: _ticketMessageContent(message, type),
+    mediaMetadata: message.mediaMetadata,
+    isRead: true,
+    createdAt: message.createdAt,
+    status: MessageStatus.sent,
+  );
+}
+
+ChatMessage ticketMessageToChatMessage(TicketMessage message) {
+  final type = _ticketMessageType(message);
 
   return ChatMessage(
     id: message.id,
@@ -51,7 +86,7 @@ ChatMessage ticketMessageToChatMessage(TicketMessage message) {
         ? (message.senderName ?? 'You')
         : parentTicketStaffSenderLabel(message),
     messageType: type,
-    content: content,
+    content: _ticketMessageContent(message, type),
     mediaMetadata: message.mediaMetadata,
     isRead: true,
     createdAt: message.createdAt,
