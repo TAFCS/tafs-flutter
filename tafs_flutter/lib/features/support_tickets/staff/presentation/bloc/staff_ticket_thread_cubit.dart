@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/entities/ticket_message.dart';
 import '../../domain/entities/staff_support_ticket.dart';
+import '../../data/models/staff_support_ticket_dto.dart';
 import '../../domain/repositories/staff_support_ticket_repository.dart';
 
 class StaffTicketThreadState {
@@ -52,6 +53,8 @@ class StaffTicketThreadState {
 class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
   final StaffSupportTicketRepository repository;
   StreamSubscription<TicketMessage>? _sub;
+  StreamSubscription<Map<String, dynamic>>? _pendingSub;
+  StreamSubscription<Map<String, dynamic>>? _reviewedSub;
   StreamSubscription<void>? _connectSub;
   StreamSubscription<void>? _disconnectSub;
   String? _activeTicketId;
@@ -62,6 +65,8 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
   Future<void> load(String ticketId) async {
     _activeTicketId = ticketId;
     await _sub?.cancel();
+    await _pendingSub?.cancel();
+    await _reviewedSub?.cancel();
     await _connectSub?.cancel();
     await _disconnectSub?.cancel();
     emit(state.copyWith(
@@ -91,6 +96,39 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
         if (state.messages.any((m) => m.id == msg.id)) return;
         emit(state.copyWith(messages: [...state.messages, msg]));
       });
+      _pendingSub = repository.onReplyPendingApprovalPayload.listen((payload) {
+        final activeId = _activeTicketId;
+        final payloadTicketId = payload['ticket']?['id'] as String?;
+        final messageJson = payload['message'];
+        if (activeId == null ||
+            payloadTicketId != activeId ||
+            messageJson is! Map<String, dynamic>) {
+          return;
+        }
+        final msg = StaffTicketMessageDto.fromJson(messageJson);
+        if (state.messages.any((m) => m.id == msg.id)) return;
+        emit(state.copyWith(messages: [...state.messages, msg]));
+      });
+      _reviewedSub = repository.onReplyReviewedPayload.listen((payload) {
+        final activeId = _activeTicketId;
+        final payloadTicketId =
+            (payload['ticket']?['id'] ?? payload['ticketId']) as String?;
+        final messageJson = payload['message'];
+        if (activeId == null ||
+            payloadTicketId != activeId ||
+            messageJson is! Map<String, dynamic>) {
+          return;
+        }
+        final updated = StaffTicketMessageDto.fromJson(messageJson);
+        final messages = state.messages
+            .map((m) => m.id == updated.id ? updated : m)
+            .toList();
+        if (payload['status'] == 'APPROVED' &&
+            !messages.any((m) => m.id == updated.id)) {
+          messages.add(updated);
+        }
+        emit(state.copyWith(messages: messages));
+      });
     } catch (e) {
       emit(state.copyWith(
         loading: false,
@@ -108,9 +146,13 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
     final id = _activeTicketId;
     if (id != null) await repository.leaveTicket(id);
     await _sub?.cancel();
+    await _pendingSub?.cancel();
+    await _reviewedSub?.cancel();
     await _connectSub?.cancel();
     await _disconnectSub?.cancel();
     _sub = null;
+    _pendingSub = null;
+    _reviewedSub = null;
     _activeTicketId = null;
   }
 

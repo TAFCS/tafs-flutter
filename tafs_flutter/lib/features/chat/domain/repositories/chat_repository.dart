@@ -33,6 +33,8 @@ abstract class ChatRepository {
   Stream<Map<String, dynamic>> get onTicketMessagePayload;
   Stream<void> get onTicketQueueChanged;
   Stream<void> get onReplyPendingApproval;
+  Stream<Map<String, dynamic>> get onReplyPendingApprovalPayload;
+  Stream<Map<String, dynamic>> get onReplyReviewedPayload;
   void enterTicket(String ticketId);
   void leaveTicket(String ticketId);
 

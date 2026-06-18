@@ -33,7 +33,10 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   final _sessionExpiredController = StreamController<void>.broadcast();
   final _ticketMessageController = StreamController<Map<String, dynamic>>.broadcast();
   final _ticketQueueChangedController = StreamController<void>.broadcast();
-  final _replyPendingApprovalController = StreamController<void>.broadcast();
+  final _replyPendingApprovalController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final _replyReviewedController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final _announcementController = StreamController<ChatMessage>.broadcast();
   bool _isRefreshingToken = false;
   bool _isDrainingOutbox = false;
@@ -62,7 +65,15 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
   @override
   Stream<void> get onReplyPendingApproval =>
+      onReplyPendingApprovalPayload.map((_) {});
+
+  @override
+  Stream<Map<String, dynamic>> get onReplyPendingApprovalPayload =>
       _replyPendingApprovalController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get onReplyReviewedPayload =>
+      _replyReviewedController.stream;
 
   void _emitTicketQueueChanged() {
     if (!_ticketQueueChangedController.isClosed) {
@@ -346,15 +357,21 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       'ticketTransferred',
       'ticketForwarded',
       'ticketClosed',
-      'replyReviewed',
     ]) {
       _socket!.on(event, (_) => _emitTicketQueueChanged());
     }
 
-    _socket!.on('replyPendingApproval', (_) {
+    _socket!.on('replyReviewed', (data) {
       _emitTicketQueueChanged();
-      if (!_replyPendingApprovalController.isClosed) {
-        _replyPendingApprovalController.add(null);
+      if (data is Map && !_replyReviewedController.isClosed) {
+        _replyReviewedController.add(Map<String, dynamic>.from(data));
+      }
+    });
+
+    _socket!.on('replyPendingApproval', (data) {
+      _emitTicketQueueChanged();
+      if (data is Map && !_replyPendingApprovalController.isClosed) {
+        _replyPendingApprovalController.add(Map<String, dynamic>.from(data));
       }
     });
 

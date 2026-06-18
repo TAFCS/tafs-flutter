@@ -6,6 +6,8 @@ abstract class StaffSupportTicketRepository {
   Stream<TicketMessage> get onTicketMessage;
   Stream<void> get onTicketQueueChanged;
   Stream<void> get onReplyPendingApproval;
+  Stream<Map<String, dynamic>> get onReplyPendingApprovalPayload;
+  Stream<Map<String, dynamic>> get onReplyReviewedPayload;
   bool get isSocketConnected;
   Stream<void> get onSocketConnect;
   Stream<void> get onSocketDisconnect;

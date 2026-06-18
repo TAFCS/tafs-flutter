@@ -40,6 +40,14 @@ class StaffSupportTicketRepositoryImpl implements StaffSupportTicketRepository {
       chatRepository.onReplyPendingApproval;
 
   @override
+  Stream<Map<String, dynamic>> get onReplyPendingApprovalPayload =>
+      chatRepository.onReplyPendingApprovalPayload;
+
+  @override
+  Stream<Map<String, dynamic>> get onReplyReviewedPayload =>
+      chatRepository.onReplyReviewedPayload;
+
+  @override
   bool get isSocketConnected => chatRepository.isConnected;
 
   @override
