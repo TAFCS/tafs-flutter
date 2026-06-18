@@ -149,6 +149,7 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
               final isAssignee = ticket.currentAssigneeId == widget.staff.id;
               final isSuperAdmin = widget.staff.role == 'SUPER_ADMIN';
               final isReadOnly = !isClosed && !isAssignee;
+              final canCompose = !isClosed && (isAssignee || isSuperAdmin);
 
               return Column(
                 children: [
@@ -159,7 +160,7 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                   if (isSuperAdmin && isReadOnly)
                     _infoBanner(
                       'Super Admin oversight',
-                      'Assigned to ${ticket.assigneeName ?? 'the routed role'}. Approve staff replies below.',
+                      'Assigned to ${ticket.assigneeName ?? 'the routed role'}. Approve staff replies below, or send a direct reply to the parent.',
                       Colors.amber.shade50,
                     ),
                   if (!isSuperAdmin && isReadOnly)
@@ -246,6 +247,44 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
+                                  if (msg.senderType == TicketMessageSenderType.staff)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 4, left: 8),
+                                      child: Wrap(
+                                        spacing: 6,
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        children: [
+                                          Text(
+                                            msg.senderName ?? 'Staff',
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.blue300,
+                                            ),
+                                          ),
+                                          if (isSuperAdminTicketMessage(msg))
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.amber.shade200,
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                'SUPER ADMIN',
+                                                style: TextStyle(
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.amber.shade900,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
                                   Padding(
                                     padding: const EdgeInsets.only(bottom: 8),
                                     child: ChatBubble(
@@ -309,7 +348,7 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                             },
                           ),
                   ),
-                  if (!isClosed && isAssignee)
+                  if (canCompose)
                     Stack(
                       children: [
                         AbsorbPointer(

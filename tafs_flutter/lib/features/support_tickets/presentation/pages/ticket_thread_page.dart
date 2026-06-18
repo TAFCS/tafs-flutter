@@ -7,6 +7,7 @@ import '../../../chat/presentation/widgets/chat_bubble.dart';
 import '../../../chat/presentation/widgets/full_screen_image_viewer.dart';
 import '../../../chat/presentation/widgets/message_input.dart';
 import '../bloc/ticket_thread_cubit.dart';
+import '../../domain/entities/ticket_message.dart';
 import '../utils/ticket_message_mapper.dart';
 import '../widgets/ticket_status_badge.dart';
 
@@ -194,25 +195,43 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
                             padding: const EdgeInsets.all(12),
                             itemCount: state.messages.length,
                             itemBuilder: (context, i) {
+                              final msg = state.messages[i];
                               final chatMsg = ticketMessageToChatMessage(state.messages[i]);
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: ChatBubble(
-                                  messages: [chatMsg],
-                                  onImageTap: (url) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => FullScreenImageViewer(
-                                          imageUrls: [url],
-                                          initialIndex: 0,
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (msg.senderType == TicketMessageSenderType.staff)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 4, left: 8),
+                                      child: Text(
+                                        parentTicketStaffSenderLabel(msg),
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.blue300,
                                         ),
                                       ),
-                                    );
-                                  },
-                                  onReplyTap: (_) {},
-                                  onReply: (_) {},
-                                ),
+                                    ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: ChatBubble(
+                                      messages: [chatMsg],
+                                      onImageTap: (url) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => FullScreenImageViewer(
+                                              imageUrls: [url],
+                                              initialIndex: 0,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      onReplyTap: (_) {},
+                                      onReply: (_) {},
+                                    ),
+                                  ),
+                                ],
                               );
                             },
                           ),

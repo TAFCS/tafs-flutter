@@ -1,6 +1,25 @@
 import '../../../chat/domain/entities/chat_message.dart';
 import '../../domain/entities/ticket_message.dart';
 
+bool isSuperAdminTicketMessage(TicketMessage message) =>
+    message.senderRole == 'SUPER_ADMIN';
+
+String staffTicketSenderLabel(TicketMessage message) {
+  if (message.senderType != TicketMessageSenderType.staff) {
+    return message.senderName ?? 'Parent';
+  }
+  final name = message.senderName ?? 'Staff';
+  if (isSuperAdminTicketMessage(message)) {
+    return '$name · Super Admin';
+  }
+  return name;
+}
+
+String parentTicketStaffSenderLabel(TicketMessage message) {
+  if (isSuperAdminTicketMessage(message)) return 'TAFS Admin';
+  return message.senderName ?? 'School';
+}
+
 ChatMessage ticketMessageToChatMessage(TicketMessage message) {
   ChatMessageType type;
   switch (message.messageType) {
@@ -28,8 +47,9 @@ ChatMessage ticketMessageToChatMessage(TicketMessage message) {
     senderType: message.senderType == TicketMessageSenderType.guardian
         ? ChatSenderType.guardian
         : ChatSenderType.admin,
-    senderName: message.senderName ??
-        (message.senderType == TicketMessageSenderType.guardian ? 'You' : 'School'),
+    senderName: message.senderType == TicketMessageSenderType.guardian
+        ? (message.senderName ?? 'You')
+        : parentTicketStaffSenderLabel(message),
     messageType: type,
     content: content,
     mediaMetadata: message.mediaMetadata,
