@@ -184,6 +184,7 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
     int present = 0;
     int lateDays = 0;
     int absent = 0;
+    int holidays = 0;
 
     for (final day in days) {
       if (day.status == 'PRESENT') {
@@ -193,16 +194,8 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
       } else if (day.status == 'ABSENT') {
         absent++;
       }
+      if (day.isHoliday) holidays++;
     }
-
-    // Filter day list for display logic or highlighting
-    final filteredDays = days.where((day) {
-      if (_filterType == null) return true;
-      if (_filterType == 'PRESENT') return day.status == 'PRESENT';
-      if (_filterType == 'LATE') return day.status == 'LATE';
-      if (_filterType == 'ABSENT') return day.status == 'ABSENT';
-      return true;
-    }).toList();
 
     return Column(
       children: [
@@ -283,6 +276,8 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
               _buildStatChip('Present', present, 'PRESENT', AppTheme.paid),
               _buildStatChip('Late', lateDays, 'LATE', AppTheme.warning),
               _buildStatChip('Absent', absent, 'ABSENT', AppTheme.danger),
+              if (holidays > 0)
+                _buildStatChip('Holiday', holidays, 'HOLIDAY', const Color(0xFF9333EA)),
             ],
           ),
         ),
@@ -380,6 +375,10 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
   }
 
   Widget _buildDayCell(AttendanceDay day, int dayNumber, bool isSelected, bool isToday) {
+    // Determine holiday state first
+    final isHoliday = day.holidayType == 'HOLIDAY';
+    final isWeekendOverride = day.holidayType == 'WEEKEND';
+
     Color? cellColor = AppTheme.white;
     Color borderCol = isSelected
         ? AppTheme.navy
@@ -389,7 +388,16 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
     double borderWidth = isSelected ? 2.0 : (isToday ? 1.5 : 1.0);
 
     Color dotColor = Colors.transparent;
-    if (day.status == 'PRESENT') {
+
+    if (isHoliday) {
+      cellColor = const Color(0xFFF3E8FF); // light purple
+      borderCol = isSelected ? AppTheme.navy : const Color(0xFFD8B4FE);
+      dotColor = const Color(0xFF9333EA); // purple dot
+    } else if (isWeekendOverride) {
+      cellColor = const Color(0xFFFFFBEB); // light amber
+      borderCol = isSelected ? AppTheme.navy : const Color(0xFFFCD34D);
+      dotColor = const Color(0xFFF59E0B);
+    } else if (day.status == 'PRESENT') {
       dotColor = AppTheme.paid;
     } else if (day.status == 'LATE') {
       dotColor = AppTheme.warning;
@@ -425,7 +433,11 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? AppTheme.navy : AppTheme.navy.withOpacity(0.8),
+                  color: isHoliday
+                      ? const Color(0xFF7C3AED)
+                      : isSelected
+                          ? AppTheme.navy
+                          : AppTheme.navy.withOpacity(0.8),
                 ),
               ),
               const SizedBox(height: 4),
@@ -478,7 +490,11 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.navy),
             ),
             const SizedBox(height: AppTheme.space3),
-            if (dayData.status == 'ABSENT')
+            if (dayData.isHoliday)
+              _buildHolidayCard(dayData.holidayDescription)
+            else if (dayData.isWeekend)
+              _buildWeekendCard(dayData.holidayDescription)
+            else if (dayData.status == 'ABSENT')
               _buildAbsentDetailCard()
             else if (dayData.sessions.isEmpty)
               _buildNoRecordCard()
@@ -574,7 +590,83 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
     );
   }
 
+  Widget _buildHolidayCard(String? description) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.space4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3E8FF),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: const Color(0xFFD8B4FE)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppTheme.space2),
+            decoration: const BoxDecoration(
+              color: Color(0xFFEDE9FE),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.celebration_rounded, color: Color(0xFF7C3AED), size: 20),
+          ),
+          const SizedBox(width: AppTheme.space3),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Holiday',
+                  style: TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                if (description != null && description.isNotEmpty)
+                  Text(
+                    description,
+                    style: const TextStyle(color: Color(0xFF6D28D9), fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeekendCard(String? description) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.space4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: const Color(0xFFFCD34D)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.weekend_rounded, color: Color(0xFFF59E0B), size: 24),
+          const SizedBox(width: AppTheme.space3),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Weekend / Day Off',
+                  style: TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                if (description != null && description.isNotEmpty)
+                  Text(
+                    description,
+                    style: const TextStyle(color: Color(0xFFB45309), fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAbsentDetailCard() {
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppTheme.space4),

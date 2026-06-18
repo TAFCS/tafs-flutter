@@ -5,6 +5,8 @@ class AttendanceDayDto extends AttendanceDay {
     required super.date,
     super.status,
     required super.sessions,
+    super.holidayType,
+    super.holidayDescription,
   });
 
   factory AttendanceDayDto.fromJson(Map<String, dynamic> json) {
@@ -22,6 +24,8 @@ class AttendanceDayDto extends AttendanceDay {
       date: json['date'] as String,
       status: json['status'] as String?,
       sessions: parsedSessions,
+      holidayType: json['holiday_type'] as String?,
+      holidayDescription: json['holiday_description'] as String?,
     );
   }
 }
