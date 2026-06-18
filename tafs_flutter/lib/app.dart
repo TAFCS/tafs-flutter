@@ -16,6 +16,7 @@ import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/student_ledger_bloc.dart';
 import 'features/notice_board/presentation/bloc/notice_board_bloc.dart';
 import 'features/profile/presentation/bloc/profile_bloc.dart';
+import 'features/attendance_history/presentation/bloc/attendance_history_bloc.dart';
 import 'injection_container.dart';
 
 class MyApp extends StatelessWidget {
@@ -60,6 +61,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<ProfileBloc>(
           create: (_) => InjectionContainer.profileBloc,
+        ),
+        BlocProvider<AttendanceHistoryBloc>(
+          create: (_) => InjectionContainer.attendanceHistoryBloc,
         ),
       ],
       child: MaterialApp(

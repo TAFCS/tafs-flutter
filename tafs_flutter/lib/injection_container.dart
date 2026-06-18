@@ -45,6 +45,10 @@ import 'features/profile/data/repositories/profile_repository_impl.dart';
 import 'features/profile/presentation/bloc/profile_bloc.dart';
 import 'core/config/app_config.dart';
 
+// Attendance History
+import 'features/attendance_history/data/repositories/attendance_history_repository_impl.dart';
+import 'features/attendance_history/presentation/bloc/attendance_history_bloc.dart';
+
 class InjectionContainer {
   static late final AuthBloc authBloc;
   static late final FeeLedgerBloc feeLedgerBloc;
@@ -62,6 +66,7 @@ class InjectionContainer {
   static late final Dio dio;
   static late final NoticeBoardBloc noticeBoardBloc;
   static late final ProfileBloc profileBloc;
+  static late final AttendanceHistoryBloc attendanceHistoryBloc;
 
   static bool _initialized = false;
 
@@ -184,6 +189,10 @@ class InjectionContainer {
       remoteDataSource: profileRemoteDataSource,
     );
     profileBloc = ProfileBloc(repository: profileRepository);
+
+    // Attendance History
+    final attendanceHistoryRepository = AttendanceHistoryRepositoryImpl(dio: dio);
+    attendanceHistoryBloc = AttendanceHistoryBloc(repository: attendanceHistoryRepository);
 
     // ── Dio interceptors ───────────────────────────────────────────────────
     // Must be registered after authBloc so the TokenInterceptor callback

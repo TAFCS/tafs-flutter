@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/domain/entities/student.dart';
+import '../../../attendance_history/presentation/pages/attendance_calendar_page.dart';
 import '../../domain/entities/ledger.dart';
 
 class StudentProfilePage extends StatelessWidget {
@@ -34,6 +36,49 @@ class StudentProfilePage extends StatelessWidget {
                 _InfoRow(label: 'House', value: student.house ?? 'N/A'),
                 _InfoRow(label: 'CC', value: student.cc.toString()),
                 _InfoRow(label: 'GR Number', value: student.grNumber ?? 'N/A'),
+                const Divider(height: AppTheme.space4, color: AppTheme.blue100),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AttendanceCalendarPage(
+                          student: Student(
+                            cc: student.cc,
+                            fullName: student.fullName,
+                            grNumber: student.grNumber,
+                            photographUrl: student.photographUrl,
+                            campus: student.campus,
+                            className: student.className,
+                            section: student.section,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Attendance Record',
+                          style: TextStyle(color: AppTheme.navy, fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              'View Calendar',
+                              style: TextStyle(color: AppTheme.blue300, fontSize: 13, fontWeight: FontWeight.w500),
+                            ),
+                            SizedBox(width: 4),
+                            Icon(Icons.calendar_month_rounded, color: AppTheme.navy, size: 18),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: AppTheme.space6),
@@ -111,7 +156,7 @@ class StudentProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoSection({required BuildContext context, required String title, required List<_InfoRow> items}) {
+  Widget _buildInfoSection({required BuildContext context, required String title, required List<Widget> items}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

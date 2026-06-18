@@ -3,8 +3,12 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart' as
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import '../navigation/app_navigator.dart';
 import 'fcm_registration_service.dart';
+import 'in_app_notification_service.dart';
+import '../../injection_container.dart';
+import '../../features/attendance_history/presentation/pages/attendance_calendar_page.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -55,7 +59,31 @@ class NotificationService {
   }
 
   void setupInteractions() {
-    FirebaseMessaging.onMessage.listen(_showLocalNotification);
+    FirebaseMessaging.onMessage.listen((message) {
+      _showLocalNotification(message);
+      
+      // Also trigger in-app notification banner if title/body exists and a context is available
+      final context = appNavigatorKey.currentContext;
+      if (context != null) {
+        final title = message.notification?.title ?? message.data['title'] ?? 'Notification';
+        final body = message.notification?.body ?? message.data['body'] ?? '';
+        final type = message.data['type'] as String?;
+        final ticketId = message.data['ticketId'] as String?;
+
+        InAppNotificationService.show(
+          context: context,
+          title: title,
+          message: body,
+          onTap: () {
+            if (type == 'SUPPORT_TICKET_MESSAGE' && ticketId != null && ticketId.isNotEmpty) {
+              navigateToSupportTicketThread(ticketId);
+            } else if (type == 'ATTENDANCE_ALERT') {
+              _handleNotificationRouting(message.data);
+            }
+          },
+        );
+      }
+    });
     FirebaseMessaging.onMessageOpenedApp.listen(_handleRemoteMessage);
     FirebaseMessaging.instance.getInitialMessage().then((message) {
       if (message != null) _handleRemoteMessage(message);
@@ -66,19 +94,47 @@ class NotificationService {
     if (details.payload == null || details.payload!.isEmpty) return;
     try {
       final data = jsonDecode(details.payload!) as Map<String, dynamic>;
-      _openSupportTicketFromData(data);
+      _handleNotificationRouting(data);
     } catch (_) {}
   }
 
   void _handleRemoteMessage(RemoteMessage message) {
-    _openSupportTicketFromData(message.data);
+    _handleNotificationRouting(message.data);
   }
 
-  void _openSupportTicketFromData(Map<String, dynamic> data) {
-    if (data['type'] != 'SUPPORT_TICKET_MESSAGE') return;
-    final ticketId = data['ticketId'] as String?;
-    if (ticketId == null || ticketId.isEmpty) return;
-    navigateToSupportTicketThread(ticketId);
+  void _handleNotificationRouting(Map<String, dynamic> data) {
+    final type = data['type'] as String?;
+    
+    if (type == 'SUPPORT_TICKET_MESSAGE') {
+      final ticketId = data['ticketId'] as String?;
+      if (ticketId != null && ticketId.isNotEmpty) {
+        navigateToSupportTicketThread(ticketId);
+      }
+    } else if (type == 'ATTENDANCE_ALERT') {
+      // Find the context to push the screen
+      final context = appNavigatorKey.currentContext;
+      if (context != null) {
+        final studentCcStr = data['studentCc'] ?? data['student_cc'];
+        final studentCc = studentCcStr != null ? int.tryParse(studentCcStr.toString()) : null;
+        
+        // Grab currently selected student or default
+        final activeStudent = InjectionContainer.selectedStudentCubit.state;
+        if (activeStudent != null && activeStudent.cc == studentCc) {
+          final scanTimeStr = data['scanTime'] ?? data['scan_time'];
+          final parsedDate = scanTimeStr != null ? DateTime.tryParse(scanTimeStr.toString()) : null;
+          
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AttendanceCalendarPage(
+                student: activeStudent,
+                initialSelectedDate: parsedDate?.toLocal(),
+              ),
+            ),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _showLocalNotification(RemoteMessage message) async {

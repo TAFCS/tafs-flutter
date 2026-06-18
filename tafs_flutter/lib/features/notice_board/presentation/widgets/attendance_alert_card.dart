@@ -3,8 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/attendance_alert.dart';
-import '../bloc/notice_board_bloc.dart';
-import '../bloc/notice_board_event.dart';
+import '../../presentation/bloc/notice_board_bloc.dart';
+import '../../presentation/bloc/notice_board_event.dart';
+import '../../../auth/presentation/bloc/selected_student_cubit.dart';
+import '../../../attendance_history/presentation/pages/attendance_calendar_page.dart';
 
 class AttendanceAlertCard extends StatefulWidget {
   final AttendanceAlert alert;
@@ -58,9 +60,25 @@ class _AttendanceAlertCardState extends State<AttendanceAlertCard> {
           ),
           const SizedBox(width: AppTheme.space3),
           Expanded(
-            child: Text(
-              alert.body,
-              style: const TextStyle(fontSize: 13, color: AppTheme.navy, height: 1.4),
+            child: InkWell(
+              onTap: () {
+                final activeStudent = context.read<SelectedStudentCubit>().state;
+                if (activeStudent != null && activeStudent.cc == alert.studentCc) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AttendanceCalendarPage(
+                        student: activeStudent,
+                        initialSelectedDate: alert.scanTimeUtc.toLocal(),
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: Text(
+                alert.body,
+                style: const TextStyle(fontSize: 13, color: AppTheme.navy, height: 1.4),
+              ),
             ),
           ),
           const SizedBox(width: AppTheme.space2),

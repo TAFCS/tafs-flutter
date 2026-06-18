@@ -27,6 +27,7 @@ import '../../fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import '../../fee_ledger/presentation/bloc/fee_summary_event.dart';
 import '../../fee_ledger/presentation/pages/fee_ledger_page.dart';
 import '../../profile/presentation/family_profile_page.dart';
+import '../../attendance_history/presentation/pages/attendance_calendar_page.dart';
 import 'main_dashboard_page.dart';
 import 'widgets/student_app_bar.dart';
 import 'widgets/family_app_bar.dart';
@@ -156,9 +157,28 @@ class _MainShellPageState extends State<MainShellPage> {
                     student: student,
                     actions: const [_ChatAppBarAction()],
                   )
-                : const FamilyAppBar(
-                    actions: [_ChatAppBarAction()],
-                  ),
+                : _selectedIndex == 0
+                    ? FamilyAppBar(
+                        actions: [
+                          IconButton(
+                            icon: const Icon(Icons.calendar_month_rounded, color: AppTheme.navy),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AttendanceCalendarPage(
+                                    student: student,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const _ChatAppBarAction(),
+                        ],
+                      )
+                    : const FamilyAppBar(
+                        actions: [_ChatAppBarAction()],
+                      ),
             body: IndexedStack(
               index: _selectedIndex,
               children: [
