@@ -51,9 +51,11 @@ class MessageInput extends StatefulWidget {
     this.replyingTo,
     required this.onCancelReply,
     this.students = const [],
+    this.isSending = false,
   });
 
   final List<ChatStudent> students;
+  final bool isSending;
 
   @override
   State<MessageInput> createState() => _MessageInputState();
@@ -833,7 +835,9 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                               _stopRecording();
                             }
                           },
-                          onTap: () {
+                          onTap: widget.isSending
+                              ? null
+                              : () {
                             if (_isLocked) {
                               _stopRecording(cancel: false);
                             } else if (_isTextEmpty && _selectedFiles.isEmpty) {
@@ -855,9 +859,11 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                             width: 54,
                             height: 54,
                             decoration: BoxDecoration(
-                              color: _isRecording 
+                              color: widget.isSending
+                                  ? Theme.of(context).primaryColor.withValues(alpha: 0.7)
+                                  : (_isRecording 
                                 ? (_isLocked ? Colors.green : Colors.red) 
-                                : Theme.of(context).primaryColor,
+                                : Theme.of(context).primaryColor),
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
@@ -872,7 +878,17 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                             child: Center(
                               child: AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 200),
-                                child: Icon(
+                                child: widget.isSending
+                                    ? const SizedBox(
+                                        key: ValueKey('sending'),
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : Icon(
                                   _isRecording 
                                     ? (_isLocked ? Icons.send_rounded : Icons.mic_rounded)
                                     : (_isTextEmpty && _selectedFiles.isEmpty ? Icons.mic_rounded : Icons.send_rounded),

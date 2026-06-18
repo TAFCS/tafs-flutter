@@ -239,9 +239,8 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
                   if (ticket.status.name != 'closed')
                     Stack(
                       children: [
-                        AbsorbPointer(
-                          absorbing: state.sending,
-                          child: MessageInput(
+                        MessageInput(
+                            isSending: state.sending,
                             replyingTo: null,
                             onCancelReply: () {},
                             students: const [],
@@ -266,20 +265,6 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
                             _scrollToBottom();
                           },
                         ),
-                        ),
-                        if (state.sending)
-                          const Positioned.fill(
-                            child: ColoredBox(
-                              color: Color(0x33FFFFFF),
-                              child: Center(
-                                child: SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.navy),
-                                ),
-                              ),
-                            ),
-                          ),
                       ],
                     ),
                 ],

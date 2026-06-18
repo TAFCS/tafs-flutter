@@ -397,8 +397,9 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                     Stack(
                       children: [
                         AbsorbPointer(
-                          absorbing: state.sending || !state.isSocketConnected,
+                          absorbing: !state.isSocketConnected,
                           child: MessageInput(
+                            isSending: state.sending,
                             replyingTo: null,
                             onCancelReply: () {},
                             students: const [],
@@ -425,7 +426,7 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                               _scrollToBottom();
                             },
                           ),
-                        ),
+                          ),
                         if (!state.isSocketConnected)
                           Positioned.fill(
                             child: ColoredBox(
@@ -438,22 +439,6 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                                     fontWeight: FontWeight.bold,
                                     color: Colors.red.shade700,
                                     letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        if (state.sending)
-                          const Positioned.fill(
-                            child: ColoredBox(
-                              color: Color(0x33FFFFFF),
-                              child: Center(
-                                child: SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: AppTheme.navy,
                                   ),
                                 ),
                               ),
