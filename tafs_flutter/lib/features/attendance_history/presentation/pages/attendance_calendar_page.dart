@@ -185,6 +185,7 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
     int lateDays = 0;
     int absent = 0;
     int holidays = 0;
+    int weekends = 0;
 
     for (final day in days) {
       if (day.status == 'PRESENT') {
@@ -195,6 +196,7 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
         absent++;
       }
       if (day.isHoliday) holidays++;
+      if (day.isWeekend) weekends++;
     }
 
     return Column(
@@ -270,12 +272,16 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
         // Summary Statistics row
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.space5, vertical: AppTheme.space3),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Wrap(
+            spacing: AppTheme.space2,
+            runSpacing: AppTheme.space2,
+            alignment: WrapAlignment.center,
             children: [
               _buildStatChip('Present', present, 'PRESENT', AppTheme.paid),
               _buildStatChip('Late', lateDays, 'LATE', AppTheme.warning),
               _buildStatChip('Absent', absent, 'ABSENT', AppTheme.danger),
+              if (weekends > 0)
+                _buildStatChip('Weekend', weekends, 'WEEKEND', const Color(0xFFF59E0B)),
               if (holidays > 0)
                 _buildStatChip('Holiday', holidays, 'HOLIDAY', const Color(0xFF9333EA)),
             ],
@@ -308,6 +314,7 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
           border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 8,
