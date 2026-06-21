@@ -188,14 +188,15 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
     int weekends = 0;
 
     for (final day in days) {
-      if (day.status == 'PRESENT') {
+      if (day.isOffDay) {
+        holidays++;
+      } else if (day.status == 'PRESENT') {
         present++;
       } else if (day.status == 'LATE') {
         lateDays++;
       } else if (day.status == 'ABSENT') {
         absent++;
       }
-      if (day.isHoliday) holidays++;
       if (day.isWeekend) weekends++;
     }
 
@@ -382,9 +383,10 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
   }
 
   Widget _buildDayCell(AttendanceDay day, int dayNumber, bool isSelected, bool isToday) {
-    // Determine holiday state first
-    final isHoliday = day.holidayType == 'HOLIDAY';
-    final isWeekendOverride = day.holidayType == 'WEEKEND';
+    // Determine holiday / off-day state first
+    final isHoliday = day.isHoliday;
+    final isWeekendOverride = day.isWeekend;
+    final isExcused = day.isExcused;
 
     Color? cellColor = AppTheme.white;
     Color borderCol = isSelected
@@ -396,7 +398,7 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
 
     Color dotColor = Colors.transparent;
 
-    if (isHoliday) {
+    if (isHoliday || isExcused) {
       cellColor = const Color(0xFFF3E8FF); // light purple
       borderCol = isSelected ? AppTheme.navy : const Color(0xFFD8B4FE);
       dotColor = const Color(0xFF9333EA); // purple dot
@@ -440,7 +442,7 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: isHoliday
+                  color: isHoliday || isExcused
                       ? const Color(0xFF7C3AED)
                       : isSelected
                           ? AppTheme.navy
@@ -497,8 +499,8 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.navy),
             ),
             const SizedBox(height: AppTheme.space3),
-            if (dayData.isHoliday)
-              _buildHolidayCard(dayData.holidayDescription)
+            if (dayData.isHoliday || dayData.isExcused)
+              _buildHolidayCard(dayData.holidayDescription ?? (dayData.isExcused ? 'Excused — day off' : null))
             else if (dayData.isWeekend)
               _buildWeekendCard(dayData.holidayDescription)
             else if (dayData.status == 'ABSENT')

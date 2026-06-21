@@ -15,8 +15,10 @@ class AttendanceDay extends Equatable {
     this.holidayDescription,
   });
 
-  bool get isHoliday => holidayType == 'HOLIDAY';
+  bool get isHoliday => holidayType == 'HOLIDAY' || isExcused;
   bool get isWeekend => holidayType == 'WEEKEND';
+  bool get isExcused => status == 'EXCUSED';
+  bool get isOffDay => isExcused || isHoliday || isWeekend;
 
   @override
   List<Object?> get props => [date, status, sessions, holidayType, holidayDescription];

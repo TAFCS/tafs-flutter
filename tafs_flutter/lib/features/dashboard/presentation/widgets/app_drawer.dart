@@ -6,6 +6,7 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../auth/presentation/bloc/selected_student_cubit.dart';
+import '../../../attendance_history/presentation/pages/attendance_calendar_page.dart';
 import '../../../fee_ledger/presentation/pages/fee_ledger_page.dart';
 import '../../../profile/presentation/family_profile_page.dart';
 
@@ -176,7 +177,17 @@ class AppDrawer extends StatelessWidget {
                       context: context,
                       icon: Icons.calendar_today_rounded,
                       text: 'Attendance',
-                      isPlaceholder: true,
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AttendanceCalendarPage(
+                              student: selectedStudent ?? student,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     _buildDrawerItem(
                       context: context,
