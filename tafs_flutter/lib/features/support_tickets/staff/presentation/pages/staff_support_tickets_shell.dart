@@ -10,7 +10,6 @@ import '../../domain/entities/staff_support_ticket.dart';
 import '../../support_ticket_staff_access.dart';
 import '../bloc/staff_pending_approvals_cubit.dart';
 import '../bloc/staff_ticket_queue_bloc.dart';
-import '../widgets/staff_approval_queue_widget.dart';
 import 'staff_ticket_thread_page.dart';
 
 class StaffSupportTicketsShell extends StatefulWidget {
@@ -113,8 +112,6 @@ class _StaffSupportTicketsShellState extends State<StaffSupportTicketsShell> {
 
     final body = Column(
         children: [
-          if (widget.staff.role == 'SUPER_ADMIN')
-            StaffApprovalQueueWidget(onOpenTicket: _openThread),
           BlocBuilder<StaffTicketQueueBloc, StaffTicketQueueState>(
             builder: (context, state) {
               return Padding(
@@ -165,112 +162,130 @@ class _StaffSupportTicketsShellState extends State<StaffSupportTicketsShell> {
             },
           ),
           Expanded(
-            child: BlocBuilder<StaffTicketQueueBloc, StaffTicketQueueState>(
-              builder: (context, state) {
-                if (state.loading && state.items.isEmpty) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppTheme.navy),
-                  );
+            child: BlocBuilder<StaffPendingApprovalsCubit, StaffPendingApprovalsState>(
+              builder: (context, approvalsState) {
+                // Build ticketId -> pending count map for O(1) lookup per card
+                final pendingByTicket = <String, int>{};
+                if (widget.staff.role == 'SUPER_ADMIN') {
+                  for (final a in approvalsState.items) {
+                    if (a.ticketId != null) {
+                      pendingByTicket[a.ticketId!] =
+                          (pendingByTicket[a.ticketId!] ?? 0) + 1;
+                    }
+                  }
                 }
-                final filtered = _filterTickets(state.items);
-                if (filtered.isEmpty) {
-                  return RefreshIndicator(
-                    onRefresh: () async {
-                      context.read<StaffTicketQueueBloc>().add(StaffQueueRefreshRequested());
-                    },
-                    child: ListView(
-                      children: const [
-                        SizedBox(height: 120),
-                        Center(child: Text('No tickets in this queue')),
-                      ],
-                    ),
-                  );
-                }
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    context.read<StaffTicketQueueBloc>().add(StaffQueueRefreshRequested());
-                  },
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, i) {
-                      final t = filtered[i];
-                      return Material(
-                        color: AppTheme.white,
-                        borderRadius: BorderRadius.circular(12),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => _openThread(t.id),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        t.householdName ?? 'Family #${t.familyId}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${categoryLabel(t.category.name)} · ${t.subtopic ?? ''}',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppTheme.blue300,
-                                        ),
-                                      ),
-                                      if (t.lastMessageSnippet != null) ...[
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          t.lastMessageSnippet!,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(fontSize: 12),
-                                        ),
-                                      ],
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        DateFormat('MMM d, h:mm a').format(t.lastMessageAt),
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (t.unreadByStaff > 0)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.navy,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      '${t.unreadByStaff}',
-                                      style: const TextStyle(
-                                        color: AppTheme.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
+
+                return BlocBuilder<StaffTicketQueueBloc, StaffTicketQueueState>(
+                  builder: (context, state) {
+                    if (state.loading && state.items.isEmpty) {
+                      return const Center(
+                        child: CircularProgressIndicator(color: AppTheme.navy),
+                      );
+                    }
+                    final filtered = _filterTickets(state.items);
+                    if (filtered.isEmpty) {
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          context.read<StaffTicketQueueBloc>().add(StaffQueueRefreshRequested());
+                        },
+                        child: ListView(
+                          children: const [
+                            SizedBox(height: 120),
+                            Center(child: Text('No tickets in this queue')),
+                          ],
                         ),
                       );
-                    },
-                  ),
+                    }
+                    return RefreshIndicator(
+                      onRefresh: () async {
+                        context.read<StaffTicketQueueBloc>().add(StaffQueueRefreshRequested());
+                      },
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, i) {
+                          final t = filtered[i];
+                          final pendingCount = pendingByTicket[t.id] ?? 0;
+                          return Material(
+                            color: AppTheme.white,
+                            borderRadius: BorderRadius.circular(12),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => _openThread(t.id),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            t.householdName ?? 'Family #${t.familyId}',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '${categoryLabel(t.category.name)} · ${t.subtopic ?? ''}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppTheme.blue300,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          // Family's last message
+                                          if (t.lastFamilySnippet != null)
+                                            _SnippetRow(
+                                              label: 'Family',
+                                              text: t.lastFamilySnippet!,
+                                              bold: t.unreadByStaff > 0,
+                                              count: t.unreadByStaff > 0 ? t.unreadByStaff : null,
+                                              countColor: AppTheme.navy,
+                                            ),
+                                          // Staff's last message
+                                          if (t.lastStaffSnippet != null) ...[
+                                            if (t.lastFamilySnippet != null) const SizedBox(height: 3),
+                                            _SnippetRow(
+                                              label: 'You',
+                                              text: t.lastStaffSnippet!,
+                                              bold: pendingCount > 0,
+                                              count: pendingCount > 0 ? pendingCount : null,
+                                              countColor: Colors.amber.shade700,
+                                            ),
+                                          ],
+                                          // Fallback if neither side snippet exists yet
+                                          if (t.lastFamilySnippet == null && t.lastStaffSnippet == null && t.lastMessageSnippet != null) ...[
+                                            Text(
+                                              t.lastMessageSnippet!,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(fontSize: 12),
+                                            ),
+                                          ],
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            DateFormat('MMM d, h:mm a').format(t.lastMessageAt),
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -331,6 +346,68 @@ class _StaffSupportTicketsShellState extends State<StaffSupportTicketsShell> {
           context.read<StaffTicketQueueBloc>().add(StaffQueueTabChanged(tab));
         },
       ),
+    );
+  }
+}
+
+class _SnippetRow extends StatelessWidget {
+  final String label;
+  final String text;
+  final bool bold;
+  final int? count;
+  final Color countColor;
+
+  const _SnippetRow({
+    required this.label,
+    required this.text,
+    required this.bold,
+    this.count,
+    required this.countColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade500,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+              color: bold ? Colors.black87 : Colors.grey.shade600,
+            ),
+          ),
+        ),
+        if (count != null) ...[
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: countColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '$count',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

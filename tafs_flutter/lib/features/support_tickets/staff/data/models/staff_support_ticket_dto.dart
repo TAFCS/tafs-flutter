@@ -17,6 +17,8 @@ class StaffSupportTicketDto {
       routedRole: json['routed_role'] as String? ?? '',
       currentAssigneeId: json['current_assignee_id'] as String?,
       lastMessageSnippet: json['last_message_snippet'] as String?,
+      lastFamilySnippet: json['last_family_snippet'] as String?,
+      lastStaffSnippet: json['last_staff_snippet'] as String?,
       lastMessageAt: DateTime.parse(json['last_message_at'] as String),
       unreadByStaff: json['unread_by_staff'] as int? ?? 0,
       householdName: json['families']?['household_name'] as String?,

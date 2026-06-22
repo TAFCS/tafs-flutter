@@ -10,6 +10,8 @@ class StaffSupportTicket {
   final String routedRole;
   final String? currentAssigneeId;
   final String? lastMessageSnippet;
+  final String? lastFamilySnippet;
+  final String? lastStaffSnippet;
   final DateTime lastMessageAt;
   final int unreadByStaff;
   final String? householdName;
@@ -28,6 +30,8 @@ class StaffSupportTicket {
     required this.routedRole,
     this.currentAssigneeId,
     this.lastMessageSnippet,
+    this.lastFamilySnippet,
+    this.lastStaffSnippet,
     required this.lastMessageAt,
     this.unreadByStaff = 0,
     this.householdName,
