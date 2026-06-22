@@ -282,9 +282,9 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
               _buildStatChip('Late', lateDays, 'LATE', AppTheme.warning),
               _buildStatChip('Absent', absent, 'ABSENT', AppTheme.danger),
               if (weekends > 0)
-                _buildStatChip('Weekend', weekends, 'WEEKEND', const Color(0xFFF59E0B)),
+                _buildStatChip('Weekend', weekends, 'WEEKEND', const Color(0xFF6B7280)),
               if (holidays > 0)
-                _buildStatChip('Holiday', holidays, 'HOLIDAY', const Color(0xFF6B7280)),
+                _buildStatChip('Holiday', holidays, 'HOLIDAY', const Color(0xFF9333EA)),
             ],
           ),
         ),
@@ -417,16 +417,18 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
     Color dotColor = Colors.transparent;
     Color textColor = AppTheme.navy.withOpacity(0.8);
 
-    if (matchesFilter) {
+    // Weekends always get grey fill, no dot — regardless of filter state
+    if (isWeekendOverride) {
+      cellColor = const Color(0xFFF3F4F6);
+      borderCol = isSelected ? AppTheme.navy : const Color(0xFFD1D5DB);
+      dotColor = Colors.transparent;
+      textColor = AppTheme.navy.withOpacity(0.55);
+      if (isSelected) borderWidth = 2.0;
+    } else if (matchesFilter) {
       if (isHoliday || isExcused) {
-        cellColor = const Color(0xFFF3F4F6);
-        borderCol = isSelected ? AppTheme.navy : const Color(0xFFD1D5DB);
-        dotColor = const Color(0xFF9CA3AF);
-        textColor = AppTheme.navy.withOpacity(0.55);
-      } else if (isWeekendOverride) {
-        cellColor = const Color(0xFFFFFBEB);
-        borderCol = isSelected ? AppTheme.navy : const Color(0xFFFCD34D);
-        dotColor = const Color(0xFFF59E0B);
+        if (hasFilter) cellColor = const Color(0xFFF3E8FF);
+        borderCol = isSelected ? AppTheme.navy : (hasFilter ? const Color(0xFFD8B4FE) : AppTheme.blue100);
+        dotColor = const Color(0xFF9333EA);
       } else if (day.status == 'PRESENT') {
         if (hasFilter) cellColor = AppTheme.paid.withOpacity(0.12);
         dotColor = AppTheme.paid;
@@ -442,33 +444,21 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
         borderWidth = 2.0;
       }
     } else {
-      // Non-matching day when filter is active
+      // Non-matching when filter active — mute but keep faded dot
+      cellColor = AppTheme.white;
+      borderCol = AppTheme.blue100.withOpacity(0.3);
+      borderWidth = 1.0;
+      textColor = AppTheme.blue100;
       if (isHoliday || isExcused) {
-        // Holidays always keep their grey fill
-        cellColor = const Color(0xFFF3F4F6);
-        borderCol = const Color(0xFFD1D5DB);
-        dotColor = const Color(0xFF9CA3AF);
-        textColor = AppTheme.navy.withOpacity(0.55);
-      } else if (isWeekendOverride) {
-        // Weekends always keep their amber fill
-        cellColor = const Color(0xFFFFFBEB);
-        borderCol = const Color(0xFFFCD34D);
-        dotColor = const Color(0xFFF59E0B);
+        dotColor = const Color(0xFF9333EA).withOpacity(0.3);
+      } else if (day.status == 'PRESENT') {
+        dotColor = AppTheme.paid.withOpacity(0.3);
+      } else if (day.status == 'LATE') {
+        dotColor = AppTheme.warning.withOpacity(0.3);
+      } else if (day.status == 'ABSENT') {
+        dotColor = AppTheme.danger.withOpacity(0.3);
       } else {
-        // Regular days get muted but keep their dot
-        cellColor = AppTheme.white;
-        borderCol = AppTheme.blue100.withOpacity(0.3);
-        borderWidth = 1.0;
-        textColor = AppTheme.blue100;
-        if (day.status == 'PRESENT') {
-          dotColor = AppTheme.paid.withOpacity(0.3);
-        } else if (day.status == 'LATE') {
-          dotColor = AppTheme.warning.withOpacity(0.3);
-        } else if (day.status == 'ABSENT') {
-          dotColor = AppTheme.danger.withOpacity(0.3);
-        } else {
-          dotColor = Colors.transparent;
-        }
+        dotColor = Colors.transparent;
       }
     }
 
@@ -657,19 +647,19 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(AppTheme.space4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
+        color: const Color(0xFFF3E8FF),
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: const Color(0xFFD1D5DB)),
+        border: Border.all(color: const Color(0xFFD8B4FE)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(AppTheme.space2),
             decoration: const BoxDecoration(
-              color: Color(0xFFE5E7EB),
+              color: Color(0xFFEDE9FE),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.celebration_rounded, color: Color(0xFF6B7280), size: 20),
+            child: const Icon(Icons.celebration_rounded, color: Color(0xFF7C3AED), size: 20),
           ),
           const SizedBox(width: AppTheme.space3),
           Expanded(
@@ -678,12 +668,12 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
               children: [
                 const Text(
                   'Holiday',
-                  style: TextStyle(color: Color(0xFF4B5563), fontWeight: FontWeight.bold, fontSize: 13),
+                  style: TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 if (description != null && description.isNotEmpty)
                   Text(
                     description,
-                    style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500),
+                    style: const TextStyle(color: Color(0xFF6D28D9), fontSize: 12, fontWeight: FontWeight.w500),
                   ),
               ],
             ),
