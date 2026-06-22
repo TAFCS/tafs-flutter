@@ -60,29 +60,12 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
   }
 
   Future<void> _showCloseDialog() async {
-    final noteController = TextEditingController();
-    final ok = await showDialog<bool>(
+    final note = await showDialog<String?>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Close ticket?'),
-        content: TextField(
-          controller: noteController,
-          decoration: const InputDecoration(
-            hintText: 'Optional note for audit log',
-          ),
-          maxLines: 2,
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Close')),
-        ],
-      ),
+      builder: (ctx) => const _CloseTicketDialog(),
     );
-    if (ok == true && mounted) {
-      await _cubit.closeTicket(note: noteController.text.trim());
-      noteController.dispose();
-    } else {
-      noteController.dispose();
+    if (note != null && mounted) {
+      await _cubit.closeTicket(note: note.isEmpty ? null : note);
     }
   }
 
@@ -485,50 +468,17 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
   }
 
   Future<void> _showRejectDialog(String messageId) async {
-    final controller = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-    final ok = await showDialog<bool>(
+    final comment = await showDialog<String?>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Reject reply'),
-        content: Form(
-          key: formKey,
-          child: TextFormField(
-            controller: controller,
-            autofocus: true,
-            maxLines: 3,
-            decoration: const InputDecoration(
-              hintText: 'Rejection reason (required)',
-            ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter a rejection reason';
-              }
-              return null;
-            },
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              if (formKey.currentState?.validate() ?? false) {
-                Navigator.pop(ctx, true);
-              }
-            },
-            child: const Text('Reject'),
-          ),
-        ],
-      ),
+      builder: (ctx) => const _RejectReplyDialog(),
     );
-    if (ok == true && mounted) {
+    if (comment != null && mounted) {
       await _cubit.reviewMessage(
         messageId: messageId,
         status: 'REJECTED',
-        comment: controller.text.trim(),
+        comment: comment,
       );
     }
-    controller.dispose();
   }
 
   Widget _banner(String text, Color bg, Color fg) {
@@ -572,6 +522,103 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
           : Text(label),
       backgroundColor: danger ? Colors.red.shade50 : null,
       onPressed: loading ? null : onTap,
+    );
+  }
+}
+
+class _CloseTicketDialog extends StatefulWidget {
+  const _CloseTicketDialog();
+
+  @override
+  State<_CloseTicketDialog> createState() => _CloseTicketDialogState();
+}
+
+class _CloseTicketDialogState extends State<_CloseTicketDialog> {
+  final _noteController = TextEditingController();
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Close ticket?'),
+      content: TextField(
+        controller: _noteController,
+        decoration: const InputDecoration(
+          hintText: 'Optional note for audit log',
+        ),
+        maxLines: 2,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, _noteController.text.trim()),
+          child: const Text('Close'),
+        ),
+      ],
+    );
+  }
+}
+
+class _RejectReplyDialog extends StatefulWidget {
+  const _RejectReplyDialog();
+
+  @override
+  State<_RejectReplyDialog> createState() => _RejectReplyDialogState();
+}
+
+class _RejectReplyDialogState extends State<_RejectReplyDialog> {
+  final _controller = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Reject reply'),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _controller,
+          autofocus: true,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'Rejection reason (required)',
+          ),
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Please enter a rejection reason';
+            }
+            return null;
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            if (_formKey.currentState?.validate() ?? false) {
+              Navigator.pop(context, _controller.text.trim());
+            }
+          },
+          child: const Text('Reject'),
+        ),
+      ],
     );
   }
 }
