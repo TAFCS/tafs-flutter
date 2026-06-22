@@ -537,9 +537,51 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              formattedDate,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.navy),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  formattedDate,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                ),
+                if (dayData.status != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: dayData.status == 'PRESENT'
+                          ? AppTheme.paid.withOpacity(0.1)
+                          : dayData.status == 'LATE'
+                              ? AppTheme.warning.withOpacity(0.15)
+                              : dayData.status == 'ABSENT'
+                                  ? AppTheme.danger.withOpacity(0.1)
+                                  : AppTheme.blue300.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                      border: Border.all(
+                        color: dayData.status == 'PRESENT'
+                            ? AppTheme.paid.withOpacity(0.3)
+                            : dayData.status == 'LATE'
+                                ? AppTheme.warning.withOpacity(0.3)
+                                : dayData.status == 'ABSENT'
+                                    ? AppTheme.danger.withOpacity(0.3)
+                                    : AppTheme.blue300.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Text(
+                      dayData.status!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: dayData.status == 'PRESENT'
+                            ? AppTheme.paid
+                            : dayData.status == 'LATE'
+                                ? AppTheme.warning
+                                : dayData.status == 'ABSENT'
+                                    ? AppTheme.danger
+                                    : AppTheme.blue300,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: AppTheme.space3),
             if (dayData.isHoliday || dayData.isExcused)
