@@ -273,18 +273,7 @@ class _NoticeBoardSection extends StatelessWidget {
             return _GroupedAttendanceList(items: filtered);
           }
 
-          return Column(
-            children: filtered.map((item) {
-              if (item is NoticeFeedPost) {
-                return NoticePostCard(key: ValueKey('post-${item.post.id}'), post: item.post);
-              }
-              if (item is NoticeFeedCalendarAlert) {
-                return CalendarAlertCard(key: ValueKey('cal-alert-${item.alert.id}'), alert: item.alert);
-              }
-              final alert = (item as NoticeFeedAlert).alert;
-              return AttendanceAlertCard(key: ValueKey('alert-${alert.id}'), alert: alert);
-            }).toList(),
-          );
+          return _GroupedFeedList(items: filtered);
         }
 
         return const SizedBox.shrink();
@@ -326,6 +315,84 @@ class _NoticeBoardSection extends StatelessWidget {
   }
 }
 
+String _feedDayLabel(DateTime dt) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final d = DateTime(dt.year, dt.month, dt.day);
+  final diff = today.difference(d).inDays;
+  if (diff == 0) return 'Today';
+  if (diff == 1) return 'Yesterday';
+  if (diff < 7) {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return days[dt.weekday - 1];
+  }
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return '${months[dt.month - 1]} ${dt.day}';
+}
+
+class _GroupedFeedList extends StatelessWidget {
+  final List<NoticeFeedItem> items;
+
+  const _GroupedFeedList({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    final grouped = <String, List<NoticeFeedItem>>{};
+    for (final item in items) {
+      final key = _feedDayLabel(item.timestamp.toLocal());
+      grouped.putIfAbsent(key, () => []).add(item);
+    }
+
+    final widgets = <Widget>[];
+    for (final entry in grouped.entries) {
+      widgets.add(_FeedDateHeader(label: entry.key));
+      for (final item in entry.value) {
+        if (item is NoticeFeedPost) {
+          widgets.add(NoticePostCard(key: ValueKey('post-${item.post.id}'), post: item.post));
+        } else if (item is NoticeFeedCalendarAlert) {
+          widgets.add(CalendarAlertCard(key: ValueKey('cal-alert-${item.alert.id}'), alert: item.alert));
+        } else if (item is NoticeFeedAlert) {
+          widgets.add(AttendanceAlertCard(key: ValueKey('alert-${item.alert.id}'), alert: item.alert));
+        }
+      }
+      widgets.add(const SizedBox(height: AppTheme.space2));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widgets,
+    );
+  }
+}
+
+class _FeedDateHeader extends StatelessWidget {
+  final String label;
+
+  const _FeedDateHeader({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppTheme.space3, bottom: AppTheme.space2),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.blue300,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(width: AppTheme.space2),
+          const Expanded(child: Divider(color: AppTheme.blue100, height: 1)),
+        ],
+      ),
+    );
+  }
+}
+
 class _GroupedAttendanceList extends StatelessWidget {
   final List<NoticeFeedItem> items;
 
@@ -337,11 +404,11 @@ class _GroupedAttendanceList extends StatelessWidget {
     for (final item in items) {
       if (item is NoticeFeedAlert) {
         final local = item.alert.scanTimeLocal;
-        final key = _dayLabel(local);
+        final key = _feedDayLabel(local);
         grouped.putIfAbsent(key, () => []).add(item);
       } else if (item is NoticeFeedCalendarAlert) {
         final local = item.alert.date.toLocal();
-        final key = _dayLabel(local);
+        final key = _feedDayLabel(local);
         grouped.putIfAbsent(key, () => []).add(item);
       }
     }
@@ -353,26 +420,6 @@ class _GroupedAttendanceList extends StatelessWidget {
     );
   }
 
-  String _dayLabel(DateTime dt) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final d = DateTime(dt.year, dt.month, dt.day);
-    final diff = today.difference(d).inDays;
-    if (diff == 0) return 'Today';
-    if (diff == 1) return 'Yesterday';
-    if (diff < 7) return _weekday(dt.weekday);
-    return '${_month(dt.month)} ${dt.day}';
-  }
-
-  String _weekday(int w) {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return days[w - 1];
-  }
-
-  String _month(int m) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return months[m - 1];
-  }
 }
 
 class _AttendanceDayGroup extends StatefulWidget {
