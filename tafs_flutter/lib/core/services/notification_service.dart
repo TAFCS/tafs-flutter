@@ -77,7 +77,7 @@ class NotificationService {
           onTap: () {
             if (type == 'SUPPORT_TICKET_MESSAGE' && ticketId != null && ticketId.isNotEmpty) {
               navigateToSupportTicketThread(ticketId);
-            } else if (type == 'ATTENDANCE_ALERT') {
+            } else if (type == 'ATTENDANCE_ALERT' || type == 'biometric_attendance') {
               _handleNotificationRouting(message.data);
             }
           },
@@ -110,7 +110,7 @@ class NotificationService {
       if (ticketId != null && ticketId.isNotEmpty) {
         navigateToSupportTicketThread(ticketId);
       }
-    } else if (type == 'ATTENDANCE_ALERT') {
+    } else if (type == 'ATTENDANCE_ALERT' || type == 'biometric_attendance') {
       // Find the context to push the screen
       final context = appNavigatorKey.currentContext;
       if (context != null) {
