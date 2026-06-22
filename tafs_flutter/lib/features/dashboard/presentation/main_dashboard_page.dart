@@ -8,6 +8,9 @@ import '../../notice_board/presentation/bloc/notice_board_event.dart';
 import '../../notice_board/presentation/bloc/notice_board_state.dart';
 import '../../notice_board/presentation/widgets/attendance_alert_card.dart';
 import '../../notice_board/presentation/widgets/notice_post_card.dart';
+import '../../notice_board/presentation/widgets/calendar_alert_card.dart';
+import '../../auth/presentation/bloc/selected_student_cubit.dart';
+import '../../attendance_history/presentation/pages/attendance_calendar_page.dart';
 
 enum _FeedFilter { all, notices, attendance }
 
@@ -275,6 +278,9 @@ class _NoticeBoardSection extends StatelessWidget {
               if (item is NoticeFeedPost) {
                 return NoticePostCard(key: ValueKey('post-${item.post.id}'), post: item.post);
               }
+              if (item is NoticeFeedCalendarAlert) {
+                return CalendarAlertCard(key: ValueKey('cal-alert-${item.alert.id}'), alert: item.alert);
+              }
               final alert = (item as NoticeFeedAlert).alert;
               return AttendanceAlertCard(key: ValueKey('alert-${alert.id}'), alert: alert);
             }).toList(),
@@ -291,7 +297,7 @@ class _NoticeBoardSection extends StatelessWidget {
       case _FeedFilter.notices:
         return items.whereType<NoticeFeedPost>().toList();
       case _FeedFilter.attendance:
-        return items.whereType<NoticeFeedAlert>().toList();
+        return items.where((item) => item is NoticeFeedAlert || item is NoticeFeedCalendarAlert).toList();
       case _FeedFilter.all:
         return items;
     }
@@ -327,16 +333,22 @@ class _GroupedAttendanceList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final grouped = <String, List<AttendanceAlert>>{};
-    for (final item in items.whereType<NoticeFeedAlert>()) {
-      final local = item.alert.scanTimeLocal;
-      final key = _dayLabel(local);
-      grouped.putIfAbsent(key, () => []).add(item.alert);
+    final grouped = <String, List<NoticeFeedItem>>{};
+    for (final item in items) {
+      if (item is NoticeFeedAlert) {
+        final local = item.alert.scanTimeLocal;
+        final key = _dayLabel(local);
+        grouped.putIfAbsent(key, () => []).add(item);
+      } else if (item is NoticeFeedCalendarAlert) {
+        final local = item.alert.date.toLocal();
+        final key = _dayLabel(local);
+        grouped.putIfAbsent(key, () => []).add(item);
+      }
     }
 
     return Column(
       children: grouped.entries.map((entry) {
-        return _AttendanceDayGroup(dayLabel: entry.key, alerts: entry.value);
+        return _AttendanceDayGroup(dayLabel: entry.key, items: entry.value);
       }).toList(),
     );
   }
@@ -365,9 +377,9 @@ class _GroupedAttendanceList extends StatelessWidget {
 
 class _AttendanceDayGroup extends StatefulWidget {
   final String dayLabel;
-  final List<AttendanceAlert> alerts;
+  final List<NoticeFeedItem> items;
 
-  const _AttendanceDayGroup({required this.dayLabel, required this.alerts});
+  const _AttendanceDayGroup({required this.dayLabel, required this.items});
 
   @override
   State<_AttendanceDayGroup> createState() => _AttendanceDayGroupState();
@@ -414,7 +426,7 @@ class _AttendanceDayGroupState extends State<_AttendanceDayGroup> {
                       borderRadius: BorderRadius.circular(AppTheme.radiusFull),
                     ),
                     child: Text(
-                      '${widget.alerts.length}',
+                      '${widget.items.length}',
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -434,9 +446,81 @@ class _AttendanceDayGroupState extends State<_AttendanceDayGroup> {
           ),
           if (_expanded) ...[
             const Divider(height: 1, color: AppTheme.blue100),
-            ...widget.alerts.asMap().entries.map((entry) {
-              final alert = entry.value;
-              final isLast = entry.key == widget.alerts.length - 1;
+            ...widget.items.asMap().entries.map((entry) {
+              final item = entry.value;
+              final isLast = entry.key == widget.items.length - 1;
+
+              if (item is NoticeFeedCalendarAlert) {
+                final alert = item.alert;
+                IconData icon;
+                Color iconColor;
+                Color iconBg;
+
+                if (alert.alertType == 'SCHOOL_OPEN') {
+                  icon = Icons.event_available_rounded;
+                  iconColor = AppTheme.paid;
+                  iconBg = AppTheme.paidBg;
+                } else if (alert.alertType == 'DAY_OFF') {
+                  icon = Icons.calendar_today_rounded;
+                  iconColor = AppTheme.warning;
+                  iconBg = AppTheme.warningBg;
+                } else {
+                  icon = Icons.event_busy_rounded;
+                  iconColor = AppTheme.unpaid;
+                  iconBg = AppTheme.unpaidBg;
+                }
+
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.space4,
+                        vertical: AppTheme.space3,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+                            child: Icon(icon, size: 15, color: iconColor),
+                          ),
+                          const SizedBox(width: AppTheme.space3),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () {
+                                final activeStudent = context.read<SelectedStudentCubit>().state;
+                                if (activeStudent != null && activeStudent.cc == alert.studentCc) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => AttendanceCalendarPage(
+                                        student: activeStudent,
+                                        initialSelectedDate: alert.date.toLocal(),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Text(
+                                alert.body,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppTheme.navy,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!isLast) const Divider(height: 1, indent: 16, endIndent: 16, color: AppTheme.blue100),
+                  ],
+                );
+              }
+
+              final alert = (item as NoticeFeedAlert).alert;
               final isClockIn = alert.direction == 'IN';
               final iconColor = isClockIn ? AppTheme.paid : AppTheme.navy;
               final iconBg = isClockIn ? AppTheme.paidBg : AppTheme.blue100;
@@ -459,12 +543,28 @@ class _AttendanceDayGroupState extends State<_AttendanceDayGroup> {
                         ),
                         const SizedBox(width: AppTheme.space3),
                         Expanded(
-                          child: Text(
-                            alert.body,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppTheme.navy,
-                              height: 1.4,
+                          child: InkWell(
+                            onTap: () {
+                              final activeStudent = context.read<SelectedStudentCubit>().state;
+                              if (activeStudent != null && activeStudent.cc == alert.studentCc) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => AttendanceCalendarPage(
+                                      student: activeStudent,
+                                      initialSelectedDate: alert.scanTimeUtc.toLocal(),
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            child: Text(
+                              alert.body,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppTheme.navy,
+                                height: 1.4,
+                              ),
                             ),
                           ),
                         ),

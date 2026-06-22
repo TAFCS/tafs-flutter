@@ -1,4 +1,5 @@
 import '../../domain/entities/attendance_alert.dart';
+import '../../domain/entities/calendar_alert.dart';
 import '../../domain/entities/notice_post.dart';
 import '../../domain/repositories/notice_board_repository.dart';
 import '../datasources/notice_board_remote_data_source.dart';
@@ -26,5 +27,15 @@ class NoticeBoardRepositoryImpl implements NoticeBoardRepository {
   @override
   Future<void> markAlertRead(int alertId) {
     return remoteDataSource.markAlertRead(alertId);
+  }
+
+  @override
+  Future<List<CalendarAlert>> getCalendarAlerts({int? cursor}) {
+    return remoteDataSource.getCalendarAlerts(cursor: cursor);
+  }
+
+  @override
+  Future<void> markCalendarAlertRead(int alertId) {
+    return remoteDataSource.markCalendarAlertRead(alertId);
   }
 }

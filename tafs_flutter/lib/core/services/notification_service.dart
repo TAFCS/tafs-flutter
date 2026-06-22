@@ -77,7 +77,7 @@ class NotificationService {
           onTap: () {
             if (type == 'SUPPORT_TICKET_MESSAGE' && ticketId != null && ticketId.isNotEmpty) {
               navigateToSupportTicketThread(ticketId);
-            } else if (type == 'ATTENDANCE_ALERT' || type == 'biometric_attendance') {
+            } else if (type == 'ATTENDANCE_ALERT' || type == 'biometric_attendance' || type == 'calendar_alert') {
               _handleNotificationRouting(message.data);
             }
           },
@@ -110,7 +110,7 @@ class NotificationService {
       if (ticketId != null && ticketId.isNotEmpty) {
         navigateToSupportTicketThread(ticketId);
       }
-    } else if (type == 'ATTENDANCE_ALERT' || type == 'biometric_attendance') {
+    } else if (type == 'ATTENDANCE_ALERT' || type == 'biometric_attendance' || type == 'calendar_alert') {
       // Find the context to push the screen
       final context = appNavigatorKey.currentContext;
       if (context != null) {
@@ -120,7 +120,7 @@ class NotificationService {
         // Grab currently selected student or default
         final activeStudent = InjectionContainer.selectedStudentCubit.state;
         if (activeStudent != null && activeStudent.cc == studentCc) {
-          final scanTimeStr = data['scanTime'] ?? data['scan_time'];
+          final scanTimeStr = data['scanTime'] ?? data['scan_time'] ?? data['date'];
           final parsedDate = scanTimeStr != null ? DateTime.tryParse(scanTimeStr.toString()) : null;
           
           Navigator.push(
