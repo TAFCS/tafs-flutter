@@ -1,5 +1,12 @@
 import '../../domain/entities/staff_notice_post.dart';
 
+int _parseInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.parse(value);
+  throw FormatException('Expected int, got $value');
+}
+
 class StaffNoticePostDto extends StaffNoticePost {
   const StaffNoticePostDto({
     required super.id,
@@ -20,7 +27,7 @@ class StaffNoticePostDto extends StaffNoticePost {
   factory StaffNoticePostDto.fromJson(Map<String, dynamic> json) {
     List<int> parseIntList(dynamic v) {
       if (v == null) return [];
-      return (v as List<dynamic>).map((e) => e as int).toList();
+      return (v as List<dynamic>).map(_parseInt).toList();
     }
 
     List<String> parseStringList(dynamic v) {
@@ -31,7 +38,7 @@ class StaffNoticePostDto extends StaffNoticePost {
 
     final count = json['_count'] as Map<String, dynamic>?;
     return StaffNoticePostDto(
-      id: json['id'] as int,
+      id: _parseInt(json['id']),
       title: json['title'] as String?,
       body: json['body'] as String,
       postedByName:
@@ -47,7 +54,9 @@ class StaffNoticePostDto extends StaffNoticePost {
       expiresAt: json['expires_at'] != null
           ? DateTime.parse(json['expires_at'] as String)
           : null,
-      readCount: count?['post_reads'] as int? ?? 0,
+      readCount: count?['post_reads'] != null
+          ? _parseInt(count!['post_reads'])
+          : 0,
     );
   }
 }
@@ -61,9 +70,12 @@ class NoticeReadStatsDto extends NoticeReadStats {
 
   factory NoticeReadStatsDto.fromJson(Map<String, dynamic> json) {
     return NoticeReadStatsDto(
-      postId: json['post_id'] as int,
-      totalReached: json['total_reached'] as int? ?? 0,
-      totalRead: json['total_read'] as int? ?? 0,
+      postId: _parseInt(json['post_id']),
+      totalReached: json['total_reached'] != null
+          ? _parseInt(json['total_reached'])
+          : 0,
+      totalRead:
+          json['total_read'] != null ? _parseInt(json['total_read']) : 0,
     );
   }
 }
@@ -83,20 +95,20 @@ class CampusScopeDto extends CampusScope {
           .map((s) {
             final section = s as Map<String, dynamic>;
             return CampusSectionOption(
-              id: section['id'] as int,
+              id: _parseInt(section['id']),
               name: section['description'] as String? ?? '',
             );
           })
           .toList();
       return CampusClassOption(
-        id: cls['id'] as int,
+        id: _parseInt(cls['id']),
         name: cls['description'] as String? ?? '',
         sections: sections,
       );
     }).toList();
 
     return CampusScopeDto(
-      id: json['id'] as int,
+      id: _parseInt(json['id']),
       name: json['campus_name'] as String? ?? '',
       classes: classes,
     );

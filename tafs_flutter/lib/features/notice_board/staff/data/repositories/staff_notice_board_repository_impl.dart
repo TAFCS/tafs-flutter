@@ -39,7 +39,7 @@ class StaffNoticeBoardRepositoryImpl implements StaffNoticeBoardRepository {
       'media_urls': mediaUrls,
       'media_types': mediaTypes,
       'is_pinned': isPinned,
-      if (expiresAt != null) 'expires_at': expiresAt.toIso8601String(),
+      if (expiresAt != null) 'expires_at': expiresAt.toUtc().toIso8601String(),
     });
   }
 

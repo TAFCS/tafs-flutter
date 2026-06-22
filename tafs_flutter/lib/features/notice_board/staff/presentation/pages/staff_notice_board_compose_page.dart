@@ -365,7 +365,11 @@ class _StaffNoticeBoardComposePageState
                   child: SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed: state.actionLoading || _bodyEmpty ? null : _submit,
+                      onPressed: state.actionLoading ||
+                              state.uploading ||
+                              _bodyEmpty
+                          ? null
+                          : _submit,
                       style: FilledButton.styleFrom(
                         backgroundColor: AppTheme.navy,
                         foregroundColor: Colors.white,

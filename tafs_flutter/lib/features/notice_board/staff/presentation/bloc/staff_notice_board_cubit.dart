@@ -44,6 +44,15 @@ class StaffNoticeBoardState {
       );
 }
 
+List<StaffNoticePost> sortNoticePosts(List<StaffNoticePost> posts) {
+  final sorted = List<StaffNoticePost>.from(posts);
+  sorted.sort((a, b) {
+    if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
+    return b.postedAt.compareTo(a.postedAt);
+  });
+  return sorted;
+}
+
 class StaffNoticeBoardCubit extends Cubit<StaffNoticeBoardState> {
   final StaffNoticeBoardRepository repository;
   bool _initialized = false;
@@ -56,15 +65,15 @@ class StaffNoticeBoardCubit extends Cubit<StaffNoticeBoardState> {
       await refresh();
       return;
     }
-    _initialized = true;
     emit(state.copyWith(loading: true, clearError: true));
     try {
       final results = await Future.wait([
         repository.getPosts(),
         repository.getCampuses(),
       ]);
+      _initialized = true;
       emit(StaffNoticeBoardState(
-        posts: results[0] as List<StaffNoticePost>,
+        posts: sortNoticePosts(results[0] as List<StaffNoticePost>),
         campuses: results[1] as List<CampusScope>,
         loading: false,
       ));
@@ -79,8 +88,15 @@ class StaffNoticeBoardCubit extends Cubit<StaffNoticeBoardState> {
   Future<void> refresh() async {
     emit(state.copyWith(loading: true, clearError: true));
     try {
-      final posts = await repository.getPosts();
-      emit(state.copyWith(posts: posts, loading: false));
+      final posts = sortNoticePosts(await repository.getPosts());
+      final campuses = state.campuses.isEmpty
+          ? await repository.getCampuses()
+          : state.campuses;
+      emit(state.copyWith(
+        posts: posts,
+        campuses: campuses,
+        loading: false,
+      ));
     } catch (_) {
       emit(state.copyWith(
         loading: false,
@@ -122,7 +138,7 @@ class StaffNoticeBoardCubit extends Cubit<StaffNoticeBoardState> {
         expiresAt: expiresAt,
       );
       emit(state.copyWith(
-        posts: [post, ...state.posts],
+        posts: sortNoticePosts([post, ...state.posts]),
         actionLoading: false,
       ));
       return post;
@@ -136,6 +152,7 @@ class StaffNoticeBoardCubit extends Cubit<StaffNoticeBoardState> {
   }
 
   Future<bool> togglePin(StaffNoticePost post) async {
+    if (state.actionLoading) return post.isPinned;
     emit(state.copyWith(actionLoading: true, clearActionError: true));
     try {
       final updated = await repository.togglePin(post.id, !post.isPinned);
@@ -159,11 +176,10 @@ class StaffNoticeBoardCubit extends Cubit<StaffNoticeBoardState> {
         }
         return p;
       }).toList();
-      posts.sort((a, b) {
-        if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
-        return b.postedAt.compareTo(a.postedAt);
-      });
-      emit(state.copyWith(posts: posts, actionLoading: false));
+      emit(state.copyWith(
+        posts: sortNoticePosts(posts),
+        actionLoading: false,
+      ));
       return updated.isPinned;
     } catch (_) {
       emit(state.copyWith(
@@ -175,6 +191,7 @@ class StaffNoticeBoardCubit extends Cubit<StaffNoticeBoardState> {
   }
 
   Future<bool> deletePost(int postId) async {
+    if (state.actionLoading) return false;
     emit(state.copyWith(actionLoading: true, clearActionError: true));
     try {
       await repository.deletePost(postId);
