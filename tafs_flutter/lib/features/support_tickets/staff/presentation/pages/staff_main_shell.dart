@@ -3,9 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../auth/domain/entities/staff_user.dart';
 import '../../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../../auth/presentation/bloc/auth_event.dart';
-import '../../../../chat/staff/presentation/bloc/staff_announcements_cubit.dart';
-import '../../../../chat/staff/presentation/pages/staff_announcements_page.dart';
-import '../../../../chat/staff/staff_chat_access.dart';
+import '../../../../notice_board/staff/presentation/bloc/staff_notice_board_cubit.dart';
+import '../../../../notice_board/staff/presentation/pages/staff_notice_board_page.dart';
+import '../../../../notice_board/staff/staff_notice_board_access.dart';
 import '../../../../../core/session/session_reset.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../support_ticket_staff_access.dart';
@@ -13,7 +13,7 @@ import '../bloc/staff_pending_approvals_cubit.dart';
 import '../bloc/staff_ticket_queue_bloc.dart';
 import 'staff_support_tickets_shell.dart';
 
-enum _StaffTab { tickets, announcements }
+enum _StaffTab { tickets, noticeBoard }
 
 class StaffMainShell extends StatefulWidget {
   final StaffUser staff;
@@ -28,13 +28,13 @@ class _StaffMainShellState extends State<StaffMainShell> {
   _StaffTab _activeTab = _StaffTab.tickets;
 
   bool get _showTickets => canViewSupportTickets(widget.staff);
-  bool get _showAnnouncements => canViewAnnouncementsChat(widget.staff);
+  bool get _showNoticeBoard => canViewStaffNoticeBoard(widget.staff);
 
   @override
   void initState() {
     super.initState();
-    if (!_showTickets && _showAnnouncements) {
-      _activeTab = _StaffTab.announcements;
+    if (!_showTickets && _showNoticeBoard) {
+      _activeTab = _StaffTab.noticeBoard;
     }
   }
 
@@ -44,47 +44,49 @@ class _StaffMainShellState extends State<StaffMainShell> {
       if (widget.staff.role == 'SUPER_ADMIN') {
         context.read<StaffPendingApprovalsCubit>().load();
       }
-    } else if (_activeTab == _StaffTab.announcements && _showAnnouncements) {
-      context.read<StaffAnnouncementsCubit>().refresh();
+    } else if (_activeTab == _StaffTab.noticeBoard && _showNoticeBoard) {
+      context.read<StaffNoticeBoardCubit>().refresh();
     }
   }
 
   Widget _buildBody() {
-    if (_showTickets && _showAnnouncements) {
+    if (_showTickets && _showNoticeBoard) {
       return IndexedStack(
         index: _activeTab == _StaffTab.tickets ? 0 : 1,
         children: [
           StaffSupportTicketsShell(staff: widget.staff, embedded: true),
-          const StaffAnnouncementsPage(loadOnMount: false),
+          const StaffNoticeBoardPage(loadOnMount: false),
         ],
       );
     }
     if (_showTickets) {
       return StaffSupportTicketsShell(staff: widget.staff, embedded: true);
     }
-    return const StaffAnnouncementsPage(loadOnMount: true);
+    if (_showNoticeBoard) {
+      return const StaffNoticeBoardPage(loadOnMount: true);
+    }
+    return const SizedBox.shrink();
   }
 
   String get _title {
-    if (!_showTickets && _showAnnouncements) return 'Announcements';
-    if (_showTickets && !_showAnnouncements) return 'Support Tickets';
+    if (!_showTickets && _showNoticeBoard) return 'Notice Board';
+    if (_showTickets && !_showNoticeBoard) return 'Support Tickets';
     return _activeTab == _StaffTab.tickets
         ? 'Support Tickets'
-        : 'Announcements';
+        : 'Notice Board';
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_showTickets && !_showAnnouncements) {
+    if (!_showTickets && !_showNoticeBoard) {
       return Scaffold(
         appBar: AppBar(title: const Text('TAFS Staff')),
         body: const Center(
           child: Padding(
             padding: EdgeInsets.all(24),
             child: Text(
-              'Your account does not have access to Support Tickets or '
-              'Announcements Chat. Ask an administrator to grant the '
-              'appropriate communication permissions.',
+              'Your account does not have access to Support Tickets. '
+              'Ask an administrator to grant the appropriate permissions.',
               textAlign: TextAlign.center,
             ),
           ),
@@ -92,7 +94,7 @@ class _StaffMainShellState extends State<StaffMainShell> {
       );
     }
 
-    final showBottomNav = _showTickets && _showAnnouncements;
+    final showBottomNav = _showTickets && _showNoticeBoard;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -122,10 +124,10 @@ class _StaffMainShellState extends State<StaffMainShell> {
               onDestinationSelected: (index) {
                 setState(() {
                   _activeTab =
-                      index == 0 ? _StaffTab.tickets : _StaffTab.announcements;
+                      index == 0 ? _StaffTab.tickets : _StaffTab.noticeBoard;
                 });
                 if (index == 1) {
-                  context.read<StaffAnnouncementsCubit>().load();
+                  context.read<StaffNoticeBoardCubit>().load();
                 }
               },
               destinations: const [
@@ -135,9 +137,9 @@ class _StaffMainShellState extends State<StaffMainShell> {
                   label: 'Tickets',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.campaign_outlined),
-                  selectedIcon: Icon(Icons.campaign),
-                  label: 'Announcements',
+                  icon: Icon(Icons.article_outlined),
+                  selectedIcon: Icon(Icons.article),
+                  label: 'Notice Board',
                 ),
               ],
             )

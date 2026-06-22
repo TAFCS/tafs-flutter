@@ -10,7 +10,7 @@ import 'features/chat/presentation/bloc/chat_bloc.dart';
 import 'features/support_tickets/presentation/bloc/support_ticket_list_bloc.dart';
 import 'features/support_tickets/staff/presentation/bloc/staff_pending_approvals_cubit.dart';
 import 'features/support_tickets/staff/presentation/bloc/staff_ticket_queue_bloc.dart';
-import 'features/chat/staff/presentation/bloc/staff_announcements_cubit.dart';
+import 'features/notice_board/staff/presentation/bloc/staff_notice_board_cubit.dart';
 import 'features/fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import 'features/fee_ledger/presentation/bloc/student_ledger_bloc.dart';
@@ -50,8 +50,8 @@ class MyApp extends StatelessWidget {
         BlocProvider<StaffPendingApprovalsCubit>(
           create: (_) => InjectionContainer.staffPendingApprovalsCubit,
         ),
-        BlocProvider<StaffAnnouncementsCubit>(
-          create: (_) => InjectionContainer.staffAnnouncementsCubit,
+        BlocProvider<StaffNoticeBoardCubit>(
+          create: (_) => InjectionContainer.staffNoticeBoardCubit,
         ),
         BlocProvider<ChatBloc>(
           create: (_) => InjectionContainer.chatBloc,
