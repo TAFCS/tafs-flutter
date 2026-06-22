@@ -450,13 +450,13 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
       borderWidth = 1.0;
       textColor = AppTheme.blue100;
       if (isHoliday || isExcused) {
-        dotColor = const Color(0xFF9333EA).withOpacity(0.3);
+        dotColor = const Color(0xFF9333EA);
       } else if (day.status == 'PRESENT') {
-        dotColor = AppTheme.paid.withOpacity(0.3);
+        dotColor = AppTheme.paid;
       } else if (day.status == 'LATE') {
-        dotColor = AppTheme.warning.withOpacity(0.3);
+        dotColor = AppTheme.warning;
       } else if (day.status == 'ABSENT') {
-        dotColor = AppTheme.danger.withOpacity(0.3);
+        dotColor = AppTheme.danger;
       } else {
         dotColor = Colors.transparent;
       }
