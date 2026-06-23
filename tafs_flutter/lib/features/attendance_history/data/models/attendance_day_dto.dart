@@ -14,9 +14,33 @@ class AttendanceDayDto extends AttendanceDay {
     final parsedSessions = sessionList.map((s) {
       final inStr = s['clock_in'] as String;
       final outStr = s['clock_out'] as String?;
+      
+      final inUtc = DateTime.parse(inStr);
+      final clockInLocal = DateTime(
+        inUtc.year,
+        inUtc.month,
+        inUtc.day,
+        inUtc.hour,
+        inUtc.minute,
+        inUtc.second,
+      );
+
+      DateTime? clockOutLocal;
+      if (outStr != null) {
+        final outUtc = DateTime.parse(outStr);
+        clockOutLocal = DateTime(
+          outUtc.year,
+          outUtc.month,
+          outUtc.day,
+          outUtc.hour,
+          outUtc.minute,
+          outUtc.second,
+        );
+      }
+
       return AttendanceSession(
-        clockIn: DateTime.parse(inStr).toLocal(),
-        clockOut: outStr != null ? DateTime.parse(outStr).toLocal() : null,
+        clockIn: clockInLocal,
+        clockOut: clockOutLocal,
       );
     }).toList();
 
