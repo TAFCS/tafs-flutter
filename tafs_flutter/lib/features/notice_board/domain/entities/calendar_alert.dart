@@ -11,6 +11,7 @@ class CalendarAlert extends Equatable {
   final String body;
   final bool isRead;
   final DateTime createdAt;
+  final bool isPinned;
 
   const CalendarAlert({
     required this.id,
@@ -23,9 +24,10 @@ class CalendarAlert extends Equatable {
     required this.body,
     required this.isRead,
     required this.createdAt,
+    this.isPinned = false,
   });
 
-  CalendarAlert copyWith({bool? isRead}) {
+  CalendarAlert copyWith({bool? isRead, bool? isPinned}) {
     return CalendarAlert(
       id: id,
       familyId: familyId,
@@ -37,9 +39,10 @@ class CalendarAlert extends Equatable {
       body: body,
       isRead: isRead ?? this.isRead,
       createdAt: createdAt,
+      isPinned: isPinned ?? this.isPinned,
     );
   }
 
   @override
-  List<Object?> get props => [id, familyId, studentCc, date, alertType, isRead];
+  List<Object?> get props => [id, familyId, studentCc, date, alertType, isRead, isPinned];
 }

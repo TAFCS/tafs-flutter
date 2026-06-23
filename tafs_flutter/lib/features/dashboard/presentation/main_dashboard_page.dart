@@ -53,7 +53,7 @@ class _HomeTabBodyState extends State<HomeTabBody> {
                 bool hasUnreadNotices = false;
                 bool hasUnreadAttendance = false;
                 if (state is NoticeBoardLoaded) {
-                  hasUnreadNotices = state.items.whereType<NoticeFeedPost>().any((i) => !i.isRead);
+                  hasUnreadNotices = state.items.any((i) => (i is NoticeFeedPost || i is NoticeFeedCalendarAlert) && !i.isRead);
                   hasUnreadAttendance = state.items.whereType<NoticeFeedAlert>().any((i) => !i.isRead);
                 }
                 return _FilterBar(
@@ -284,9 +284,9 @@ class _NoticeBoardSection extends StatelessWidget {
   List<NoticeFeedItem> _applyFilter(List<NoticeFeedItem> items) {
     switch (filter) {
       case _FeedFilter.notices:
-        return items.whereType<NoticeFeedPost>().toList();
+        return items.where((item) => item is NoticeFeedPost || item is NoticeFeedCalendarAlert).toList();
       case _FeedFilter.attendance:
-        return items.where((item) => item is NoticeFeedAlert || item is NoticeFeedCalendarAlert).toList();
+        return items.whereType<NoticeFeedAlert>().toList();
       case _FeedFilter.all:
         return items;
     }

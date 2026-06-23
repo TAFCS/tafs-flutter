@@ -35,9 +35,16 @@ class NoticeBoardBloc extends Bloc<NoticeBoardEvent, NoticeBoardState> {
       ...calendarAlerts.map((c) => NoticeFeedCalendarAlert(c)),
     ];
     items.sort((a, b) {
-      final aPinned = a is NoticeFeedPost && a.post.isPinned;
-      final bPinned = b is NoticeFeedPost && b.post.isPinned;
+      final aPinned = (a is NoticeFeedPost && a.post.isPinned) ||
+          (a is NoticeFeedCalendarAlert && a.alert.isPinned);
+      final bPinned = (b is NoticeFeedPost && b.post.isPinned) ||
+          (b is NoticeFeedCalendarAlert && b.alert.isPinned);
       if (aPinned != bPinned) return aPinned ? -1 : 1;
+
+      final aCal = a is NoticeFeedCalendarAlert;
+      final bCal = b is NoticeFeedCalendarAlert;
+      if (aCal != bCal) return aCal ? -1 : 1;
+
       return b.timestamp.compareTo(a.timestamp);
     });
     return items;

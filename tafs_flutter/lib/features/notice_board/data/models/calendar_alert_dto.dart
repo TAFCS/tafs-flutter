@@ -12,6 +12,7 @@ class CalendarAlertDto extends CalendarAlert {
     required super.body,
     required super.isRead,
     required super.createdAt,
+    required super.isPinned,
   });
 
   factory CalendarAlertDto.fromJson(Map<String, dynamic> json) {
@@ -26,6 +27,7 @@ class CalendarAlertDto extends CalendarAlert {
       body: json['body'] as String,
       isRead: json['read_at'] != null,
       createdAt: DateTime.parse(json['created_at'] as String),
+      isPinned: json['is_pinned'] as bool? ?? false,
     );
   }
 }
