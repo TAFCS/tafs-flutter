@@ -188,7 +188,9 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
     int weekends = 0;
 
     for (final day in days) {
-      if (day.isOffDay) {
+      if (day.isWeekend) {
+        weekends++;
+      } else if (day.isHoliday) {
         holidays++;
       } else if (day.status == 'PRESENT') {
         present++;
@@ -197,7 +199,6 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
       } else if (day.status == 'ABSENT') {
         absent++;
       }
-      if (day.isWeekend) weekends++;
     }
 
     return Column(
