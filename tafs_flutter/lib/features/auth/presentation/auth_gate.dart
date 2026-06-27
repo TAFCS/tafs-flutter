@@ -16,7 +16,7 @@ import '../../auth/presentation/bloc/selected_student_cubit.dart';
 import '../../auth/presentation/login_page.dart';
 import '../../dashboard/presentation/main_shell_page.dart';
 import '../../profile/presentation/student_selection_page.dart';
-import '../../support_tickets/staff/presentation/pages/staff_main_shell.dart';
+import '../../employee_portal/presentation/pages/employee_main_shell.dart';
 
 /// AuthGate is the app root widget.
 class AuthGate extends StatefulWidget {
@@ -128,7 +128,7 @@ class _AuthGateState extends State<AuthGate> {
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
           if (authState is AuthAuthenticatedStaff) {
-            return StaffMainShell(staff: authState.staff);
+            return EmployeeMainShell(staff: authState.staff);
           }
 
           final Parent? sessionParent = switch (authState) {

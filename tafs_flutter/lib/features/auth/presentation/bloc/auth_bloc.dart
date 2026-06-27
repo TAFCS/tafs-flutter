@@ -1,5 +1,8 @@
 import 'package:hydrated_bloc/hydrated_bloc.dart';
+import 'dart:async';
 import '../../../../core/error/api_error_mapper.dart';
+import '../../../../core/services/fcm_registration_service.dart';
+import '../../../../injection_container.dart';
 import '../../data/models/parent_dto.dart';
 import '../../data/models/staff_user_dto.dart';
 import '../../domain/entities/parent.dart';
@@ -159,7 +162,17 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     final result = await staffLoginUseCase(event.username, event.password);
     result.fold(
       (failure) => emit(AuthError(ApiErrorMapper.userMessage(failure))),
-      (staff) => emit(AuthAuthenticatedStaff(staff)),
+      (staff) {
+        if (InjectionContainer.isInitialized) {
+          unawaited(
+            FcmRegistrationService.instance.registerWithBackend(
+              InjectionContainer.dio,
+              staff: true,
+            ),
+          );
+        }
+        emit(AuthAuthenticatedStaff(staff));
+      },
     );
   }
 

@@ -72,7 +72,7 @@ class FcmRegistrationService {
 
   /// Registers the current device token with the backend (requires auth interceptor on [dio]).
   /// Returns true when the server acknowledged registration.
-  Future<bool> registerWithBackend(Dio dio, {String? tokenOverride}) async {
+  Future<bool> registerWithBackend(Dio dio, {String? tokenOverride, bool staff = false}) async {
     if (kIsWeb) return false;
 
     final token = tokenOverride ?? await getToken();
@@ -83,18 +83,19 @@ class FcmRegistrationService {
 
     final deviceType = await getDeviceType();
     final prefix = token.substring(0, min(12, token.length));
+    final path = staff ? '/auth/staff/mobile/fcm-token' : '/auth/parent/fcm-token';
 
     for (var attempt = 0; attempt < 2; attempt++) {
       try {
         await dio.post(
-          '/auth/parent/fcm-token',
+          path,
           data: {
             'fcmToken': token,
             if (deviceType != null) 'deviceType': deviceType,
           },
         );
         debugPrint(
-          '[FcmRegistration] registered token (prefix=$prefix..., device=$deviceType)',
+          '[FcmRegistration] registered token (prefix=$prefix..., device=$deviceType, staff=$staff)',
         );
         return true;
       } on DioException catch (e) {
@@ -114,12 +115,12 @@ class FcmRegistrationService {
     return false;
   }
 
-  void listenForTokenRefresh(Dio dio) {
+  void listenForTokenRefresh(Dio dio, {bool staff = false}) {
     if (kIsWeb || _tokenRefreshListenerAttached) return;
 
     try {
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
-        registerWithBackend(dio, tokenOverride: newToken);
+        registerWithBackend(dio, tokenOverride: newToken, staff: staff);
       });
       _tokenRefreshListenerAttached = true;
     } catch (e, st) {

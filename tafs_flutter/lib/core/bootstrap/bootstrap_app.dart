@@ -61,14 +61,22 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
     if (!InjectionContainer.isInitialized) return;
 
     final authState = InjectionContainer.authBloc.state;
-    final isLoggedIn = authState is AuthAuthenticated ||
+    final isParentLoggedIn = authState is AuthAuthenticated ||
         authState is AuthProfileRefreshFailed ||
         authState is AuthAccountDeletionRequested;
+    final isStaffLoggedIn = authState is AuthAuthenticatedStaff;
 
-    if (isLoggedIn) {
+    if (isParentLoggedIn) {
       unawaited(
         FcmRegistrationService.instance.registerWithBackend(
           InjectionContainer.dio,
+        ),
+      );
+    } else if (isStaffLoggedIn) {
+      unawaited(
+        FcmRegistrationService.instance.registerWithBackend(
+          InjectionContainer.dio,
+          staff: true,
         ),
       );
     }

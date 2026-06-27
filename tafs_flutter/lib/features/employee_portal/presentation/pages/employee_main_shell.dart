@@ -1,0 +1,166 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../auth/domain/entities/staff_user.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_event.dart';
+import '../../../notice_board/staff/presentation/bloc/staff_notice_board_cubit.dart';
+import '../../../notice_board/staff/presentation/pages/staff_notice_board_page.dart';
+import '../../../notice_board/staff/staff_notice_board_access.dart';
+import '../../../staff_attendance/data/repositories/staff_attendance_repository_impl.dart';
+import '../../../staff_attendance/presentation/pages/staff_attendance_calendar_page.dart';
+import '../../../staff_payroll/data/repositories/staff_payroll_repository_impl.dart';
+import '../../../staff_payroll/presentation/pages/staff_payroll_list_page.dart';
+import '../../../support_tickets/staff/presentation/bloc/staff_pending_approvals_cubit.dart';
+import '../../../support_tickets/staff/presentation/bloc/staff_ticket_queue_bloc.dart';
+import '../../../support_tickets/staff/presentation/pages/staff_support_tickets_shell.dart';
+import '../../../support_tickets/staff/support_ticket_staff_access.dart';
+import '../../../../core/session/session_reset.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../injection_container.dart';
+
+enum _EmployeeTab { attendance, payroll, tickets, noticeBoard }
+
+class EmployeeMainShell extends StatefulWidget {
+  final StaffUser staff;
+
+  const EmployeeMainShell({super.key, required this.staff});
+
+  @override
+  State<EmployeeMainShell> createState() => _EmployeeMainShellState();
+}
+
+class _EmployeeMainShellState extends State<EmployeeMainShell> {
+  _EmployeeTab _activeTab = _EmployeeTab.attendance;
+
+  late final StaffAttendanceRepositoryImpl _attendanceRepo;
+  late final StaffPayrollRepositoryImpl _payrollRepo;
+
+  bool get _showTickets => canViewSupportTickets(widget.staff);
+  bool get _showNoticeBoard => canViewStaffNoticeBoard(widget.staff);
+
+  @override
+  void initState() {
+    super.initState();
+    _attendanceRepo = StaffAttendanceRepositoryImpl(
+      remote: StaffAttendanceRemoteDataSource(InjectionContainer.dio),
+    );
+    _payrollRepo = StaffPayrollRepositoryImpl(dio: InjectionContainer.dio);
+  }
+
+  void _refreshActiveTab() {
+    switch (_activeTab) {
+      case _EmployeeTab.tickets:
+        if (_showTickets) {
+          context.read<StaffTicketQueueBloc>().add(StaffQueueRefreshRequested());
+          if (widget.staff.role == 'SUPER_ADMIN') {
+            context.read<StaffPendingApprovalsCubit>().load();
+          }
+        }
+        break;
+      case _EmployeeTab.noticeBoard:
+        if (_showNoticeBoard) context.read<StaffNoticeBoardCubit>().refresh();
+        break;
+      case _EmployeeTab.attendance:
+      case _EmployeeTab.payroll:
+        setState(() {});
+        break;
+    }
+  }
+
+  List<_EmployeeTab> get _tabs {
+    final tabs = <_EmployeeTab>[_EmployeeTab.attendance, _EmployeeTab.payroll];
+    if (_showTickets) tabs.add(_EmployeeTab.tickets);
+    if (_showNoticeBoard) tabs.add(_EmployeeTab.noticeBoard);
+    return tabs;
+  }
+
+  String get _title {
+    switch (_activeTab) {
+      case _EmployeeTab.attendance:
+        return 'Attendance';
+      case _EmployeeTab.payroll:
+        return 'Payroll';
+      case _EmployeeTab.tickets:
+        return 'Support Tickets';
+      case _EmployeeTab.noticeBoard:
+        return 'Notice Board';
+    }
+  }
+
+  Widget _buildBody() {
+    return IndexedStack(
+      index: _tabs.indexOf(_activeTab),
+      children: _tabs.map((tab) {
+        switch (tab) {
+          case _EmployeeTab.attendance:
+            return StaffAttendanceCalendarPage(repository: _attendanceRepo);
+          case _EmployeeTab.payroll:
+            return StaffPayrollListPage(repository: _payrollRepo);
+          case _EmployeeTab.tickets:
+            return StaffSupportTicketsShell(staff: widget.staff, embedded: true);
+          case _EmployeeTab.noticeBoard:
+            return const StaffNoticeBoardPage(loadOnMount: false);
+        }
+      }).toList(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: Text(_title),
+        backgroundColor: AppTheme.white,
+        foregroundColor: AppTheme.navy,
+        elevation: 0,
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _refreshActiveTab),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              resetStaffSessionState(context);
+              context.read<AuthBloc>().add(AuthLogoutRequested());
+            },
+          ),
+        ],
+      ),
+      body: _buildBody(),
+      bottomNavigationBar: _tabs.length > 1
+          ? NavigationBar(
+              selectedIndex: _tabs.indexOf(_activeTab),
+              onDestinationSelected: (index) {
+                setState(() => _activeTab = _tabs[index]);
+                if (_activeTab == _EmployeeTab.noticeBoard) {
+                  context.read<StaffNoticeBoardCubit>().load();
+                }
+              },
+              destinations: [
+                const NavigationDestination(
+                  icon: Icon(Icons.calendar_month_outlined),
+                  selectedIcon: Icon(Icons.calendar_month),
+                  label: 'Attendance',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.account_balance_wallet_outlined),
+                  selectedIcon: Icon(Icons.account_balance_wallet),
+                  label: 'Payroll',
+                ),
+                if (_showTickets)
+                  const NavigationDestination(
+                    icon: Icon(Icons.confirmation_number_outlined),
+                    selectedIcon: Icon(Icons.confirmation_number),
+                    label: 'Tickets',
+                  ),
+                if (_showNoticeBoard)
+                  const NavigationDestination(
+                    icon: Icon(Icons.article_outlined),
+                    selectedIcon: Icon(Icons.article),
+                    label: 'Notices',
+                  ),
+              ],
+            )
+          : null,
+    );
+  }
+}
