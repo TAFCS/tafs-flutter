@@ -17,10 +17,10 @@ class StaffAttendanceCalendarPage extends StatefulWidget {
 
   @override
   State<StaffAttendanceCalendarPage> createState() =>
-      _StaffAttendanceCalendarPageState();
+      StaffAttendanceCalendarPageState();
 }
 
-class _StaffAttendanceCalendarPageState extends State<StaffAttendanceCalendarPage> {
+class StaffAttendanceCalendarPageState extends State<StaffAttendanceCalendarPage> {
   late String _period;
   late final StaffAttendanceBloc _bloc;
 
@@ -39,6 +39,9 @@ class _StaffAttendanceCalendarPageState extends State<StaffAttendanceCalendarPag
   }
 
   void _load() => _bloc.add(StaffAttendanceLoadPeriod(_period));
+
+  /// Reloads the current payroll period from the API (shell AppBar refresh).
+  void refresh() => _load();
 
   void _shift(int delta) {
     final next = shiftPayrollPeriod(_period, delta);

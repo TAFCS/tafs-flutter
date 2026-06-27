@@ -6,7 +6,7 @@ import '../../domain/repositories/staff_attendance_repository.dart';
 import '../widgets/scan_timeline_widget.dart';
 import 'objection_submit_page.dart';
 
-class StaffDayDetailPage extends StatelessWidget {
+class StaffDayDetailPage extends StatefulWidget {
   final StaffDayEntry day;
   final StaffPayrollSnapshot? payrollSnapshot;
   final StaffAttendanceRepository repository;
@@ -20,19 +20,59 @@ class StaffDayDetailPage extends StatelessWidget {
     this.onObjectionSubmitted,
   });
 
+  @override
+  State<StaffDayDetailPage> createState() => _StaffDayDetailPageState();
+}
+
+class _StaffDayDetailPageState extends State<StaffDayDetailPage> {
+  late List<StaffObjectionSummary> _objections;
+
+  @override
+  void initState() {
+    super.initState();
+    _objections = widget.day.objections;
+  }
+
+  String get _dateKey =>
+      DateFormat('yyyy-MM-dd').format(widget.day.date.toUtc());
+
   Map<String, dynamic>? _dayBreakdown() {
-    if (payrollSnapshot == null) return null;
-    final key = DateFormat('yyyy-MM-dd').format(day.date.toUtc());
-    for (final row in payrollSnapshot!.dailyBreakdown) {
-      if (row['date'] == key) return row;
+    if (widget.payrollSnapshot == null) return null;
+    for (final row in widget.payrollSnapshot!.dailyBreakdown) {
+      if (row['date'] == _dateKey) return row;
     }
     return null;
+  }
+
+  Future<void> _reloadObjections() async {
+    try {
+      final rows = await widget.repository.getMyObjections();
+      final updated = rows
+          .where((o) {
+            final d = o['attendance_date'] as String?;
+            return d != null && d.startsWith(_dateKey);
+          })
+          .map(
+            (o) => StaffObjectionSummary(
+              id: o['id'] as int,
+              scanId: o['scan_id'] as int?,
+              claimedTime: DateTime.parse(o['claimed_time'] as String),
+              status: o['status'] as String,
+            ),
+          )
+          .toList();
+      if (!mounted) return;
+      setState(() => _objections = updated);
+      widget.onObjectionSubmitted?.call();
+    } catch (_) {
+      widget.onObjectionSubmitted?.call();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final breakdown = _dayBreakdown();
-    final dateLabel = DateFormat('EEE, d MMM yyyy').format(day.date.toLocal());
+    final dateLabel = DateFormat('EEE, d MMM yyyy').format(widget.day.date.toLocal());
 
     return Scaffold(
       appBar: AppBar(
@@ -45,24 +85,24 @@ class StaffDayDetailPage extends StatelessWidget {
         children: [
           Text(dateLabel, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          if (day.status != null)
-            Chip(label: Text(day.status!.replaceAll('_', ' '))),
+          if (widget.day.status != null)
+            Chip(label: Text(widget.day.status!.replaceAll('_', ' '))),
           const SizedBox(height: 16),
           const Text('Punches', style: TextStyle(fontWeight: FontWeight.w600)),
           ScanTimelineWidget(
-            scans: day.scans,
+            scans: widget.day.scans,
             onObjectionTap: (scan) async {
               final submitted = await Navigator.of(context).push<bool>(
                 MaterialPageRoute(
                   builder: (_) => ObjectionSubmitPage(
-                    attendanceDate: day.date,
-                    scans: day.scans,
+                    attendanceDate: widget.day.date,
+                    scans: widget.day.scans,
                     preselectedScan: scan,
-                    repository: repository,
+                    repository: widget.repository,
                   ),
                 ),
               );
-              if (submitted == true) onObjectionSubmitted?.call();
+              if (submitted == true) await _reloadObjections();
             },
           ),
           if (breakdown != null) ...[
@@ -72,10 +112,10 @@ class StaffDayDetailPage extends StatelessWidget {
             Text('Classification: ${breakdown['classification'] ?? '—'}'),
             Text('Break minutes: ${breakdown['break_minutes'] ?? 0}'),
           ],
-          if (day.objections.isNotEmpty) ...[
+          if (_objections.isNotEmpty) ...[
             const Divider(height: 32),
             const Text('Objections', style: TextStyle(fontWeight: FontWeight.w600)),
-            ...day.objections.map(
+            ..._objections.map(
               (o) => ListTile(
                 title: Text(o.status),
                 subtitle: Text(

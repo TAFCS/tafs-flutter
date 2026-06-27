@@ -13,10 +13,10 @@ class StaffPayrollListPage extends StatefulWidget {
   const StaffPayrollListPage({super.key, required this.repository});
 
   @override
-  State<StaffPayrollListPage> createState() => _StaffPayrollListPageState();
+  State<StaffPayrollListPage> createState() => StaffPayrollListPageState();
 }
 
-class _StaffPayrollListPageState extends State<StaffPayrollListPage> {
+class StaffPayrollListPageState extends State<StaffPayrollListPage> {
   late final StaffPayrollBloc _bloc;
 
   @override
@@ -32,7 +32,23 @@ class _StaffPayrollListPageState extends State<StaffPayrollListPage> {
     super.dispose();
   }
 
+  /// Reloads payroll lines from the API (shell AppBar refresh).
+  void refresh() => _bloc.add(StaffPayrollLoadRequested());
+
   String _fmtPkr(double v) => 'PKR ${NumberFormat('#,##0.00').format(v)}';
+
+  Widget _emptyState() {
+    return RefreshIndicator(
+      onRefresh: () async => refresh(),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          SizedBox(height: 120),
+          Center(child: Text('No payroll records yet.')),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,11 +74,11 @@ class _StaffPayrollListPageState extends State<StaffPayrollListPage> {
           final balance = totalNet - totalDisbursed;
 
           if (state.items.isEmpty) {
-            return const Center(child: Text('No payroll records yet.'));
+            return _emptyState();
           }
 
           return RefreshIndicator(
-            onRefresh: () async => _bloc.add(StaffPayrollLoadRequested()),
+            onRefresh: () async => refresh(),
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [

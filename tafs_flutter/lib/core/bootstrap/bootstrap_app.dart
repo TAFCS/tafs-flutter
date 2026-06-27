@@ -165,8 +165,9 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
     await AppBootstrap.initFirebaseAndNotifications();
     if (!InjectionContainer.isInitialized) return;
 
-    FcmRegistrationService.instance.listenForTokenRefresh(
+    FcmRegistrationService.instance.listenForTokenRefreshWithAuth(
       InjectionContainer.dio,
+      InjectionContainer.authBloc,
     );
     _reregisterFcmIfAuthenticated();
   }

@@ -8,6 +8,8 @@ import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../bootstrap/app_bootstrap.dart';
+import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../features/auth/presentation/bloc/auth_state.dart';
 
 /// Centralizes FCM permission, token fetch, and backend registration.
 class FcmRegistrationService {
@@ -115,16 +117,32 @@ class FcmRegistrationService {
     return false;
   }
 
-  void listenForTokenRefresh(Dio dio, {bool staff = false}) {
+  void listenForTokenRefresh(
+    Dio dio, {
+    bool Function()? sessionIsStaff,
+  }) {
     if (kIsWeb || _tokenRefreshListenerAttached) return;
 
     try {
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
-        registerWithBackend(dio, tokenOverride: newToken, staff: staff);
+        final isStaff = sessionIsStaff?.call() ?? false;
+        registerWithBackend(
+          dio,
+          tokenOverride: newToken,
+          staff: isStaff,
+        );
       });
       _tokenRefreshListenerAttached = true;
     } catch (e, st) {
       debugPrint('[FcmRegistration] onTokenRefresh setup failed: $e\n$st');
     }
+  }
+
+  /// Resolves staff vs parent from [authBloc] when no callback is supplied.
+  void listenForTokenRefreshWithAuth(Dio dio, AuthBloc authBloc) {
+    listenForTokenRefresh(
+      dio,
+      sessionIsStaff: () => authBloc.state is AuthAuthenticatedStaff,
+    );
   }
 }

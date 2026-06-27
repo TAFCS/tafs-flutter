@@ -34,6 +34,10 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
 
   late final StaffAttendanceRepositoryImpl _attendanceRepo;
   late final StaffPayrollRepositoryImpl _payrollRepo;
+  late final List<Widget> _tabBodies;
+
+  final _attendanceKey = GlobalKey<StaffAttendanceCalendarPageState>();
+  final _payrollKey = GlobalKey<StaffPayrollListPageState>();
 
   bool get _showTickets => canViewSupportTickets(widget.staff);
   bool get _showNoticeBoard => canViewStaffNoticeBoard(widget.staff);
@@ -45,6 +49,45 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
       remote: StaffAttendanceRemoteDataSource(InjectionContainer.dio),
     );
     _payrollRepo = StaffPayrollRepositoryImpl(dio: InjectionContainer.dio);
+    _tabBodies = _buildTabBodies();
+  }
+
+  List<_EmployeeTab> get _tabs {
+    final tabs = <_EmployeeTab>[_EmployeeTab.attendance, _EmployeeTab.payroll];
+    if (_showTickets) tabs.add(_EmployeeTab.tickets);
+    if (_showNoticeBoard) tabs.add(_EmployeeTab.noticeBoard);
+    return tabs;
+  }
+
+  List<Widget> _buildTabBodies() {
+    final bodies = <Widget>[
+      StaffAttendanceCalendarPage(
+        key: _attendanceKey,
+        repository: _attendanceRepo,
+      ),
+      StaffPayrollListPage(
+        key: _payrollKey,
+        repository: _payrollRepo,
+      ),
+    ];
+    if (_showTickets) {
+      bodies.add(
+        StaffSupportTicketsShell(
+          key: const ValueKey('employee_tickets_tab'),
+          staff: widget.staff,
+          embedded: true,
+        ),
+      );
+    }
+    if (_showNoticeBoard) {
+      bodies.add(
+        const StaffNoticeBoardPage(
+          key: ValueKey('employee_notice_tab'),
+          loadOnMount: false,
+        ),
+      );
+    }
+    return bodies;
   }
 
   void _refreshActiveTab() {
@@ -61,17 +104,12 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         if (_showNoticeBoard) context.read<StaffNoticeBoardCubit>().refresh();
         break;
       case _EmployeeTab.attendance:
+        _attendanceKey.currentState?.refresh();
+        break;
       case _EmployeeTab.payroll:
-        setState(() {});
+        _payrollKey.currentState?.refresh();
         break;
     }
-  }
-
-  List<_EmployeeTab> get _tabs {
-    final tabs = <_EmployeeTab>[_EmployeeTab.attendance, _EmployeeTab.payroll];
-    if (_showTickets) tabs.add(_EmployeeTab.tickets);
-    if (_showNoticeBoard) tabs.add(_EmployeeTab.noticeBoard);
-    return tabs;
   }
 
   String get _title {
@@ -85,24 +123,6 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
       case _EmployeeTab.noticeBoard:
         return 'Notice Board';
     }
-  }
-
-  Widget _buildBody() {
-    return IndexedStack(
-      index: _tabs.indexOf(_activeTab),
-      children: _tabs.map((tab) {
-        switch (tab) {
-          case _EmployeeTab.attendance:
-            return StaffAttendanceCalendarPage(repository: _attendanceRepo);
-          case _EmployeeTab.payroll:
-            return StaffPayrollListPage(repository: _payrollRepo);
-          case _EmployeeTab.tickets:
-            return StaffSupportTicketsShell(staff: widget.staff, embedded: true);
-          case _EmployeeTab.noticeBoard:
-            return const StaffNoticeBoardPage(loadOnMount: false);
-        }
-      }).toList(),
-    );
   }
 
   @override
@@ -125,7 +145,10 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
           ),
         ],
       ),
-      body: _buildBody(),
+      body: IndexedStack(
+        index: _tabs.indexOf(_activeTab),
+        children: _tabBodies,
+      ),
       bottomNavigationBar: _tabs.length > 1
           ? NavigationBar(
               selectedIndex: _tabs.indexOf(_activeTab),

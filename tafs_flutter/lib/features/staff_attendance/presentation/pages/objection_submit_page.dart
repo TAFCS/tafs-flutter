@@ -56,14 +56,15 @@ class _ObjectionSubmitPageState extends State<ObjectionSubmitPage> {
 
     setState(() => _submitting = true);
     try {
-      final date = widget.attendanceDate.toUtc();
-      final claimed = DateTime.utc(
-        date.year,
-        date.month,
-        date.day,
+      final dayLocal = widget.attendanceDate.toLocal();
+      final claimedLocal = DateTime(
+        dayLocal.year,
+        dayLocal.month,
+        dayLocal.day,
         _claimedTime!.hour,
         _claimedTime!.minute,
       );
+      final claimed = claimedLocal.toUtc();
       await widget.repository.submitObjection(
         attendanceDate: widget.attendanceDate,
         scanId: _scanId,
