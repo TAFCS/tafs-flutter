@@ -17,6 +17,7 @@ import '../../../support_tickets/staff/support_ticket_staff_access.dart';
 import '../../../../core/session/session_reset.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
+import '../../employee_portal_access.dart';
 
 enum _EmployeeTab { attendance, payroll, tickets, noticeBoard }
 
@@ -30,46 +31,56 @@ class EmployeeMainShell extends StatefulWidget {
 }
 
 class _EmployeeMainShellState extends State<EmployeeMainShell> {
-  _EmployeeTab _activeTab = _EmployeeTab.attendance;
+  late _EmployeeTab _activeTab;
 
-  late final StaffAttendanceRepositoryImpl _attendanceRepo;
-  late final StaffPayrollRepositoryImpl _payrollRepo;
+  StaffAttendanceRepositoryImpl? _attendanceRepo;
+  StaffPayrollRepositoryImpl? _payrollRepo;
   late final List<Widget> _tabBodies;
 
   final _attendanceKey = GlobalKey<StaffAttendanceCalendarPageState>();
   final _payrollKey = GlobalKey<StaffPayrollListPageState>();
 
+  bool get _showEmployeePortal => canViewEmployeePortal(widget.staff);
   bool get _showTickets => canViewSupportTickets(widget.staff);
   bool get _showNoticeBoard => canViewStaffNoticeBoard(widget.staff);
 
   @override
   void initState() {
     super.initState();
-    _attendanceRepo = StaffAttendanceRepositoryImpl(
-      remote: StaffAttendanceRemoteDataSource(InjectionContainer.dio),
-    );
-    _payrollRepo = StaffPayrollRepositoryImpl(dio: InjectionContainer.dio);
+    if (_showEmployeePortal) {
+      _attendanceRepo = StaffAttendanceRepositoryImpl(
+        remote: StaffAttendanceRemoteDataSource(InjectionContainer.dio),
+      );
+      _payrollRepo = StaffPayrollRepositoryImpl(dio: InjectionContainer.dio);
+    }
     _tabBodies = _buildTabBodies();
+    _activeTab = _tabs.first;
   }
 
   List<_EmployeeTab> get _tabs {
-    final tabs = <_EmployeeTab>[_EmployeeTab.attendance, _EmployeeTab.payroll];
+    final tabs = <_EmployeeTab>[];
+    if (_showEmployeePortal) {
+      tabs.addAll([_EmployeeTab.attendance, _EmployeeTab.payroll]);
+    }
     if (_showTickets) tabs.add(_EmployeeTab.tickets);
     if (_showNoticeBoard) tabs.add(_EmployeeTab.noticeBoard);
     return tabs;
   }
 
   List<Widget> _buildTabBodies() {
-    final bodies = <Widget>[
-      StaffAttendanceCalendarPage(
-        key: _attendanceKey,
-        repository: _attendanceRepo,
-      ),
-      StaffPayrollListPage(
-        key: _payrollKey,
-        repository: _payrollRepo,
-      ),
-    ];
+    final bodies = <Widget>[];
+    if (_showEmployeePortal) {
+      bodies.addAll([
+        StaffAttendanceCalendarPage(
+          key: _attendanceKey,
+          repository: _attendanceRepo!,
+        ),
+        StaffPayrollListPage(
+          key: _payrollKey,
+          repository: _payrollRepo!,
+        ),
+      ]);
+    }
     if (_showTickets) {
       bodies.add(
         StaffSupportTicketsShell(
@@ -125,8 +136,67 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
     }
   }
 
+  NavigationDestination _destinationFor(_EmployeeTab tab) {
+    switch (tab) {
+      case _EmployeeTab.attendance:
+        return const NavigationDestination(
+          icon: Icon(Icons.calendar_month_outlined),
+          selectedIcon: Icon(Icons.calendar_month),
+          label: 'Attendance',
+        );
+      case _EmployeeTab.payroll:
+        return const NavigationDestination(
+          icon: Icon(Icons.account_balance_wallet_outlined),
+          selectedIcon: Icon(Icons.account_balance_wallet),
+          label: 'Payroll',
+        );
+      case _EmployeeTab.tickets:
+        return const NavigationDestination(
+          icon: Icon(Icons.confirmation_number_outlined),
+          selectedIcon: Icon(Icons.confirmation_number),
+          label: 'Tickets',
+        );
+      case _EmployeeTab.noticeBoard:
+        return const NavigationDestination(
+          icon: Icon(Icons.article_outlined),
+          selectedIcon: Icon(Icons.article),
+          label: 'Notices',
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_tabs.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.grey[100],
+        appBar: AppBar(
+          title: const Text('Staff'),
+          backgroundColor: AppTheme.white,
+          foregroundColor: AppTheme.navy,
+          elevation: 0,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () {
+                resetStaffSessionState(context);
+                context.read<AuthBloc>().add(AuthLogoutRequested());
+              },
+            ),
+          ],
+        ),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'No mobile features are available for your role.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -158,30 +228,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
                   context.read<StaffNoticeBoardCubit>().load();
                 }
               },
-              destinations: [
-                const NavigationDestination(
-                  icon: Icon(Icons.calendar_month_outlined),
-                  selectedIcon: Icon(Icons.calendar_month),
-                  label: 'Attendance',
-                ),
-                const NavigationDestination(
-                  icon: Icon(Icons.account_balance_wallet_outlined),
-                  selectedIcon: Icon(Icons.account_balance_wallet),
-                  label: 'Payroll',
-                ),
-                if (_showTickets)
-                  const NavigationDestination(
-                    icon: Icon(Icons.confirmation_number_outlined),
-                    selectedIcon: Icon(Icons.confirmation_number),
-                    label: 'Tickets',
-                  ),
-                if (_showNoticeBoard)
-                  const NavigationDestination(
-                    icon: Icon(Icons.article_outlined),
-                    selectedIcon: Icon(Icons.article),
-                    label: 'Notices',
-                  ),
-              ],
+              destinations: _tabs.map(_destinationFor).toList(),
             )
           : null,
     );
