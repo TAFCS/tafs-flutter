@@ -11,7 +11,10 @@ class StaffSupportTicket {
   final String? currentAssigneeId;
   final String? lastMessageSnippet;
   final String? lastFamilySnippet;
+  final String? lastFamilySenderName;
   final String? lastStaffSnippet;
+  final String? lastStaffSenderId;
+  final String? lastStaffSenderName;
   final DateTime lastMessageAt;
   final int unreadByStaff;
   final String? householdName;
@@ -31,7 +34,10 @@ class StaffSupportTicket {
     this.currentAssigneeId,
     this.lastMessageSnippet,
     this.lastFamilySnippet,
+    this.lastFamilySenderName,
     this.lastStaffSnippet,
+    this.lastStaffSenderId,
+    this.lastStaffSenderName,
     required this.lastMessageAt,
     this.unreadByStaff = 0,
     this.householdName,
