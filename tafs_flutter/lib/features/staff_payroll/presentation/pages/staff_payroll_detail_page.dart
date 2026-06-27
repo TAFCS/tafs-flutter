@@ -135,6 +135,8 @@ class _StaffPayrollDetailPageState extends State<StaffPayrollDetailPage> {
         _row('Monthly Pay (Base)',   _fmtPkr(d.monthlyPay)),
         _row('− Absence Deduction',  _fmtPkr(d.absenceDeduction)),
         _row('− Half-Day Deduction', _fmtPkr(d.halfDayDeduction)),
+        if (d.lateDeduction > 0)
+          _row('− Late Deduction (${d.totalLateMinutes}m)', _fmtPkr(d.lateDeduction), accent: true),
         _row('− Break Deduction',    _fmtPkr(d.breakDeduction)),
         const Divider(),
         _row('Net Pay', _fmtPkr(d.netPay), bold: true),
@@ -159,14 +161,15 @@ class _StaffPayrollDetailPageState extends State<StaffPayrollDetailPage> {
     );
   }
 
-  Widget _row(String label, String value, {bool bold = false}) {
+  Widget _row(String label, String value, {bool bold = false, bool accent = false}) {
+    final color = accent ? const Color(0xFFB45309) : null;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal)),
-          Text(value, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal)),
+          Text(label, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: color)),
+          Text(value, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: color)),
         ],
       ),
     );

@@ -145,7 +145,7 @@ class _StaffDayDetailPageState extends State<StaffDayDetailPage> {
           if (breakdown != null) ...[
             const Divider(height: 32),
             const Text(
-              'Deductions',
+              'Attendance Detail',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
@@ -154,7 +154,13 @@ class _StaffDayDetailPageState extends State<StaffDayDetailPage> {
             ),
             const SizedBox(height: 8),
             Text('Classification: ${breakdown['classification'] ?? '—'}'),
-            Text('Break minutes: ${breakdown['break_minutes'] ?? 0}'),
+            if ((breakdown['late_minutes'] as num? ?? 0) > 0)
+              Text(
+                'Late by: ${breakdown['late_minutes']} minutes',
+                style: const TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.w600),
+              ),
+            if ((breakdown['break_minutes'] as num? ?? 0) > 0)
+              Text('Break: ${breakdown['break_minutes']} minutes'),
           ],
 
           // ── Objections ────────────────────────────────────────────────────

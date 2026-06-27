@@ -34,8 +34,10 @@ class StaffPayrollDetail extends StaffPayrollSummary {
   final int halfDays;
   final int excusedDays;
   final int unresolvedDays;
+  final int totalLateMinutes;
   final double absenceDeduction;
   final double halfDayDeduction;
+  final double lateDeduction;
   final double breakDeduction;
   final double dailyRate;
   final double perMinuteRate;
@@ -57,8 +59,10 @@ class StaffPayrollDetail extends StaffPayrollSummary {
     required this.halfDays,
     required this.excusedDays,
     required this.unresolvedDays,
+    required this.totalLateMinutes,
     required this.absenceDeduction,
     required this.halfDayDeduction,
+    required this.lateDeduction,
     required this.breakDeduction,
     required this.dailyRate,
     required this.perMinuteRate,
