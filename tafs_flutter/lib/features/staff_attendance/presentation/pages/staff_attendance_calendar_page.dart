@@ -123,6 +123,7 @@ class StaffAttendanceCalendarPageState extends State<StaffAttendanceCalendarPage
                 else if (state is StaffAttendanceLoaded)
                   PayrollPeriodCalendar(
                     days: state.period.days,
+                    payrollSnapshot: state.period.payrollSnapshot,
                     onDayTap: (day) {
                       Navigator.of(context).push(
                         MaterialPageRoute(

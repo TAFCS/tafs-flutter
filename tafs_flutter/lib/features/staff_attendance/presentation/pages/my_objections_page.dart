@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/pkt_format.dart';
 import '../../domain/repositories/staff_attendance_repository.dart';
 
 class MyObjectionsPage extends StatefulWidget {
@@ -46,8 +47,6 @@ class _MyObjectionsPageState extends State<MyObjectionsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = DateFormat('d MMM yyyy • h:mm a');
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Objections'),
@@ -77,7 +76,7 @@ class _MyObjectionsPageState extends State<MyObjectionsPage> {
                                 ListTile(
                                   title: const Text('Claimed time'),
                                   subtitle: Text(
-                                    fmt.format(DateTime.parse(claimed).toLocal()),
+                                    '${formatPktDateTime(DateTime.parse(claimed))} PKT',
                                   ),
                                 ),
                               if (status == 'REJECTED' && o['admin_notes'] != null)

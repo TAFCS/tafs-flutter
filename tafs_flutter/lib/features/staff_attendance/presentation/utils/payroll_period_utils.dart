@@ -30,10 +30,14 @@ String formatPayrollPeriodRange(DateTime start, DateTime end) {
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
   ];
-  String fmt(DateTime d, {bool withYear = true}) =>
-      '${d.day} ${months[d.month - 1]}${withYear ? ' ${d.year}' : ''}';
-  final sameYear = start.year == end.year;
-  return '${fmt(start, withYear: !sameYear)} – ${fmt(end)}';
+  String fmt(DateTime d, {bool withYear = true}) {
+    final utc = d.toUtc();
+    return '${utc.day} ${months[utc.month - 1]}${withYear ? ' ${utc.year}' : ''}';
+  }
+  final s = start.toUtc();
+  final e = end.toUtc();
+  final sameYear = s.year == e.year;
+  return '${fmt(s, withYear: !sameYear)} – ${fmt(e)}';
 }
 
 DateTime parsePayrollPeriodDate(String value) {

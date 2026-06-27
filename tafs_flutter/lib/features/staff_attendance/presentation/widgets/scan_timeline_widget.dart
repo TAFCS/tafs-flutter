@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+
+import '../../../../core/utils/pkt_format.dart';
 import '../../domain/entities/staff_attendance_period.dart';
 
 class ScanTimelineWidget extends StatelessWidget {
@@ -21,8 +22,6 @@ class ScanTimelineWidget extends StatelessWidget {
       );
     }
 
-    final fmt = DateFormat('h:mm a');
-
     return Column(
       children: scans.map((scan) {
         final isMissingOut = scans.last == scan && scans.length % 2 != 0;
@@ -31,8 +30,8 @@ class ScanTimelineWidget extends StatelessWidget {
             scan.direction == 'OUT' ? Icons.logout : Icons.login,
             color: isMissingOut ? Colors.amber.shade800 : Colors.grey.shade700,
           ),
-          title: Text(fmt.format(scan.scanTime.toLocal())),
-          subtitle: Text(scan.direction ?? 'PUNCH'),
+          title: Text(formatPktTime(scan.scanTime)),
+          subtitle: Text('${scan.direction ?? 'PUNCH'} • PKT'),
           trailing: onObjectionTap != null
               ? IconButton(
                   icon: const Icon(Icons.report_gmailerrorred_outlined),

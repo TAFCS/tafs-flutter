@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/pkt_format.dart';
 import '../../domain/entities/staff_attendance_period.dart';
 import '../../domain/repositories/staff_attendance_repository.dart';
 
@@ -56,19 +57,18 @@ class _ObjectionSubmitPageState extends State<ObjectionSubmitPage> {
 
     setState(() => _submitting = true);
     try {
-      final dayLocal = widget.attendanceDate.toLocal();
-      final claimedLocal = DateTime(
-        dayLocal.year,
-        dayLocal.month,
-        dayLocal.day,
+      final day = widget.attendanceDate.toUtc();
+      final claimedUtc = DateTime.utc(
+        day.year,
+        day.month,
+        day.day,
         _claimedTime!.hour,
         _claimedTime!.minute,
-      );
-      final claimed = claimedLocal.toUtc();
+      ).subtract(pktOffset);
       await widget.repository.submitObjection(
         attendanceDate: widget.attendanceDate,
         scanId: _scanId,
-        claimedTime: claimed,
+        claimedTime: claimedUtc,
         reason: _reasonController.text.trim(),
       );
       if (!mounted) return;
@@ -88,8 +88,6 @@ class _ObjectionSubmitPageState extends State<ObjectionSubmitPage> {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = DateFormat('h:mm a');
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Raise Objection'),
@@ -108,7 +106,7 @@ class _ObjectionSubmitPageState extends State<ObjectionSubmitPage> {
                 (s) => DropdownMenuItem(
                   value: s.id,
                   child: Text(
-                    '${fmt.format(s.scanTime.toLocal())} — ${s.direction ?? 'PUNCH'}',
+                    '${formatPktTime(s.scanTime)} — ${s.direction ?? 'PUNCH'}',
                   ),
                 ),
               ),
@@ -117,7 +115,7 @@ class _ObjectionSubmitPageState extends State<ObjectionSubmitPage> {
           ),
           const SizedBox(height: 16),
           ListTile(
-            title: const Text('I claim the time was'),
+            title: const Text('I claim the time was (PKT)'),
             subtitle: Text(
               _claimedTime != null
                   ? _claimedTime!.format(context)
@@ -127,7 +125,8 @@ class _ObjectionSubmitPageState extends State<ObjectionSubmitPage> {
             onTap: () async {
               final picked = await showTimePicker(
                 context: context,
-                initialTime: _claimedTime ?? TimeOfDay.now(),
+                initialTime: _claimedTime ??
+                    TimeOfDay.fromDateTime(toPkt(DateTime.now().toUtc())),
               );
               if (picked != null) setState(() => _claimedTime = picked);
             },

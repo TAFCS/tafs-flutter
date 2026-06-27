@@ -1,61 +1,117 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_theme.dart';
+
 import '../../domain/entities/staff_attendance_period.dart';
+import '../utils/attendance_day_utils.dart';
 
 class DayStatusCell extends StatelessWidget {
   final StaffDayEntry day;
+  final Map<String, dynamic>? breakdown;
   final VoidCallback? onTap;
 
-  const DayStatusCell({super.key, required this.day, this.onTap});
+  const DayStatusCell({
+    super.key,
+    required this.day,
+    this.breakdown,
+    this.onTap,
+  });
 
-  Color _bgColor() {
-    if (!day.isWorkingDay) return Colors.grey.shade300;
-    final now = DateTime.now().toUtc();
-    final isFuture = day.date.isAfter(DateTime.utc(now.year, now.month, now.day));
-    if (isFuture) return Colors.grey.shade100;
-
-    switch (day.status) {
-      case 'PRESENT':
-        return AppTheme.navy.withValues(alpha: 0.85);
-      case 'LATE':
-        return Colors.orange.shade400;
-      case 'ABSENT':
-        return Colors.red.shade300;
-      case 'HALF_DAY':
-        return Colors.orange.shade200;
-      case 'EXCUSED':
-        return Colors.blue.shade300;
-      default:
-        return Colors.grey.shade200;
-    }
+  bool get _isFuture {
+    final today = DateTime.now().toUtc();
+    final d = day.date.toUtc();
+    final todayKey = DateTime.utc(today.year, today.month, today.day);
+    final dayKey = DateTime.utc(d.year, d.month, d.day);
+    return dayKey.isAfter(todayKey);
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = _bgColor();
-    final textColor = day.status == 'PRESENT' ? Colors.white : Colors.black87;
+    final classification = classifyDay(day, breakdown: breakdown);
+    final style = cellStyleFor(classification);
+    final dayNumber = day.date.toUtc().day;
+
+    final background = _isFuture ? const Color(0xFFFAFAFA) : style.background;
+    final textColor = _isFuture ? const Color(0xFFA1A1AA) : style.text;
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
         decoration: BoxDecoration(
-          color: color,
+          color: background,
           borderRadius: BorderRadius.circular(8),
-          border: day.status == 'ABSENT'
-              ? Border.all(color: Colors.red.shade700, width: 1.5)
-              : null,
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          '${day.date.day}',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: textColor,
-            fontSize: 13,
+          border: Border.all(
+            color: classification == 'ABSENT' && !_isFuture
+                ? const Color(0xFFFECDD3)
+                : const Color(0xFFE4E4E7),
+            width: classification == 'ABSENT' && !_isFuture ? 1.5 : 1,
           ),
+        ),
+        padding: const EdgeInsets.all(6),
+        child: Stack(
+          children: [
+            if (!_isFuture)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: style.dot,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$dayNumber',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                      fontSize: 15,
+                    ),
+                  ),
+                  if (!_isFuture &&
+                      classification != 'PRESENT' &&
+                      classification != 'DAY_OFF') ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      _shortLabel(classification),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  String _shortLabel(String classification) {
+    switch (classification) {
+      case 'LATE':
+        return 'Late';
+      case 'HALF_DAY':
+        return 'Half';
+      case 'ABSENT':
+        return 'Absent';
+      case 'EXCUSED':
+        return 'Excused';
+      case 'UNRESOLVED':
+        return '?';
+      default:
+        return '';
+    }
   }
 }

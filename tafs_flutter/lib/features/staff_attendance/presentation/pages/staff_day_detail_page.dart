@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/pkt_format.dart';
 import '../../domain/entities/staff_attendance_period.dart';
 import '../../domain/repositories/staff_attendance_repository.dart';
 import '../widgets/scan_timeline_widget.dart';
@@ -33,8 +34,7 @@ class _StaffDayDetailPageState extends State<StaffDayDetailPage> {
     _objections = widget.day.objections;
   }
 
-  String get _dateKey =>
-      DateFormat('yyyy-MM-dd').format(widget.day.date.toUtc());
+  String get _dateKey => pktDateKey(widget.day.date);
 
   Map<String, dynamic>? _dayBreakdown() {
     if (widget.payrollSnapshot == null) return null;
@@ -72,7 +72,7 @@ class _StaffDayDetailPageState extends State<StaffDayDetailPage> {
   @override
   Widget build(BuildContext context) {
     final breakdown = _dayBreakdown();
-    final dateLabel = DateFormat('EEE, d MMM yyyy').format(widget.day.date.toLocal());
+    final dateLabel = formatPktDate(widget.day.date);
 
     return Scaffold(
       appBar: AppBar(
@@ -119,7 +119,7 @@ class _StaffDayDetailPageState extends State<StaffDayDetailPage> {
               (o) => ListTile(
                 title: Text(o.status),
                 subtitle: Text(
-                  'Claimed ${DateFormat('h:mm a').format(o.claimedTime.toLocal())}',
+                  'Claimed ${formatPktTime(o.claimedTime)} PKT',
                 ),
               ),
             ),
