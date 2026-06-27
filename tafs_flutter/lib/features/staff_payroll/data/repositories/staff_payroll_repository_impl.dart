@@ -20,8 +20,8 @@ class StaffPayrollRepositoryImpl implements StaffPayrollRepository {
     final json = _unwrapMap(res.data);
     return StaffPayrollDetail(
       payrollRunId: json['payroll_run_id'] as int? ?? payrollRunId,
-      periodStart: (json['run']?['period_start'] ?? json['period_start']) as String,
-      periodEnd: (json['run']?['period_end'] ?? json['period_end']) as String,
+      periodStart: _dateOnly(json['run']?['period_start'] ?? json['period_start']),
+      periodEnd: _dateOnly(json['run']?['period_end'] ?? json['period_end']),
       runStatus: (json['run']?['status'] ?? json['status']) as String? ?? 'DRAFT',
       disbursedAt: json['disbursed_at'] != null
           ? DateTime.parse(json['disbursed_at'] as String)
@@ -49,8 +49,8 @@ class StaffPayrollRepositoryImpl implements StaffPayrollRepository {
   StaffPayrollSummary _mapSummary(Map<String, dynamic> json) {
     return StaffPayrollSummary(
       payrollRunId: json['payroll_run_id'] as int,
-      periodStart: json['period_start'] as String,
-      periodEnd: json['period_end'] as String,
+      periodStart: _dateOnly(json['period_start']),
+      periodEnd: _dateOnly(json['period_end']),
       runStatus: json['run_status'] as String? ?? 'DRAFT',
       disbursedAt: json['disbursed_at'] != null
           ? DateTime.parse(json['disbursed_at'] as String)
@@ -70,5 +70,10 @@ class StaffPayrollRepositoryImpl implements StaffPayrollRepository {
   Map<String, dynamic> _unwrapMap(dynamic raw) {
     if (raw is Map && raw['data'] != null) return raw['data'] as Map<String, dynamic>;
     return raw as Map<String, dynamic>;
+  }
+
+  String _dateOnly(dynamic value) {
+    final raw = value as String;
+    return raw.contains('T') ? raw.split('T').first : raw;
   }
 }

@@ -35,3 +35,8 @@ String formatPayrollPeriodRange(DateTime start, DateTime end) {
   final sameYear = start.year == end.year;
   return '${fmt(start, withYear: !sameYear)} – ${fmt(end)}';
 }
+
+DateTime parsePayrollPeriodDate(String value) {
+  final dateOnly = value.contains('T') ? value.split('T').first : value;
+  return DateTime.parse('${dateOnly}T00:00:00Z');
+}

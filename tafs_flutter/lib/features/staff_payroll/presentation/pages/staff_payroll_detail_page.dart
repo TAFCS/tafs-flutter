@@ -70,8 +70,8 @@ class _StaffPayrollDetailPageState extends State<StaffPayrollDetailPage> {
 
   Widget _buildBody() {
     final d = _detail;
-    final start = DateTime.parse('${d.periodStart}T00:00:00Z');
-    final end = DateTime.parse('${d.periodEnd}T00:00:00Z');
+    final start = parsePayrollPeriodDate(d.periodStart);
+    final end = parsePayrollPeriodDate(d.periodEnd);
 
     return ListView(
       padding: const EdgeInsets.all(16),

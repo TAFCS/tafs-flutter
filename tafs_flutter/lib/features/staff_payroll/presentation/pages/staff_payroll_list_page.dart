@@ -110,8 +110,8 @@ class StaffPayrollListPageState extends State<StaffPayrollListPage> {
                 ),
                 const SizedBox(height: 16),
                 ...state.items.map((item) {
-                  final start = DateTime.parse('${item.periodStart}T00:00:00Z');
-                  final end = DateTime.parse('${item.periodEnd}T00:00:00Z');
+                  final start = parsePayrollPeriodDate(item.periodStart);
+                  final end = parsePayrollPeriodDate(item.periodEnd);
                   return Card(
                     child: ListTile(
                       title: Text(formatPayrollPeriodRange(start, end)),
