@@ -308,21 +308,54 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.only(bottom: 8),
-                                    child: ChatBubble(
-                                      messages: [chatMsg],
-                                      onImageTap: (url) {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => FullScreenImageViewer(
-                                              imageUrls: [url],
-                                              initialIndex: 0,
-                                            ),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          child: ChatBubble(
+                                            messages: [chatMsg],
+                                            onImageTap: (url) {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => FullScreenImageViewer(
+                                                    imageUrls: [url],
+                                                    initialIndex: 0,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            onReplyTap: (_) {},
+                                            onReply: (_) {},
                                           ),
-                                        );
-                                      },
-                                      onReplyTap: (_) {},
-                                      onReply: (_) {},
+                                        ),
+                                        if (isSuperAdmin && isIncomingStaff &&
+                                            msg.reviewStatus == TicketMessageReviewStatus.pending) ...[
+                                          const SizedBox(width: 6),
+                                          _ActionChip(
+                                            label: 'Approve',
+                                            icon: Icons.check_rounded,
+                                            color: AppTheme.navy,
+                                            filled: true,
+                                            onTap: state.actionLoading
+                                                ? null
+                                                : () => _cubit.reviewMessage(
+                                                      messageId: msg.id,
+                                                      status: 'APPROVED',
+                                                    ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          _ActionChip(
+                                            label: 'Reject',
+                                            icon: Icons.close_rounded,
+                                            color: Colors.grey.shade500,
+                                            filled: false,
+                                            onTap: state.actionLoading
+                                                ? null
+                                                : () => _showRejectDialog(msg.id),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
                                   if (isOutgoing &&
@@ -373,31 +406,6 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                                               ),
                                           ],
                                         ),
-                                      ),
-                                    ),
-                                  if (isSuperAdmin && isIncomingStaff &&
-                                      msg.reviewStatus ==
-                                          TicketMessageReviewStatus.pending)
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 12),
-                                      child: Row(
-                                        children: [
-                                          TextButton(
-                                            onPressed: state.actionLoading
-                                                ? null
-                                                : () => _cubit.reviewMessage(
-                                                      messageId: msg.id,
-                                                      status: 'APPROVED',
-                                                    ),
-                                            child: const Text('Approve'),
-                                          ),
-                                          TextButton(
-                                            onPressed: state.actionLoading
-                                                ? null
-                                                : () => _showRejectDialog(msg.id),
-                                            child: const Text('Reject'),
-                                          ),
-                                        ],
                                       ),
                                     ),
                                 ],
@@ -619,6 +627,56 @@ class _RejectReplyDialogState extends State<_RejectReplyDialog> {
           child: const Text('Reject'),
         ),
       ],
+    );
+  }
+}
+
+class _ActionChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool filled;
+  final VoidCallback? onTap;
+
+  const _ActionChip({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.filled,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedOpacity(
+        opacity: onTap == null ? 0.5 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: filled ? color : Colors.transparent,
+            border: Border.all(color: color, width: 1.2),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 12, color: filled ? Colors.white : color),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: filled ? Colors.white : color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

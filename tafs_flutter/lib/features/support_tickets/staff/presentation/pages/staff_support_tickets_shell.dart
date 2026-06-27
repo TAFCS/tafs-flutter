@@ -207,80 +207,11 @@ class _StaffSupportTicketsShellState extends State<StaffSupportTicketsShell> {
                         itemBuilder: (context, i) {
                           final t = filtered[i];
                           final pendingCount = pendingByTicket[t.id] ?? 0;
-                          return Material(
-                            color: AppTheme.white,
-                            borderRadius: BorderRadius.circular(12),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () => _openThread(t.id),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            t.householdName ?? 'Family #${t.familyId}',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            '${categoryLabel(t.category.name)} · ${t.subtopic ?? ''}',
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppTheme.blue300,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          // Family's last message
-                                          if (t.lastFamilySnippet != null)
-                                            _SnippetRow(
-                                              label: 'Family',
-                                              text: t.lastFamilySnippet!,
-                                              bold: t.unreadByStaff > 0,
-                                              count: t.unreadByStaff > 0 ? t.unreadByStaff : null,
-                                              countColor: AppTheme.navy,
-                                            ),
-                                          // Staff's last message
-                                          if (t.lastStaffSnippet != null) ...[
-                                            if (t.lastFamilySnippet != null) const SizedBox(height: 3),
-                                            _SnippetRow(
-                                              label: 'You',
-                                              text: t.lastStaffSnippet!,
-                                              bold: pendingCount > 0,
-                                              count: pendingCount > 0 ? pendingCount : null,
-                                              countColor: Colors.amber.shade700,
-                                            ),
-                                          ],
-                                          // Fallback if neither side snippet exists yet
-                                          if (t.lastFamilySnippet == null && t.lastStaffSnippet == null && t.lastMessageSnippet != null) ...[
-                                            Text(
-                                              t.lastMessageSnippet!,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(fontSize: 12),
-                                            ),
-                                          ],
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            DateFormat('MMM d, h:mm a').format(t.lastMessageAt),
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.grey.shade600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                          return _TicketCard(
+                            ticket: t,
+                            pendingCount: pendingCount,
+                            currentStaffId: widget.staff.id,
+                            onTap: () => _openThread(t.id),
                           );
                         },
                       ),
@@ -350,15 +281,131 @@ class _StaffSupportTicketsShellState extends State<StaffSupportTicketsShell> {
   }
 }
 
+class _TicketCard extends StatelessWidget {
+  final StaffSupportTicket ticket;
+  final int pendingCount;
+  final String currentStaffId;
+  final VoidCallback onTap;
+
+  const _TicketCard({
+    required this.ticket,
+    required this.pendingCount,
+    required this.currentStaffId,
+    required this.onTap,
+  });
+
+  Color get _accentColor =>
+      ticket.category.name == 'financial' ? Colors.amber.shade600 : AppTheme.navy;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasUnread = ticket.unreadByStaff > 0;
+    final hasPending = pendingCount > 0;
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Row 1: name + time
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      ticket.householdName ?? 'Family #${ticket.familyId}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: Color(0xFF1A1A2E),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    DateFormat('MMM d, h:mm a').format(ticket.lastMessageAt),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 3),
+
+              // Row 2: subtopic
+              if (ticket.subtopic != null)
+                Text(
+                  ticket.subtopic!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _accentColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              const SizedBox(height: 8),
+
+              // Row 3: family snippet
+              if (ticket.lastFamilySnippet != null)
+                _SnippetRow(
+                  icon: Icons.person_outline_rounded,
+                  senderName: ticket.lastFamilySenderName ?? 'Family',
+                  text: ticket.lastFamilySnippet!,
+                  bold: hasUnread,
+                  count: hasUnread ? ticket.unreadByStaff : null,
+                  countColor: AppTheme.navy,
+                ),
+
+              // Row 4: staff snippet
+              if (ticket.lastStaffSnippet != null) ...[
+                if (ticket.lastFamilySnippet != null) const SizedBox(height: 4),
+                _SnippetRow(
+                  icon: Icons.support_agent_rounded,
+                  senderName: ticket.lastStaffSenderId == currentStaffId
+                      ? 'You'
+                      : ticket.lastStaffSenderName ?? ticket.assigneeName ?? 'Staff',
+                  text: ticket.lastStaffSnippet!,
+                  bold: hasPending,
+                  count: hasPending ? pendingCount : null,
+                  countColor: Colors.amber.shade700,
+                ),
+              ],
+
+              // Fallback
+              if (ticket.lastFamilySnippet == null &&
+                  ticket.lastStaffSnippet == null &&
+                  ticket.lastMessageSnippet != null)
+                Text(
+                  ticket.lastMessageSnippet!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SnippetRow extends StatelessWidget {
-  final String label;
+  final IconData icon;
+  final String senderName;
   final String text;
   final bool bold;
   final int? count;
   final Color countColor;
 
   const _SnippetRow({
-    required this.label,
+    required this.icon,
+    required this.senderName,
     required this.text,
     required this.bold,
     this.count,
@@ -367,16 +414,22 @@ class _SnippetRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final nameColor = bold ? countColor : Colors.grey.shade400;
+    final textColor = bold ? const Color(0xFF1A1A2E) : Colors.grey.shade500;
+
     return Row(
       children: [
+        Icon(icon, size: 13, color: nameColor),
+        const SizedBox(width: 5),
         Text(
-          '$label: ',
+          '$senderName:',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: Colors.grey.shade500,
+            color: nameColor,
           ),
         ),
+        const SizedBox(width: 4),
         Expanded(
           child: Text(
             text,
@@ -384,15 +437,15 @@ class _SnippetRow extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 12,
-              fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-              color: bold ? Colors.black87 : Colors.grey.shade600,
+              fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
+              color: textColor,
             ),
           ),
         ),
-        if (count != null) ...[
-          const SizedBox(width: 6),
+        if (count != null && count! > 0) ...[
+          const SizedBox(width: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
             decoration: BoxDecoration(
               color: countColor,
               borderRadius: BorderRadius.circular(10),
@@ -401,7 +454,7 @@ class _SnippetRow extends StatelessWidget {
               '$count',
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: FontWeight.bold,
               ),
             ),
