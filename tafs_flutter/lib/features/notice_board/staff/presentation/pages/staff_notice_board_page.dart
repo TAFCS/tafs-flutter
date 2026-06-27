@@ -33,88 +33,66 @@ class _StaffNoticeBoardPageState extends State<StaffNoticeBoardPage> {
           children: [
             if (state.error != null)
               _banner(state.error!, Colors.red.shade50, Colors.red.shade800),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Row(
+
+            Expanded(
+              child: Stack(
                 children: [
-                  const Text(
-                    'Notice Board',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: AppTheme.navy,
-                    ),
-                  ),
-                  const Spacer(),
-                  FilledButton.icon(
-                    onPressed: state.loading
-                        ? null
-                        : () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => BlocProvider.value(
-                                  value: context.read<StaffNoticeBoardCubit>(),
-                                  child: const StaffNoticeBoardComposePage(),
+                  state.loading && state.posts.isEmpty
+                      ? const Center(
+                          child: CircularProgressIndicator(color: AppTheme.navy),
+                        )
+                      : state.posts.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No posts yet.\nTap + to create one.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: AppTheme.blue300),
+                              ),
+                            )
+                          : RefreshIndicator(
+                              color: AppTheme.navy,
+                              onRefresh: () =>
+                                  context.read<StaffNoticeBoardCubit>().refresh(),
+                              child: _TimelineList(
+                                posts: state.posts,
+                                campuses: state.campuses,
+                                onTap: (post) => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => BlocProvider.value(
+                                      value: context.read<StaffNoticeBoardCubit>(),
+                                      child: StaffNoticeBoardDetailPage(post: post),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('New Post'),
-                    style: FilledButton.styleFrom(
+
+                  // FAB — bottom padding on list ensures last card is never hidden
+                  Positioned(
+                    bottom: 16,
+                    right: 16,
+                    child: FloatingActionButton.extended(
+                      onPressed: state.loading
+                          ? null
+                          : () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => BlocProvider.value(
+                                    value: context.read<StaffNoticeBoardCubit>(),
+                                    child: const StaffNoticeBoardComposePage(),
+                                  ),
+                                ),
+                              ),
                       backgroundColor: AppTheme.navy,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
+                      icon: const Icon(Icons.add, size: 20),
+                      label: const Text('New Post',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],
               ),
-            ),
-            Expanded(
-              child: state.loading && state.posts.isEmpty
-                  ? const Center(
-                      child: CircularProgressIndicator(color: AppTheme.navy),
-                    )
-                  : state.posts.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'No posts yet.\nTap New Post to create one.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: AppTheme.blue300),
-                          ),
-                        )
-                      : RefreshIndicator(
-                          color: AppTheme.navy,
-                          onRefresh: () =>
-                              context.read<StaffNoticeBoardCubit>().refresh(),
-                          child: ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                            itemCount: state.posts.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 8),
-                            itemBuilder: (context, index) {
-                              final post = state.posts[index];
-                              return _PostListTile(
-                                post: post,
-                                campuses: state.campuses,
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => BlocProvider.value(
-                                      value:
-                                          context.read<StaffNoticeBoardCubit>(),
-                                      child: StaffNoticeBoardDetailPage(
-                                        post: post,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
             ),
           ],
         );
@@ -128,6 +106,114 @@ class _StaffNoticeBoardPageState extends State<StaffNoticeBoardPage> {
       child: Padding(
         padding: const EdgeInsets.all(8),
         child: Text(text, style: TextStyle(color: fg, fontSize: 12)),
+      ),
+    );
+  }
+}
+
+// Groups posts by calendar date and renders date separators
+class _TimelineList extends StatelessWidget {
+  final List<StaffNoticePost> posts;
+  final List<CampusScope> campuses;
+  final void Function(StaffNoticePost) onTap;
+
+  const _TimelineList({
+    required this.posts,
+    required this.campuses,
+    required this.onTap,
+  });
+
+  String _dateLabel(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final d = DateTime(date.year, date.month, date.day);
+    final diff = today.difference(d).inDays;
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    if (diff < 7) return DateFormat('EEEE').format(date); // e.g. "Monday"
+    return DateFormat('MMMM d, y').format(date);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Build flat list of items: date headers + posts
+    final items = <_ListItem>[];
+    String? lastLabel;
+
+    for (final post in posts) {
+      final label = _dateLabel(post.postedAt);
+      if (label != lastLabel) {
+        items.add(_ListItem.header(label));
+        lastLabel = label;
+      }
+      items.add(_ListItem.post(post));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 88),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        if (item.isHeader) {
+          return _DateSeparator(label: item.label!);
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _PostListTile(
+            post: item.post!,
+            campuses: campuses,
+            onTap: () => onTap(item.post!),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ListItem {
+  final bool isHeader;
+  final String? label;
+  final StaffNoticePost? post;
+
+  const _ListItem.header(this.label)
+      : isHeader = true,
+        post = null;
+
+  const _ListItem.post(this.post)
+      : isHeader = false,
+        label = null;
+}
+
+class _DateSeparator extends StatelessWidget {
+  final String label;
+  const _DateSeparator({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: AppTheme.blue100, thickness: 1)),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppTheme.navy.withOpacity(0.07),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.navy,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Divider(color: AppTheme.blue100, thickness: 1)),
+        ],
       ),
     );
   }
@@ -147,7 +233,7 @@ class _PostListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scope = scopeLabelForPost(post, campuses);
-    final timeAgo = _formatTimeAgo(post.postedAt);
+    final time = DateFormat('h:mm a').format(post.postedAt);
 
     return Material(
       color: AppTheme.white,
@@ -219,7 +305,7 @@ class _PostListTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    timeAgo,
+                    time,
                     style: const TextStyle(fontSize: 11, color: AppTheme.blue300),
                   ),
                   const SizedBox(height: 4),
@@ -234,14 +320,5 @@ class _PostListTile extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatTimeAgo(DateTime date) {
-    final diff = DateTime.now().difference(date);
-    if (diff.inMinutes < 1) return 'just now';
-    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
-    if (diff.inDays < 1) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return DateFormat('MMM d').format(date);
   }
 }

@@ -141,10 +141,8 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                   if (state.actionError != null)
                     _banner(state.actionError!, Colors.red.shade50, Colors.red.shade800),
                   if (isSuperAdmin && isReadOnly)
-                    _infoBanner(
-                      'Super Admin oversight',
-                      'Assigned to ${ticket.assigneeName ?? 'the routed role'}. Approve staff replies below, or send a direct reply to the parent.',
-                      Colors.amber.shade50,
+                    _CollapsibleInfo(
+                      body: 'Assigned to ${ticket.assigneeName ?? 'the routed role'}. Approve staff replies below, or send a direct reply to the parent.',
                     ),
                   if (!isSuperAdmin && isReadOnly)
                     _infoBanner(
@@ -676,6 +674,74 @@ class _ActionChip extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CollapsibleInfo extends StatefulWidget {
+  final String body;
+  const _CollapsibleInfo({required this.body});
+
+  @override
+  State<_CollapsibleInfo> createState() => _CollapsibleInfoState();
+}
+
+class _CollapsibleInfoState extends State<_CollapsibleInfo> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _expanded ? Icons.info_rounded : Icons.info_outline_rounded,
+                  size: 18,
+                  color: Colors.amber.shade700,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  'Super Admin oversight',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.amber.shade700,
+                  ),
+                ),
+                const SizedBox(width: 3),
+                Icon(
+                  _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                  size: 16,
+                  color: Colors.amber.shade600,
+                ),
+              ],
+            ),
+          ),
+          if (_expanded) ...[
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.amber.shade200),
+              ),
+              child: Text(
+                widget.body,
+                style: TextStyle(fontSize: 12, color: Colors.amber.shade900),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
