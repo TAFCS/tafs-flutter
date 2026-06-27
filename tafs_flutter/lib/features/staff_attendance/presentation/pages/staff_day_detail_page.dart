@@ -4,6 +4,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/pkt_format.dart';
 import '../../domain/entities/staff_attendance_period.dart';
 import '../../domain/repositories/staff_attendance_repository.dart';
+import '../widgets/day_timeline_widget.dart';
 import '../widgets/scan_timeline_widget.dart';
 import 'objection_submit_page.dart';
 
@@ -74,6 +75,10 @@ class _StaffDayDetailPageState extends State<StaffDayDetailPage> {
     final breakdown = _dayBreakdown();
     final dateLabel = formatPktDate(widget.day.date);
 
+    final segments = breakdown?['segments'] is List
+        ? (breakdown!['segments'] as List).cast<Map<String, dynamic>>()
+        : null;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Day Detail'),
@@ -83,12 +88,42 @@ class _StaffDayDetailPageState extends State<StaffDayDetailPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(dateLabel, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
+          Text(
+            dateLabel,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
           if (widget.day.status != null)
             Chip(label: Text(widget.day.status!.replaceAll('_', ' '))),
-          const SizedBox(height: 16),
-          const Text('Punches', style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 20),
+
+          // ── Day Timeline ──────────────────────────────────────────────────
+          const Text(
+            'Timeline',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 10),
+          DayTimelineWidget(
+            segments: segments,
+            scans: widget.day.scans,
+          ),
+
+          const SizedBox(height: 24),
+
+          // ── Clock Events ──────────────────────────────────────────────────
+          const Text(
+            'Clock Events',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 10),
           ScanTimelineWidget(
             scans: widget.day.scans,
             onObjectionTap: (scan) async {
@@ -105,22 +140,39 @@ class _StaffDayDetailPageState extends State<StaffDayDetailPage> {
               if (submitted == true) await _reloadObjections();
             },
           ),
+
+          // ── Deductions ────────────────────────────────────────────────────
           if (breakdown != null) ...[
             const Divider(height: 32),
-            const Text('Deductions', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text(
+              'Deductions',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                letterSpacing: 0.3,
+              ),
+            ),
             const SizedBox(height: 8),
             Text('Classification: ${breakdown['classification'] ?? '—'}'),
             Text('Break minutes: ${breakdown['break_minutes'] ?? 0}'),
           ],
+
+          // ── Objections ────────────────────────────────────────────────────
           if (_objections.isNotEmpty) ...[
             const Divider(height: 32),
-            const Text('Objections', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text(
+              'Objections',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                letterSpacing: 0.3,
+              ),
+            ),
             ..._objections.map(
               (o) => ListTile(
+                contentPadding: EdgeInsets.zero,
                 title: Text(o.status),
-                subtitle: Text(
-                  'Claimed ${formatPktTime(o.claimedTime)} PKT',
-                ),
+                subtitle: Text('Claimed ${formatPktTime(o.claimedTime)}'),
               ),
             ),
           ],

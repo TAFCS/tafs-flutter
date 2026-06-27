@@ -104,11 +104,6 @@ class PayrollPeriodCalendar extends StatelessWidget {
           },
         ),
         const SizedBox(height: 12),
-        const Text(
-          'All times shown in PKT (UTC+5)',
-          style: TextStyle(fontSize: 11, color: Color(0xFF71717A)),
-        ),
-        const SizedBox(height: 8),
         Wrap(
           spacing: 12,
           runSpacing: 8,

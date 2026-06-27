@@ -152,9 +152,9 @@ AttendanceCellStyle cellStyleFor(String classification) {
       );
     case 'UNRESOLVED':
       return AttendanceCellStyle(
-        background: const Color(0xFFFEF3C7),
-        dot: const Color(0xFFF59E0B),
-        text: const Color(0xFF92400E),
+        background: const Color(0xFFFFF0EB),
+        dot: const Color(0xFFE8500A),
+        text: const Color(0xFF7C2D12),
       );
     case 'DAY_OFF':
       return AttendanceCellStyle(
