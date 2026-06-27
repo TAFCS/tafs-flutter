@@ -81,11 +81,7 @@ class TokenInterceptor extends Interceptor {
 
         final inner = refreshResponse.data!['data'] as Map<String, dynamic>;
         newAccess = inner['accessToken'] as String;
-        final newRefresh = inner['refreshToken'] as String;
-        final updated = cached.copyWith(
-          accessToken: newAccess,
-          refreshToken: newRefresh,
-        );
+        final updated = StaffUserDto.fromJson({'data': inner});
         await localDataSource.cacheStaff(updated);
         onStaffTokenRefreshed(updated);
       } else {

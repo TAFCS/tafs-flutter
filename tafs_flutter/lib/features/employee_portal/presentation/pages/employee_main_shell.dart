@@ -31,7 +31,7 @@ class EmployeeMainShell extends StatefulWidget {
 }
 
 class _EmployeeMainShellState extends State<EmployeeMainShell> {
-  late _EmployeeTab _activeTab;
+  _EmployeeTab? _activeTab;
 
   StaffAttendanceRepositoryImpl? _attendanceRepo;
   StaffPayrollRepositoryImpl? _payrollRepo;
@@ -40,28 +40,32 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
   final _attendanceKey = GlobalKey<StaffAttendanceCalendarPageState>();
   final _payrollKey = GlobalKey<StaffPayrollListPageState>();
 
-  bool get _showEmployeePortal => canViewEmployeePortal(widget.staff);
+  bool get _showAttendance => canViewOwnAttendance(widget.staff);
+  bool get _showPayroll => canViewOwnPayroll(widget.staff);
   bool get _showTickets => canViewSupportTickets(widget.staff);
   bool get _showNoticeBoard => canViewStaffNoticeBoard(widget.staff);
 
   @override
   void initState() {
     super.initState();
-    if (_showEmployeePortal) {
+    if (_showAttendance) {
       _attendanceRepo = StaffAttendanceRepositoryImpl(
         remote: StaffAttendanceRemoteDataSource(InjectionContainer.dio),
       );
+    }
+    if (_showPayroll) {
       _payrollRepo = StaffPayrollRepositoryImpl(dio: InjectionContainer.dio);
     }
     _tabBodies = _buildTabBodies();
-    _activeTab = _tabs.first;
+    if (_tabs.isNotEmpty) {
+      _activeTab = _tabs.first;
+    }
   }
 
   List<_EmployeeTab> get _tabs {
     final tabs = <_EmployeeTab>[];
-    if (_showEmployeePortal) {
-      tabs.addAll([_EmployeeTab.attendance, _EmployeeTab.payroll]);
-    }
+    if (_showAttendance) tabs.add(_EmployeeTab.attendance);
+    if (_showPayroll) tabs.add(_EmployeeTab.payroll);
     if (_showTickets) tabs.add(_EmployeeTab.tickets);
     if (_showNoticeBoard) tabs.add(_EmployeeTab.noticeBoard);
     return tabs;
@@ -69,17 +73,21 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
 
   List<Widget> _buildTabBodies() {
     final bodies = <Widget>[];
-    if (_showEmployeePortal) {
-      bodies.addAll([
+    if (_showAttendance) {
+      bodies.add(
         StaffAttendanceCalendarPage(
           key: _attendanceKey,
           repository: _attendanceRepo!,
         ),
+      );
+    }
+    if (_showPayroll) {
+      bodies.add(
         StaffPayrollListPage(
           key: _payrollKey,
           repository: _payrollRepo!,
         ),
-      ]);
+      );
     }
     if (_showTickets) {
       bodies.add(
@@ -102,7 +110,9 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
   }
 
   void _refreshActiveTab() {
-    switch (_activeTab) {
+    final activeTab = _activeTab;
+    if (activeTab == null) return;
+    switch (activeTab) {
       case _EmployeeTab.tickets:
         if (_showTickets) {
           context.read<StaffTicketQueueBloc>().add(StaffQueueRefreshRequested());
@@ -124,7 +134,9 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
   }
 
   String get _title {
-    switch (_activeTab) {
+    final tabs = _tabs;
+    if (tabs.isEmpty) return 'Staff';
+    switch (_activeTab ?? tabs.first) {
       case _EmployeeTab.attendance:
         return 'Attendance';
       case _EmployeeTab.payroll:
@@ -189,13 +201,17 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
           child: Padding(
             padding: EdgeInsets.all(24),
             child: Text(
-              'No mobile features are available for your role.',
+              'No mobile features are available for your account.\n'
+              'Ask HR to link your employee profile and grant self-service permissions.',
               textAlign: TextAlign.center,
             ),
           ),
         ),
       );
     }
+
+    final tabs = _tabs;
+    final activeTab = tabs.contains(_activeTab) ? _activeTab! : tabs.first;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -216,19 +232,19 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         ],
       ),
       body: IndexedStack(
-        index: _tabs.indexOf(_activeTab),
+        index: tabs.indexOf(activeTab),
         children: _tabBodies,
       ),
-      bottomNavigationBar: _tabs.length > 1
+      bottomNavigationBar: tabs.length > 1
           ? NavigationBar(
-              selectedIndex: _tabs.indexOf(_activeTab),
+              selectedIndex: tabs.indexOf(activeTab),
               onDestinationSelected: (index) {
-                setState(() => _activeTab = _tabs[index]);
+                setState(() => _activeTab = tabs[index]);
                 if (_activeTab == _EmployeeTab.noticeBoard) {
                   context.read<StaffNoticeBoardCubit>().load();
                 }
               },
-              destinations: _tabs.map(_destinationFor).toList(),
+              destinations: tabs.map(_destinationFor).toList(),
             )
           : null,
     );

@@ -9,6 +9,7 @@ class StaffUser extends Equatable {
   final String? campusName;
   final List<int> allowedClassIds;
   final List<String> permissions;
+  final bool hasEmployeeProfile;
   final String accessToken;
   final String refreshToken;
 
@@ -21,6 +22,7 @@ class StaffUser extends Equatable {
     this.campusName,
     this.allowedClassIds = const [],
     this.permissions = const [],
+    this.hasEmployeeProfile = false,
     required this.accessToken,
     required this.refreshToken,
   });
@@ -35,6 +37,7 @@ class StaffUser extends Equatable {
         campusName,
         allowedClassIds,
         permissions,
+        hasEmployeeProfile,
         accessToken,
         refreshToken,
       ];

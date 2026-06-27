@@ -46,16 +46,17 @@ class DayStatusCell extends StatelessWidget {
             width: classification == 'ABSENT' && !_isFuture ? 1.5 : 1,
           ),
         ),
-        padding: const EdgeInsets.all(6),
+        padding: const EdgeInsets.all(4),
         child: Stack(
+          clipBehavior: Clip.none,
           children: [
             if (!_isFuture)
               Positioned(
-                top: 0,
-                right: 0,
+                top: 2,
+                right: 2,
                 child: Container(
-                  width: 6,
-                  height: 6,
+                  width: 5,
+                  height: 5,
                   decoration: BoxDecoration(
                     color: style.dot,
                     shape: BoxShape.circle,
@@ -63,30 +64,34 @@ class DayStatusCell extends StatelessWidget {
                 ),
               ),
             Center(
-              child: Text(
-                '$dayNumber',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: textColor,
-                  fontSize: 15,
-                  height: 1,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '$dayNumber',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: textColor,
+                    fontSize: 14,
+                    height: 1,
+                  ),
                 ),
               ),
             ),
             if (!_isFuture &&
                 classification != 'PRESENT' &&
-                classification != 'DAY_OFF')
+                classification != 'DAY_OFF' &&
+                _shortLabel(classification).isNotEmpty)
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: 0,
+                bottom: 1,
                 child: Text(
                   _shortLabel(classification),
                   textAlign: TextAlign.center,
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  overflow: TextOverflow.clip,
                   style: TextStyle(
-                    fontSize: 7,
+                    fontSize: 6.5,
                     fontWeight: FontWeight.w600,
                     color: textColor,
                     height: 1,

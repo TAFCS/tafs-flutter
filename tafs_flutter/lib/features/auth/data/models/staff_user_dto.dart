@@ -10,6 +10,7 @@ class StaffUserDto extends StaffUser {
     super.campusName,
     super.allowedClassIds,
     super.permissions,
+    super.hasEmployeeProfile,
     required super.accessToken,
     required super.refreshToken,
   });
@@ -33,6 +34,10 @@ class StaffUserDto extends StaffUser {
       permissions: permissionsRaw is List
           ? permissionsRaw.map((e) => e.toString()).toList()
           : const [],
+      hasEmployeeProfile:
+          user['hasEmployeeProfile'] as bool? ??
+          user['has_employee_profile'] as bool? ??
+          false,
       accessToken: data['accessToken'] as String? ?? '',
       refreshToken: data['refreshToken'] as String? ?? '',
     );
@@ -52,6 +57,7 @@ class StaffUserDto extends StaffUser {
             'campusName': campusName,
             'allowedClassIds': allowedClassIds,
             'permissions': permissions,
+            'hasEmployeeProfile': hasEmployeeProfile,
           },
         },
       };
@@ -69,6 +75,7 @@ class StaffUserDto extends StaffUser {
       campusName: campusName,
       allowedClassIds: allowedClassIds,
       permissions: permissions,
+      hasEmployeeProfile: hasEmployeeProfile,
       accessToken: accessToken ?? this.accessToken,
       refreshToken: refreshToken ?? this.refreshToken,
     );
