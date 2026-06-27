@@ -63,35 +63,36 @@ class DayStatusCell extends StatelessWidget {
                 ),
               ),
             Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '$dayNumber',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: textColor,
-                      fontSize: 15,
-                    ),
-                  ),
-                  if (!_isFuture &&
-                      classification != 'PRESENT' &&
-                      classification != 'DAY_OFF') ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      _shortLabel(classification),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 8,
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
-                      ),
-                    ),
-                  ],
-                ],
+              child: Text(
+                '$dayNumber',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                  fontSize: 15,
+                  height: 1,
+                ),
               ),
             ),
+            if (!_isFuture &&
+                classification != 'PRESENT' &&
+                classification != 'DAY_OFF')
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Text(
+                  _shortLabel(classification),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 7,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                    height: 1,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
