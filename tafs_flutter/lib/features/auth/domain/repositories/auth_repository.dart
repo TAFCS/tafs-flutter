@@ -27,4 +27,5 @@ abstract class AuthRepository {
     String? deviceType,
   });
   Future<Either<Failure, Parent>> refreshProfile();
+  Future<Either<Failure, StaffUser>> refreshStaffSession();
 }

@@ -39,7 +39,9 @@ class StaffPayrollBloc extends Bloc<StaffPayrollEvent, StaffPayrollState> {
       final items = await repository.getMyPayrollList();
       emit(StaffPayrollLoaded(items));
     } catch (e) {
-      emit(StaffPayrollError(ApiErrorMapper.fromObject(e)));
+      emit(StaffPayrollError(
+        ApiErrorMapper.staffSelfServiceMessage(e, featureLabel: 'payroll'),
+      ));
     }
   }
 }

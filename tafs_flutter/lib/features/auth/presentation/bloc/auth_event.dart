@@ -120,6 +120,10 @@ class AuthTokenRefreshed extends AuthEvent {
   List<Object?> get props => [parent];
 }
 
+class AuthStaffRefreshRequested extends AuthEvent {
+  const AuthStaffRefreshRequested();
+}
+
 class AuthStaffTokenRefreshed extends AuthEvent {
   final StaffUser staff;
 

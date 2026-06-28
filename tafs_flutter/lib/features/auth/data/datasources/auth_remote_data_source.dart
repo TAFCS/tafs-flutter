@@ -24,6 +24,7 @@ abstract class AuthRemoteDataSource {
   });
   Future<ParentDto> getProfile(String accessToken);
   Future<StaffUserDto> staffLogin(String username, String password);
+  Future<StaffUserDto> staffRefresh(String refreshToken);
   Future<void> staffLogout(String accessToken);
 }
 
@@ -261,6 +262,35 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         ApiErrorMapper.fromDioException(
           e,
           fallback: 'Unable to log in right now. Please try again.',
+        ),
+      );
+    } on Failure {
+      rethrow;
+    } catch (e) {
+      throw ServerFailure(ApiErrorMapper.fromObject(e));
+    }
+  }
+
+  @override
+  Future<StaffUserDto> staffRefresh(String refreshToken) async {
+    final String baseUrl = AppConfig.apiBaseUrl;
+    try {
+      final response = await dio.post(
+        '$baseUrl/auth/staff/mobile/refresh',
+        data: {'refreshToken': refreshToken},
+        options: Options(headers: {'Content-Type': 'application/json'}),
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return StaffUserDto.fromJson(response.data as Map<String, dynamic>);
+      }
+      throw const ServerFailure(
+        'Unable to refresh your session right now. Please try again.',
+      );
+    } on DioException catch (e) {
+      throw ServerFailure(
+        ApiErrorMapper.fromDioException(
+          e,
+          fallback: 'Unable to refresh your session right now. Please try again.',
         ),
       );
     } on Failure {

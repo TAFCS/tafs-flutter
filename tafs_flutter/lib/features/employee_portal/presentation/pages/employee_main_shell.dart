@@ -35,10 +35,12 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
 
   StaffAttendanceRepositoryImpl? _attendanceRepo;
   StaffPayrollRepositoryImpl? _payrollRepo;
-  late final List<Widget> _tabBodies;
+  late List<Widget> _tabBodies;
 
   final _attendanceKey = GlobalKey<StaffAttendanceCalendarPageState>();
   final _payrollKey = GlobalKey<StaffPayrollListPageState>();
+
+  String get _accessSignature => staffPortalAccessSignature(widget.staff);
 
   bool get _showAttendance => canViewOwnAttendance(widget.staff);
   bool get _showPayroll => canViewOwnPayroll(widget.staff);
@@ -48,17 +50,40 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
   @override
   void initState() {
     super.initState();
-    if (_showAttendance) {
-      _attendanceRepo = StaffAttendanceRepositoryImpl(
-        remote: StaffAttendanceRemoteDataSource(InjectionContainer.dio),
-      );
+    _syncTabsFromStaff();
+  }
+
+  @override
+  void didUpdateWidget(EmployeeMainShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (staffPortalAccessSignature(oldWidget.staff) != _accessSignature) {
+      _syncTabsFromStaff(notify: true);
     }
-    if (_showPayroll) {
-      _payrollRepo = StaffPayrollRepositoryImpl(dio: InjectionContainer.dio);
+  }
+
+  void _syncTabsFromStaff({bool notify = false}) {
+    void apply() {
+      if (_showAttendance && _attendanceRepo == null) {
+        _attendanceRepo = StaffAttendanceRepositoryImpl(
+          remote: StaffAttendanceRemoteDataSource(InjectionContainer.dio),
+        );
+      }
+      if (_showPayroll && _payrollRepo == null) {
+        _payrollRepo = StaffPayrollRepositoryImpl(dio: InjectionContainer.dio);
+      }
+      _tabBodies = _buildTabBodies();
+      final tabs = _tabs;
+      if (tabs.isEmpty) {
+        _activeTab = null;
+      } else if (_activeTab == null || !tabs.contains(_activeTab)) {
+        _activeTab = tabs.first;
+      }
     }
-    _tabBodies = _buildTabBodies();
-    if (_tabs.isNotEmpty) {
-      _activeTab = _tabs.first;
+
+    if (notify) {
+      setState(apply);
+    } else {
+      apply();
     }
   }
 
@@ -73,7 +98,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
 
   List<Widget> _buildTabBodies() {
     final bodies = <Widget>[];
-    if (_showAttendance) {
+    if (_showAttendance && _attendanceRepo != null) {
       bodies.add(
         StaffAttendanceCalendarPage(
           key: _attendanceKey,
@@ -81,7 +106,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         ),
       );
     }
-    if (_showPayroll) {
+    if (_showPayroll && _payrollRepo != null) {
       bodies.add(
         StaffPayrollListPage(
           key: _payrollKey,
@@ -92,7 +117,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
     if (_showTickets) {
       bodies.add(
         StaffSupportTicketsShell(
-          key: const ValueKey('employee_tickets_tab'),
+          key: ValueKey('employee_tickets_tab_$_accessSignature'),
           staff: widget.staff,
           embedded: true,
         ),

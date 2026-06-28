@@ -57,6 +57,11 @@ class _AuthGateState extends State<AuthGate> {
         );
         unawaited(_showNotificationPermissionHintIfNeeded(context));
       });
+    } else if (currentState is AuthAuthenticatedStaff) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<AuthBloc>().add(const AuthStaffRefreshRequested());
+      });
     }
   }
 

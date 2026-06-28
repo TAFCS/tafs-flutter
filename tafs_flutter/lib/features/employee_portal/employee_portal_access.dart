@@ -27,3 +27,7 @@ bool canViewOwnPayroll(StaffUser user) =>
 
 bool canViewEmployeePortal(StaffUser user) =>
     canViewOwnAttendance(user) || canViewOwnPayroll(user);
+
+/// Changes when portal tabs should be shown/hidden (permissions, profile, role).
+String staffPortalAccessSignature(StaffUser user) =>
+    '${user.role}|${user.hasEmployeeProfile}|${user.permissions.join(',')}';

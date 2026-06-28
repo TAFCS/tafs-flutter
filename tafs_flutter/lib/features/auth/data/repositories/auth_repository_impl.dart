@@ -178,4 +178,22 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
     }
   }
+
+  @override
+  Future<Either<Failure, StaffUser>> refreshStaffSession() async {
+    try {
+      final cached = await localDataSource.getCachedStaff();
+      if (cached == null) {
+        return Left(CacheFailure('No cached staff session found.'));
+      }
+
+      final staffDto = await remoteDataSource.staffRefresh(cached.refreshToken);
+      await localDataSource.cacheStaff(staffDto);
+      return Right(staffDto);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (e) {
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
+    }
+  }
 }

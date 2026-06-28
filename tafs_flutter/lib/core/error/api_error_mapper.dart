@@ -22,14 +22,34 @@ class ApiErrorMapper {
   static String fromObject(
     Object error, {
     String fallback = defaultMessage,
+    String? selfServiceForbiddenMessage,
   }) {
     if (error is Failure) {
       return fromFailure(error);
     }
     if (error is DioException) {
-      return fromDioException(error, fallback: fallback);
+      return fromDioException(
+        error,
+        fallback: fallback,
+        selfServiceForbiddenMessage: selfServiceForbiddenMessage,
+      );
     }
     return fallback;
+  }
+
+  /// HR self-service endpoints (`/attendance/staff/me`, `/hr/payroll/me`).
+  static String staffSelfServiceMessage(
+    Object error, {
+    required String featureLabel,
+    String fallback = defaultMessage,
+  }) {
+    return fromObject(
+      error,
+      fallback: fallback,
+      selfServiceForbiddenMessage:
+          'You do not have access to your $featureLabel records. '
+          'Ask HR to link your employee profile and grant self-service permissions.',
+    );
   }
 
   static String fromFailure(Failure failure) {
@@ -42,6 +62,7 @@ class ApiErrorMapper {
   static String fromDioException(
     DioException error, {
     String fallback = defaultMessage,
+    String? selfServiceForbiddenMessage,
   }) {
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
@@ -73,7 +94,8 @@ class ApiErrorMapper {
     }
 
     if (statusCode == 403) {
-      return 'You do not have permission to perform this action.';
+      return selfServiceForbiddenMessage ??
+          'You do not have permission to perform this action.';
     }
 
     if (statusCode == 404) {

@@ -20,7 +20,9 @@ class StaffAttendanceBloc extends Bloc<StaffAttendanceEvent, StaffAttendanceStat
       final period = await repository.getMyAttendance(event.period);
       emit(StaffAttendanceLoaded(period));
     } catch (e) {
-      emit(StaffAttendanceError(ApiErrorMapper.fromObject(e)));
+      emit(StaffAttendanceError(
+        ApiErrorMapper.staffSelfServiceMessage(e, featureLabel: 'attendance'),
+      ));
     }
   }
 }

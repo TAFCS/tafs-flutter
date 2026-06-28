@@ -37,6 +37,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     on<AuthRefreshRequested>(_onAuthRefreshRequested);
     on<AuthProfileRefreshFailureAcknowledged>(_onProfileRefreshFailureAcknowledged);
     on<AuthTokenRefreshed>(_onAuthTokenRefreshed);
+    on<AuthStaffRefreshRequested>(_onAuthStaffRefreshRequested);
     on<AuthStaffTokenRefreshed>(_onAuthStaffTokenRefreshed);
   }
 
@@ -78,6 +79,8 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     final staff = staffResult.fold((_) => null, (s) => s);
     if (staff != null) {
       emit(AuthAuthenticatedStaff(staff));
+      final refreshed = await repository.refreshStaffSession();
+      refreshed.fold((_) {}, (updated) => emit(AuthAuthenticatedStaff(updated)));
       return;
     }
 
@@ -128,6 +131,16 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthAuthenticated(event.parent));
+  }
+
+  Future<void> _onAuthStaffRefreshRequested(
+    AuthStaffRefreshRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    if (state is! AuthAuthenticatedStaff) return;
+
+    final result = await repository.refreshStaffSession();
+    result.fold((_) {}, (staff) => emit(AuthAuthenticatedStaff(staff)));
   }
 
   Future<void> _onAuthStaffTokenRefreshed(

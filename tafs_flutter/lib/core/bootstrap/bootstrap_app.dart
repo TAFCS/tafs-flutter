@@ -10,6 +10,7 @@ import 'app_bootstrap.dart';
 import '../app_status/app_status_screens.dart';
 import '../app_status/app_status_service.dart';
 import '../services/fcm_registration_service.dart';
+import '../../features/auth/presentation/bloc/auth_event.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
 
 /// Shows UI immediately, then completes env/storage/DI without blocking the native splash.
@@ -54,6 +55,15 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
         unawaited(_recheckRemoteStatus(showLoading: false));
       }
       _reregisterFcmIfAuthenticated();
+      _refreshStaffSessionIfLoggedIn();
+    }
+  }
+
+  void _refreshStaffSessionIfLoggedIn() {
+    if (!InjectionContainer.isInitialized) return;
+    final authState = InjectionContainer.authBloc.state;
+    if (authState is AuthAuthenticatedStaff) {
+      InjectionContainer.authBloc.add(const AuthStaffRefreshRequested());
     }
   }
 

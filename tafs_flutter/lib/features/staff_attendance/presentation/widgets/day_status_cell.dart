@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/pkt_format.dart';
 import '../../domain/entities/staff_attendance_period.dart';
 import '../utils/attendance_day_utils.dart';
 
@@ -16,10 +17,10 @@ class DayStatusCell extends StatelessWidget {
   });
 
   bool get _isFuture {
-    final today = DateTime.now().toUtc();
-    final d = day.date.toUtc();
-    final todayKey = DateTime.utc(today.year, today.month, today.day);
-    final dayKey = DateTime.utc(d.year, d.month, d.day);
+    final todayPkt = toPkt(DateTime.now());
+    final dayPkt = toPkt(day.date);
+    final todayKey = DateTime(todayPkt.year, todayPkt.month, todayPkt.day);
+    final dayKey = DateTime(dayPkt.year, dayPkt.month, dayPkt.day);
     return dayKey.isAfter(todayKey);
   }
 
