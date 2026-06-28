@@ -6,6 +6,11 @@ import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../notice_board/staff/presentation/bloc/staff_notice_board_cubit.dart';
 import '../../../notice_board/staff/presentation/pages/staff_notice_board_page.dart';
 import '../../../notice_board/staff/staff_notice_board_access.dart';
+import '../../../employee_notice_board/presentation/cubit/employee_notice_cubit.dart';
+import '../../../employee_notice_board/presentation/pages/employee_notice_board_page.dart';
+import '../../../employee_notice_board/employee_notice_access.dart';
+import '../../../employee_notice_board/data/repositories/employee_notice_repository_impl.dart';
+import '../../../employee_notice_board/data/datasources/employee_notice_remote_data_source.dart';
 import '../../../staff_attendance/data/repositories/staff_attendance_repository_impl.dart';
 import '../../../staff_attendance/presentation/pages/staff_attendance_calendar_page.dart';
 import '../../../staff_payroll/data/repositories/staff_payroll_repository_impl.dart';
@@ -19,7 +24,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
 import '../../employee_portal_access.dart';
 
-enum _EmployeeTab { attendance, payroll, tickets, noticeBoard }
+enum _EmployeeTab { attendance, payroll, tickets, noticeBoard, employeeNoticeBoard }
 
 class EmployeeMainShell extends StatefulWidget {
   final StaffUser staff;
@@ -35,6 +40,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
 
   StaffAttendanceRepositoryImpl? _attendanceRepo;
   StaffPayrollRepositoryImpl? _payrollRepo;
+  EmployeeNoticeRepositoryImpl? _employeeNoticeRepo;
   late List<Widget> _tabBodies;
 
   final _attendanceKey = GlobalKey<StaffAttendanceCalendarPageState>();
@@ -46,6 +52,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
   bool get _showPayroll => canViewOwnPayroll(widget.staff);
   bool get _showTickets => canViewSupportTickets(widget.staff);
   bool get _showNoticeBoard => canViewStaffNoticeBoard(widget.staff);
+  bool get _showEmployeeNoticeBoard => canViewEmployeeNoticeBoard(widget.staff);
 
   @override
   void initState() {
@@ -71,6 +78,11 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
       if (_showPayroll && _payrollRepo == null) {
         _payrollRepo = StaffPayrollRepositoryImpl(dio: InjectionContainer.dio);
       }
+      if (_showEmployeeNoticeBoard && _employeeNoticeRepo == null) {
+        _employeeNoticeRepo = EmployeeNoticeRepositoryImpl(
+          remoteDataSource: EmployeeNoticeRemoteDataSource(InjectionContainer.dio),
+        );
+      }
       _tabBodies = _buildTabBodies();
       final tabs = _tabs;
       if (tabs.isEmpty) {
@@ -93,6 +105,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
     if (_showPayroll) tabs.add(_EmployeeTab.payroll);
     if (_showTickets) tabs.add(_EmployeeTab.tickets);
     if (_showNoticeBoard) tabs.add(_EmployeeTab.noticeBoard);
+    if (_showEmployeeNoticeBoard) tabs.add(_EmployeeTab.employeeNoticeBoard);
     return tabs;
   }
 
@@ -131,6 +144,17 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         ),
       );
     }
+    if (_showEmployeeNoticeBoard && _employeeNoticeRepo != null) {
+      bodies.add(
+        BlocProvider.value(
+          key: const ValueKey('employee_notices_tab'),
+          value: InjectionContainer.employeeNoticeCubit,
+          child: EmployeeNoticeBoardPage(
+            repository: _employeeNoticeRepo!,
+          ),
+        ),
+      );
+    }
     return bodies;
   }
 
@@ -148,6 +172,9 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         break;
       case _EmployeeTab.noticeBoard:
         if (_showNoticeBoard) context.read<StaffNoticeBoardCubit>().refresh();
+        break;
+      case _EmployeeTab.employeeNoticeBoard:
+        if (_showEmployeeNoticeBoard) InjectionContainer.employeeNoticeCubit.refresh();
         break;
       case _EmployeeTab.attendance:
         _attendanceKey.currentState?.refresh();
@@ -170,6 +197,8 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         return 'Support Tickets';
       case _EmployeeTab.noticeBoard:
         return 'Notice Board';
+      case _EmployeeTab.employeeNoticeBoard:
+        return 'Notices';
     }
   }
 
@@ -197,6 +226,33 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         return const NavigationDestination(
           icon: Icon(Icons.article_outlined),
           selectedIcon: Icon(Icons.article),
+          label: 'Notices',
+        );
+      case _EmployeeTab.employeeNoticeBoard:
+        return NavigationDestination(
+          icon: BlocBuilder<EmployeeNoticeCubit, EmployeeNoticeState>(
+            bloc: InjectionContainer.employeeNoticeCubit,
+            builder: (_, s) => Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.campaign_outlined),
+                if (s.hasUnread)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          selectedIcon: const Icon(Icons.campaign),
           label: 'Notices',
         );
     }
@@ -267,6 +323,8 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
                 setState(() => _activeTab = tabs[index]);
                 if (_activeTab == _EmployeeTab.noticeBoard) {
                   context.read<StaffNoticeBoardCubit>().load();
+                } else if (_activeTab == _EmployeeTab.employeeNoticeBoard) {
+                  InjectionContainer.employeeNoticeCubit.load();
                 }
               },
               destinations: tabs.map(_destinationFor).toList(),

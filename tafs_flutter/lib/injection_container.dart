@@ -16,6 +16,10 @@ import 'features/notice_board/staff/data/datasources/staff_notice_board_remote_d
 import 'features/notice_board/staff/data/repositories/staff_notice_board_repository_impl.dart';
 import 'features/notice_board/staff/domain/repositories/staff_notice_board_repository.dart';
 import 'features/notice_board/staff/presentation/bloc/staff_notice_board_cubit.dart';
+import 'features/employee_notice_board/data/datasources/employee_notice_remote_data_source.dart';
+import 'features/employee_notice_board/data/repositories/employee_notice_repository_impl.dart';
+import 'features/employee_notice_board/domain/repositories/employee_notice_repository.dart';
+import 'features/employee_notice_board/presentation/cubit/employee_notice_cubit.dart';
 
 // Fee Ledger
 import 'features/fee_ledger/data/datasources/fee_ledger_remote_data_source.dart';
@@ -64,6 +68,8 @@ class InjectionContainer {
   static late final StaffPendingApprovalsCubit staffPendingApprovalsCubit;
   static late final StaffNoticeBoardRepository staffNoticeBoardRepository;
   static late final StaffNoticeBoardCubit staffNoticeBoardCubit;
+  static late final EmployeeNoticeRepository employeeNoticeRepository;
+  static late final EmployeeNoticeCubit employeeNoticeCubit;
   static late final Dio dio;
   static late final NoticeBoardBloc noticeBoardBloc;
   static late final ProfileBloc profileBloc;
@@ -176,6 +182,13 @@ class InjectionContainer {
     );
     staffNoticeBoardCubit = StaffNoticeBoardCubit(
       repository: staffNoticeBoardRepository,
+    );
+
+    employeeNoticeRepository = EmployeeNoticeRepositoryImpl(
+      remoteDataSource: EmployeeNoticeRemoteDataSource(dio),
+    );
+    employeeNoticeCubit = EmployeeNoticeCubit(
+      repository: employeeNoticeRepository,
     );
 
     final noticeBoardRemoteDataSource = NoticeBoardRemoteDataSource(dio);

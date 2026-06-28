@@ -9,6 +9,7 @@ import 'fcm_registration_service.dart';
 import 'in_app_notification_service.dart';
 import '../../injection_container.dart';
 import '../../features/attendance_history/presentation/pages/attendance_calendar_page.dart';
+import '../../features/employee_notice_board/presentation/cubit/employee_notice_cubit.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -79,6 +80,8 @@ class NotificationService {
               navigateToSupportTicketThread(ticketId);
             } else if (type == 'ATTENDANCE_ALERT' || type == 'biometric_attendance' || type == 'calendar_alert') {
               _handleNotificationRouting(message.data);
+            } else if (type == 'EMPLOYEE_NOTICE') {
+              InjectionContainer.employeeNoticeCubit.refresh();
             }
           },
         );
@@ -134,6 +137,11 @@ class NotificationService {
           );
         }
       }
+    } else if (type == 'EMPLOYEE_NOTICE') {
+      // Refresh the employee notice cubit so the Notices tab is up-to-date
+      try {
+        InjectionContainer.employeeNoticeCubit.refresh();
+      } catch (_) {}
     }
   }
 
