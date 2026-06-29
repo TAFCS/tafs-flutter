@@ -132,13 +132,15 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
     if (isEmployee) {
       addTabs();
     } else {
+      // Home (employee notice board) always leftmost when present.
+      if (_showEmployeeNoticeBoard) tabs.add(_EmployeeTab.employeeNoticeBoard);
       if (_showAttendance) tabs.add(_EmployeeTab.attendance);
       if (_showPayroll) tabs.add(_EmployeeTab.payroll);
       if (_showTickets) tabs.add(_EmployeeTab.tickets);
       if (_showNoticeBoard) tabs.add(_EmployeeTab.noticeBoard);
-      if (_showEmployeeNoticeBoard) tabs.add(_EmployeeTab.employeeNoticeBoard);
     }
 
+    // Profile always rightmost.
     if (_showProfile) tabs.add(_EmployeeTab.profile);
 
     return tabs;
@@ -230,27 +232,27 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
     switch (tab) {
       case _EmployeeTab.attendance:
         return const NavigationDestination(
-          icon: Icon(Icons.calendar_month_outlined),
-          selectedIcon: Icon(Icons.calendar_month),
+          icon: Icon(Icons.calendar_month_outlined, size: 20),
+          selectedIcon: Icon(Icons.calendar_month, size: 20),
           label: 'Attendance',
         );
       case _EmployeeTab.payroll:
         return const NavigationDestination(
-          icon: Icon(Icons.account_balance_wallet_outlined),
-          selectedIcon: Icon(Icons.account_balance_wallet),
+          icon: Icon(Icons.account_balance_wallet_outlined, size: 20),
+          selectedIcon: Icon(Icons.account_balance_wallet, size: 20),
           label: 'Payroll',
         );
       case _EmployeeTab.tickets:
         return const NavigationDestination(
-          icon: Icon(Icons.confirmation_number_outlined),
-          selectedIcon: Icon(Icons.confirmation_number),
+          icon: Icon(Icons.confirmation_number_outlined, size: 20),
+          selectedIcon: Icon(Icons.confirmation_number, size: 20),
           label: 'Tickets',
         );
       case _EmployeeTab.noticeBoard:
         return const NavigationDestination(
-          icon: Icon(Icons.article_outlined),
-          selectedIcon: Icon(Icons.article),
-          label: 'Notice Board',
+          icon: Icon(Icons.article_outlined, size: 20),
+          selectedIcon: Icon(Icons.article, size: 20),
+          label: 'Notices',
         );
       case _EmployeeTab.employeeNoticeBoard:
         return NavigationDestination(
@@ -259,14 +261,14 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
             builder: (_, s) => Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(Icons.home_outlined),
+                const Icon(Icons.home_outlined, size: 20),
                 if (s.hasUnread)
                   Positioned(
                     top: -2,
                     right: -2,
                     child: Container(
-                      width: 8,
-                      height: 8,
+                      width: 7,
+                      height: 7,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.red,
@@ -276,13 +278,13 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
               ],
             ),
           ),
-          selectedIcon: const Icon(Icons.home),
+          selectedIcon: const Icon(Icons.home, size: 20),
           label: 'Home',
         );
       case _EmployeeTab.profile:
         return const NavigationDestination(
-          icon: Icon(Icons.person_outline),
-          selectedIcon: Icon(Icons.person),
+          icon: Icon(Icons.person_outline, size: 20),
+          selectedIcon: Icon(Icons.person, size: 20),
           label: 'Profile',
         );
     }
@@ -341,6 +343,9 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
       bottomNavigationBar: _currentTabs.length > 1
           ? NavigationBar(
               selectedIndex: activeIndex,
+              labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+              indicatorColor: Colors.transparent,
+              height: 64,
               onDestinationSelected: (index) {
                 setState(() => _activeTab = _currentTabs[index]);
                 if (_activeTab == _EmployeeTab.noticeBoard) {

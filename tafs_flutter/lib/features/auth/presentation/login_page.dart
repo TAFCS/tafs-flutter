@@ -36,12 +36,13 @@ class _LoginPageState extends State<LoginPage> {
     if (_loginError != null) setState(() => _loginError = null);
   }
 
-  void _setMode(_LoginMode mode) {
+  void _switchMode(_LoginMode mode) {
     if (_mode == mode) return;
     setState(() {
       _mode = mode;
       _loginError = null;
       _usernameController.clear();
+      _passwordController.clear();
     });
   }
 
@@ -130,22 +131,7 @@ class _LoginPageState extends State<LoginPage> {
                               style: Theme.of(context).textTheme.displayMedium,
                               textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: AppTheme.space2),
-                            Text(
-                              isStaff
-                                  ? 'Staff portal — support tickets and school operations.'
-                                  : 'Parent portal — fees, updates, and school queries.',
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    color: AppTheme.blue300,
-                                  ),
-                              textAlign: TextAlign.center,
-                            ),
                             SizedBox(height: sectionGap),
-                            _LoginModeSwitcher(
-                              mode: _mode,
-                              onChanged: _setMode,
-                            ),
-                            const SizedBox(height: AppTheme.space5),
                             CustomTextField(
                               label: isStaff ? 'Username' : 'Email Address',
                               hint: isStaff
@@ -214,7 +200,7 @@ class _LoginPageState extends State<LoginPage> {
                             ],
                             SizedBox(height: sectionGap),
                             CustomButton(
-                              text: isStaff ? 'Sign in as Staff' : 'Sign in as Parent',
+                              text: 'Sign in',
                               isLoading: isLoading,
                               onPressed: _login,
                             ),
@@ -260,6 +246,24 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ],
                             SizedBox(height: sectionGap),
+                            GestureDetector(
+                              onTap: () => _switchMode(
+                                isStaff ? _LoginMode.parent : _LoginMode.staff,
+                              ),
+                              child: Text(
+                                isStaff
+                                    ? '← Back to parent sign in'
+                                    : 'Are you a TAFS employee? Sign in here',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppTheme.textMuted,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: AppTheme.textMuted,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: sectionGap * 0.5),
                           ],
                         ),
                       ),
@@ -275,109 +279,3 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-/// Compact role picker sitting above the credential fields.
-class _LoginModeSwitcher extends StatelessWidget {
-  final _LoginMode mode;
-  final ValueChanged<_LoginMode> onChanged;
-
-  const _LoginModeSwitcher({
-    required this.mode,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppTheme.surface2,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.blue100.withValues(alpha: 0.6)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _ModeTab(
-              label: 'Parent',
-              icon: Icons.family_restroom_outlined,
-              selected: mode == _LoginMode.parent,
-              onTap: () => onChanged(_LoginMode.parent),
-            ),
-          ),
-          Expanded(
-            child: _ModeTab(
-              label: 'Staff',
-              icon: Icons.badge_outlined,
-              selected: mode == _LoginMode.staff,
-              onTap: () => onChanged(_LoginMode.staff),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ModeTab extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ModeTab({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-      decoration: BoxDecoration(
-        color: selected ? AppTheme.navy : Colors.transparent,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        boxShadow: selected
-            ? [
-                BoxShadow(
-                  color: AppTheme.navy.withValues(alpha: 0.18),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: 18,
-                  color: selected ? AppTheme.white : AppTheme.blue300,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: selected ? AppTheme.white : AppTheme.navy,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
