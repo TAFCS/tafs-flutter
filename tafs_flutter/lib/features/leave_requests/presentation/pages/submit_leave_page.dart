@@ -5,6 +5,43 @@ import '../../../../core/theme/app_theme.dart';
 import '../../domain/repositories/leave_requests_repository.dart';
 import '../../domain/entities/leave_request.dart';
 
+const _leaveTypeOrder = ['SICK', 'CASUAL', 'ANNUAL', 'UNPAID'];
+
+String? _leaveTypeHint(String code) {
+  switch (code) {
+    case 'SICK':
+      return 'Medical certificate or doctor\'s note required';
+    case 'CASUAL':
+      return 'Available after 14 months of service';
+    case 'ANNUAL':
+      return 'Paid leave · reason required';
+    case 'UNPAID':
+      return 'Unpaid · reason required';
+    default:
+      return null;
+  }
+}
+
+IconData _leaveTypeIcon(String code) {
+  switch (code) {
+    case 'SICK':
+      return Icons.medical_services_outlined;
+    case 'CASUAL':
+      return Icons.weekend_outlined;
+    case 'ANNUAL':
+      return Icons.beach_access_outlined;
+    case 'UNPAID':
+      return Icons.money_off_outlined;
+    default:
+      return Icons.event_note_outlined;
+  }
+}
+
+List<LeaveType> _sortedLeaveTypes(List<LeaveType> types) {
+  final byCode = {for (final t in types) t.code: t};
+  return _leaveTypeOrder.where(byCode.containsKey).map((c) => byCode[c]!).toList();
+}
+
 class SubmitLeavePage extends StatefulWidget {
   final LeaveRequestsRepository repository;
 
@@ -47,7 +84,8 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
       setState(() {
         _context = ctx;
         _loading = false;
-        _selectedCode = ctx.leaveTypes.isNotEmpty ? ctx.leaveTypes.first.code : null;
+        final sorted = _sortedLeaveTypes(ctx.leaveTypes);
+        _selectedCode = sorted.isNotEmpty ? sorted.first.code : null;
       });
     } catch (e) {
       if (!mounted) return;
@@ -173,6 +211,165 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
     }
   }
 
+  void _onLeaveTypeChanged(String? code) {
+    if (code == null) return;
+    setState(() {
+      _selectedCode = code;
+      if (code != 'SICK') {
+        _attachmentUrl = null;
+        _attachmentType = null;
+        _attachmentName = null;
+      }
+    });
+  }
+
+  Widget _leaveTypeSelector() {
+    final types = _sortedLeaveTypes(_context?.leaveTypes ?? []);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Leave type',
+          style: TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        ...types.map((type) {
+          final selected = _selectedCode == type.code;
+          final hint = _leaveTypeHint(type.code);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: InkWell(
+              onTap: () => _onLeaveTypeChanged(type.code),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: selected ? AppTheme.navy.withValues(alpha: 0.06) : AppTheme.white,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  border: Border.all(
+                    color: selected ? AppTheme.navy : AppTheme.borderSubtle,
+                    width: selected ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _leaveTypeIcon(type.code),
+                      color: selected ? AppTheme.navy : AppTheme.textMuted,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  type.name,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: selected ? AppTheme.navy : AppTheme.textMain,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: type.isPaid ? AppTheme.paidBg : AppTheme.unpaidBg,
+                                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                                ),
+                                child: Text(
+                                  type.isPaid ? 'Paid' : 'Unpaid',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: type.isPaid ? AppTheme.paid : AppTheme.danger,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (hint != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              hint,
+                              style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    if (selected)
+                      const Icon(Icons.check_circle, color: AppTheme.navy, size: 20),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _sickAttachmentSection() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.warningBg,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppTheme.warning.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.info_outline, color: AppTheme.warning, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Sick leave requires an attachment',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textMain,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Upload a medical certificate, doctor\'s note, or prescription (JPG, PNG, or PDF).',
+            style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _submitting ? null : _pickAttachment,
+            icon: const Icon(Icons.attach_file),
+            label: Text(_attachmentName ?? 'Choose file'),
+          ),
+          if (_attachmentUrl != null && _attachmentType == 'image') ...[
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              child: Image.network(
+                _attachmentUrl!,
+                height: 140,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _dateTile({
     required String title,
     required DateTime? value,
@@ -245,14 +442,7 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
                         style: const TextStyle(color: AppTheme.danger, fontSize: 13),
                       ),
                     ),
-                  DropdownButtonFormField<String>(
-                    value: _selectedCode,
-                    decoration: const InputDecoration(labelText: 'Leave type'),
-                    items: (_context?.leaveTypes ?? [])
-                        .map((t) => DropdownMenuItem(value: t.code, child: Text(t.name)))
-                        .toList(),
-                    onChanged: (v) => setState(() => _selectedCode = v),
-                  ),
+                  _leaveTypeSelector(),
                   if (_casualBlocked)
                     Container(
                       margin: const EdgeInsets.only(top: 10),
@@ -289,11 +479,7 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
                   ),
                   if (_needsAttachment) ...[
                     const SizedBox(height: 14),
-                    OutlinedButton.icon(
-                      onPressed: _submitting ? null : _pickAttachment,
-                      icon: const Icon(Icons.attach_file),
-                      label: Text(_attachmentName ?? 'Upload attachment (image/PDF)'),
-                    ),
+                    _sickAttachmentSection(),
                   ],
                   const SizedBox(height: 24),
                   FilledButton(

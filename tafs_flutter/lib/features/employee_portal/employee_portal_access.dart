@@ -33,6 +33,12 @@ bool canApplyLeave(StaffUser user) =>
 bool canViewEmployeePortal(StaffUser user) =>
     canViewOwnAttendance(user) || canViewOwnPayroll(user) || canApplyLeave(user);
 
+bool isEmployeeSelfServiceRole(StaffUser user) =>
+    user.role == 'EMPLOYEE' || user.role == 'EMPLOYEES';
+
+bool canViewEmployeeProfile(StaffUser user) =>
+    user.hasEmployeeProfile || isEmployeeSelfServiceRole(user);
+
 /// Changes when portal tabs should be shown/hidden (permissions, profile, role).
 String staffPortalAccessSignature(StaffUser user) =>
     '${user.role}|${user.hasEmployeeProfile}|${user.permissions.join(',')}';
