@@ -338,17 +338,29 @@ class _GroupedFeedList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final grouped = <String, List<NoticeFeedItem>>{};
+    final groupDates = <String, DateTime>{};
     for (final item in items) {
       final isPinned = (item is NoticeFeedPost && item.post.isPinned) ||
           (item is NoticeFeedCalendarAlert && item.alert.isPinned);
-      final key = isPinned ? 'Pinned' : _feedDayLabel(item.timestamp.toLocal());
+      final local = item.timestamp.toLocal();
+      final key = isPinned ? 'Pinned' : _feedDayLabel(local);
+      if (key != 'Pinned' && !groupDates.containsKey(key)) groupDates[key] = local;
       grouped.putIfAbsent(key, () => []).add(item);
     }
 
+    // Pinned always first, then remaining groups newest-first
+    final sortedKeys = [
+      if (grouped.containsKey('Pinned')) 'Pinned',
+      ...grouped.keys
+          .where((k) => k != 'Pinned')
+          .toList()
+          ..sort((a, b) => groupDates[b]!.compareTo(groupDates[a]!)),
+    ];
+
     final widgets = <Widget>[];
-    for (final entry in grouped.entries) {
-      widgets.add(_FeedDateHeader(label: entry.key));
-      for (final item in entry.value) {
+    for (final key in sortedKeys) {
+      widgets.add(_FeedDateHeader(label: key));
+      for (final item in grouped[key]!) {
         if (item is NoticeFeedPost) {
           widgets.add(NoticePostCard(key: ValueKey('post-${item.post.id}'), post: item.post));
         } else if (item is NoticeFeedCalendarAlert) {
@@ -403,21 +415,26 @@ class _GroupedAttendanceList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final grouped = <String, List<NoticeFeedItem>>{};
+    final groupDates = <String, DateTime>{};
     for (final item in items) {
+      DateTime? local;
       if (item is NoticeFeedAlert) {
-        final local = item.alert.scanTimeLocal;
-        final key = _feedDayLabel(local);
-        grouped.putIfAbsent(key, () => []).add(item);
+        local = item.alert.scanTimeLocal;
       } else if (item is NoticeFeedCalendarAlert) {
-        final local = item.alert.date.toLocal();
-        final key = _feedDayLabel(local);
-        grouped.putIfAbsent(key, () => []).add(item);
+        local = item.alert.date.toLocal();
       }
+      if (local == null) continue;
+      final key = _feedDayLabel(local);
+      if (!groupDates.containsKey(key)) groupDates[key] = local;
+      grouped.putIfAbsent(key, () => []).add(item);
     }
 
+    final sortedKeys = grouped.keys.toList()
+      ..sort((a, b) => groupDates[b]!.compareTo(groupDates[a]!));
+
     return Column(
-      children: grouped.entries.map((entry) {
-        return _AttendanceDayGroup(dayLabel: entry.key, items: entry.value);
+      children: sortedKeys.map((key) {
+        return _AttendanceDayGroup(dayLabel: key, items: grouped[key]!);
       }).toList(),
     );
   }
