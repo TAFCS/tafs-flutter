@@ -41,10 +41,6 @@ class NoticeBoardBloc extends Bloc<NoticeBoardEvent, NoticeBoardState> {
           (b is NoticeFeedCalendarAlert && b.alert.isPinned);
       if (aPinned != bPinned) return aPinned ? -1 : 1;
 
-      final aCal = a is NoticeFeedCalendarAlert;
-      final bCal = b is NoticeFeedCalendarAlert;
-      if (aCal != bCal) return aCal ? -1 : 1;
-
       return b.timestamp.compareTo(a.timestamp);
     });
     return items;
