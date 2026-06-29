@@ -339,7 +339,9 @@ class _GroupedFeedList extends StatelessWidget {
   Widget build(BuildContext context) {
     final grouped = <String, List<NoticeFeedItem>>{};
     for (final item in items) {
-      final key = _feedDayLabel(item.timestamp.toLocal());
+      final isPinned = (item is NoticeFeedPost && item.post.isPinned) ||
+          (item is NoticeFeedCalendarAlert && item.alert.isPinned);
+      final key = isPinned ? 'Pinned' : _feedDayLabel(item.timestamp.toLocal());
       grouped.putIfAbsent(key, () => []).add(item);
     }
 
