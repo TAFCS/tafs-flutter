@@ -1,0 +1,214 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../data/employee_profile_repository.dart';
+import '../../domain/entities/employee_profile.dart';
+
+class EmployeeProfilePage extends StatefulWidget {
+  final EmployeeProfileRepository repository;
+  final String fallbackName;
+
+  const EmployeeProfilePage({
+    super.key,
+    required this.repository,
+    required this.fallbackName,
+  });
+
+  @override
+  State<EmployeeProfilePage> createState() => _EmployeeProfilePageState();
+}
+
+class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
+  EmployeeProfile? _profile;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final profile = await widget.repository.getMyProfile();
+      if (!mounted) return;
+      setState(() {
+        _profile = profile;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e is String ? e : 'Could not load profile.';
+        _loading = false;
+      });
+    }
+  }
+
+  String _fmtJoinDate(String? iso) {
+    if (iso == null) return '—';
+    final d = DateTime.parse('${iso}T00:00:00Z');
+    return DateFormat('d MMM yyyy').format(d);
+  }
+
+  String _labelRole(String? role) {
+    if (role == null) return '—';
+    return role.replaceAll('_', ' ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = _profile;
+    final displayName = profile?.fullName ?? widget.fallbackName;
+
+    return Scaffold(
+      backgroundColor: AppTheme.surface2,
+      appBar: AppBar(
+        title: const Text('My Profile'),
+        backgroundColor: AppTheme.white,
+        foregroundColor: AppTheme.navy,
+        elevation: 0,
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loading ? null : _load),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textMuted)),
+                        const SizedBox(height: 16),
+                        FilledButton(onPressed: _load, child: const Text('Retry')),
+                      ],
+                    ),
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          children: [
+                            CircleAvatar(
+                              radius: 40,
+                              backgroundColor: AppTheme.navy.withValues(alpha: 0.1),
+                              backgroundImage: profile?.photoUrl != null ? NetworkImage(profile!.photoUrl!) : null,
+                              child: profile?.photoUrl == null
+                                  ? Text(
+                                      displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                                      style: const TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.navy,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              displayName,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textMain,
+                              ),
+                            ),
+                            if (profile?.employeeCode != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                profile!.employeeCode!,
+                                style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                              ),
+                            ],
+                            if (profile?.jobTitle != null) ...[
+                              const SizedBox(height: 4),
+                              Text(profile!.jobTitle!, style: const TextStyle(color: AppTheme.textMuted)),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _section('Work', [
+                      _row('Campus', profile?.campusName),
+                      _row('Department', profile?.departmentName),
+                      _row('Designation', profile?.designationName),
+                      _row('Category', profile?.staffCategory?.replaceAll('_', ' ')),
+                      _row('Join date', _fmtJoinDate(profile?.joinDate)),
+                      _row(
+                        'Service status',
+                        profile?.isPermanentEmployee == true ? 'Permanent (14+ months)' : 'Probation / new hire',
+                      ),
+                    ]),
+                    const SizedBox(height: 12),
+                    _section('Account', [
+                      _row('Username', profile?.username),
+                      _row('Role', _labelRole(profile?.accountRole)),
+                    ]),
+                    const SizedBox(height: 12),
+                    _section('Contact', [
+                      _row('Phone', profile?.personalPhone),
+                      _row('Email', profile?.personalEmail),
+                    ]),
+                  ],
+                ),
+    );
+  }
+
+  Widget _section(String title, List<Widget> children) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.navy,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _row(String label, String? value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(label, style: const TextStyle(color: AppTheme.textMuted, fontSize: 13)),
+          ),
+          Expanded(
+            child: Text(
+              value?.trim().isNotEmpty == true ? value! : '—',
+              style: const TextStyle(color: AppTheme.textMain, fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -24,7 +24,9 @@ import '../../../support_tickets/staff/support_ticket_staff_access.dart';
 import '../../../../core/session/session_reset.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
+import '../../data/employee_profile_repository.dart';
 import '../../employee_portal_access.dart';
+import 'employee_profile_page.dart';
 
 enum _EmployeeTab { attendance, payroll, leave, tickets, noticeBoard, employeeNoticeBoard }
 
@@ -44,6 +46,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
   StaffPayrollRepositoryImpl? _payrollRepo;
   LeaveRequestsRepository? _leaveRepo;
   EmployeeNoticeRepositoryImpl? _employeeNoticeRepo;
+  late final EmployeeProfileRepository _profileRepo;
   late List<Widget> _tabBodies;
 
   final _attendanceKey = GlobalKey<StaffAttendanceCalendarPageState>();
@@ -62,7 +65,14 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
   @override
   void initState() {
     super.initState();
+    _profileRepo = EmployeeProfileRepository(dio: InjectionContainer.dio);
     _syncTabsFromStaff();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_showEmployeeNoticeBoard && isEmployeeSelfServiceRole(widget.staff)) {
+        InjectionContainer.employeeNoticeCubit.load();
+      }
+    });
   }
 
   @override
@@ -109,68 +119,106 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
 
   List<_EmployeeTab> get _tabs {
     final tabs = <_EmployeeTab>[];
-    if (_showAttendance) tabs.add(_EmployeeTab.attendance);
-    if (_showPayroll) tabs.add(_EmployeeTab.payroll);
-    if (_showLeave) tabs.add(_EmployeeTab.leave);
-    if (_showTickets) tabs.add(_EmployeeTab.tickets);
-    if (_showNoticeBoard) tabs.add(_EmployeeTab.noticeBoard);
-    if (_showEmployeeNoticeBoard) tabs.add(_EmployeeTab.employeeNoticeBoard);
+    final isEmployee = isEmployeeSelfServiceRole(widget.staff);
+
+    void addTabs() {
+      if (_showEmployeeNoticeBoard) tabs.add(_EmployeeTab.employeeNoticeBoard);
+      if (_showLeave) tabs.add(_EmployeeTab.leave);
+      if (_showAttendance) tabs.add(_EmployeeTab.attendance);
+      if (_showPayroll) tabs.add(_EmployeeTab.payroll);
+      if (_showTickets) tabs.add(_EmployeeTab.tickets);
+      if (_showNoticeBoard) tabs.add(_EmployeeTab.noticeBoard);
+    }
+
+    if (isEmployee) {
+      addTabs();
+    } else {
+      if (_showAttendance) tabs.add(_EmployeeTab.attendance);
+      if (_showPayroll) tabs.add(_EmployeeTab.payroll);
+      if (_showLeave) tabs.add(_EmployeeTab.leave);
+      if (_showTickets) tabs.add(_EmployeeTab.tickets);
+      if (_showNoticeBoard) tabs.add(_EmployeeTab.noticeBoard);
+      if (_showEmployeeNoticeBoard) tabs.add(_EmployeeTab.employeeNoticeBoard);
+    }
     return tabs;
+  }
+
+  void _openProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => EmployeeProfilePage(
+          repository: _profileRepo,
+          fallbackName: widget.staff.fullName,
+        ),
+      ),
+    );
   }
 
   List<Widget> _buildTabBodies() {
     final bodies = <Widget>[];
-    if (_showAttendance && _attendanceRepo != null) {
-      bodies.add(
-        StaffAttendanceCalendarPage(
-          key: _attendanceKey,
-          repository: _attendanceRepo!,
-        ),
-      );
-    }
-    if (_showPayroll && _payrollRepo != null) {
-      bodies.add(
-        StaffPayrollListPage(
-          key: _payrollKey,
-          repository: _payrollRepo!,
-        ),
-      );
-    }
-    if (_showLeave && _leaveRepo != null) {
-      bodies.add(
-        LeaveRequestsListPage(
-          key: _leaveKey,
-          repository: _leaveRepo!,
-        ),
-      );
-    }
-    if (_showTickets) {
-      bodies.add(
-        StaffSupportTicketsShell(
-          key: ValueKey('employee_tickets_tab_$_accessSignature'),
-          staff: widget.staff,
-          embedded: true,
-        ),
-      );
-    }
-    if (_showNoticeBoard) {
-      bodies.add(
-        const StaffNoticeBoardPage(
-          key: ValueKey('employee_notice_tab'),
-          loadOnMount: false,
-        ),
-      );
-    }
-    if (_showEmployeeNoticeBoard && _employeeNoticeRepo != null) {
-      bodies.add(
-        BlocProvider.value(
-          key: const ValueKey('employee_notices_tab'),
-          value: InjectionContainer.employeeNoticeCubit,
-          child: EmployeeNoticeBoardPage(
-            repository: _employeeNoticeRepo!,
-          ),
-        ),
-      );
+    for (final tab in _tabs) {
+      switch (tab) {
+        case _EmployeeTab.employeeNoticeBoard:
+          if (_employeeNoticeRepo != null) {
+            bodies.add(
+              BlocProvider.value(
+                key: const ValueKey('employee_notices_tab'),
+                value: InjectionContainer.employeeNoticeCubit,
+                child: EmployeeNoticeBoardPage(
+                  repository: _employeeNoticeRepo!,
+                ),
+              ),
+            );
+          }
+          break;
+        case _EmployeeTab.leave:
+          if (_leaveRepo != null) {
+            bodies.add(
+              LeaveRequestsListPage(
+                key: _leaveKey,
+                repository: _leaveRepo!,
+              ),
+            );
+          }
+          break;
+        case _EmployeeTab.attendance:
+          if (_attendanceRepo != null) {
+            bodies.add(
+              StaffAttendanceCalendarPage(
+                key: _attendanceKey,
+                repository: _attendanceRepo!,
+              ),
+            );
+          }
+          break;
+        case _EmployeeTab.payroll:
+          if (_payrollRepo != null) {
+            bodies.add(
+              StaffPayrollListPage(
+                key: _payrollKey,
+                repository: _payrollRepo!,
+              ),
+            );
+          }
+          break;
+        case _EmployeeTab.tickets:
+          bodies.add(
+            StaffSupportTicketsShell(
+              key: ValueKey('employee_tickets_tab_$_accessSignature'),
+              staff: widget.staff,
+              embedded: true,
+            ),
+          );
+          break;
+        case _EmployeeTab.noticeBoard:
+          bodies.add(
+            const StaffNoticeBoardPage(
+              key: ValueKey('employee_notice_tab'),
+              loadOnMount: false,
+            ),
+          );
+          break;
+      }
     }
     return bodies;
   }
@@ -330,6 +378,12 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         foregroundColor: AppTheme.navy,
         elevation: 0,
         actions: [
+          if (canViewEmployeeProfile(widget.staff))
+            IconButton(
+              icon: const Icon(Icons.person_outline),
+              tooltip: 'My profile',
+              onPressed: _openProfile,
+            ),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _refreshActiveTab),
           IconButton(
             icon: const Icon(Icons.logout),
