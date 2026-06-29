@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../domain/entities/leave_request.dart';
 import '../../domain/repositories/leave_requests_repository.dart';
 
@@ -7,18 +8,30 @@ class LeaveRequestsRepositoryImpl implements LeaveRequestsRepository {
 
   LeaveRequestsRepositoryImpl({required this.dio});
 
+  Never _throwApi(Object e) {
+    throw ApiErrorMapper.fromObject(e);
+  }
+
   @override
   Future<List<LeaveRequest>> getMyRequests() async {
-    final res = await dio.get('/hr/leaves/me');
-    final list = _unwrapList(res.data);
-    return list.map(LeaveRequest.fromJson).toList();
+    try {
+      final res = await dio.get('/hr/leaves/me');
+      final list = _unwrapList(res.data);
+      return list.map(LeaveRequest.fromJson).toList();
+    } catch (e) {
+      _throwApi(e);
+    }
   }
 
   @override
   Future<LeaveSelfContext> getSelfContext() async {
-    final res = await dio.get('/hr/leaves/me/context');
-    final json = _unwrapMap(res.data);
-    return LeaveSelfContext.fromJson(json);
+    try {
+      final res = await dio.get('/hr/leaves/me/context');
+      final json = _unwrapMap(res.data);
+      return LeaveSelfContext.fromJson(json);
+    } catch (e) {
+      _throwApi(e);
+    }
   }
 
   @override
@@ -30,20 +43,28 @@ class LeaveRequestsRepositoryImpl implements LeaveRequestsRepository {
     String? attachmentUrl,
     String? attachmentType,
   }) async {
-    final res = await dio.post('/hr/leaves/me', data: {
-      'leaveTypeCode': leaveTypeCode,
-      'startDate': startDate,
-      'endDate': endDate,
-      if (reason != null && reason.isNotEmpty) 'reason': reason,
-      if (attachmentUrl != null) 'attachmentUrl': attachmentUrl,
-      if (attachmentType != null) 'attachmentType': attachmentType,
-    });
-    return LeaveRequest.fromJson(_unwrapMap(res.data));
+    try {
+      final res = await dio.post('/hr/leaves/me', data: {
+        'leaveTypeCode': leaveTypeCode,
+        'startDate': startDate,
+        'endDate': endDate,
+        if (reason != null && reason.isNotEmpty) 'reason': reason,
+        if (attachmentUrl != null) 'attachmentUrl': attachmentUrl,
+        if (attachmentType != null) 'attachmentType': attachmentType,
+      });
+      return LeaveRequest.fromJson(_unwrapMap(res.data));
+    } catch (e) {
+      _throwApi(e);
+    }
   }
 
   @override
   Future<void> cancelRequest(int id) async {
-    await dio.delete('/hr/leaves/me/$id');
+    try {
+      await dio.delete('/hr/leaves/me/$id');
+    } catch (e) {
+      _throwApi(e);
+    }
   }
 
   @override
@@ -53,22 +74,26 @@ class LeaveRequestsRepositoryImpl implements LeaveRequestsRepository {
     List<int>? bytes,
     required String filename,
   }) async {
-    MultipartFile multipartFile;
-    if (bytes != null) {
-      multipartFile = MultipartFile.fromBytes(bytes, filename: filename);
-    } else {
-      multipartFile = await MultipartFile.fromFile(filePath, filename: filename);
+    try {
+      MultipartFile multipartFile;
+      if (bytes != null) {
+        multipartFile = MultipartFile.fromBytes(bytes, filename: filename);
+      } else {
+        multipartFile = await MultipartFile.fromFile(filePath, filename: filename);
+      }
+      final form = FormData.fromMap({'file': multipartFile});
+      final res = await dio.post(
+        '/media/employee/$employeeId/leave-attachment',
+        data: form,
+      );
+      final json = _unwrapMap(res.data);
+      return (
+        url: json['url'] as String,
+        type: json['type'] as String? ?? 'document',
+      );
+    } catch (e) {
+      _throwApi(e);
     }
-    final form = FormData.fromMap({'file': multipartFile});
-    final res = await dio.post(
-      '/media/employee/$employeeId/leave-attachment',
-      data: form,
-    );
-    final json = _unwrapMap(res.data);
-    return (
-      url: json['url'] as String,
-      type: json['type'] as String? ?? 'document',
-    );
   }
 
   List<Map<String, dynamic>> _unwrapList(dynamic raw) {

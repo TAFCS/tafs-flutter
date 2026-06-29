@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../domain/entities/leave_request.dart';
 import '../../domain/repositories/leave_requests_repository.dart';
 
@@ -47,16 +48,21 @@ class LeaveRequestsCubit extends Cubit<LeaveRequestsState> {
       final items = await repository.getMyRequests();
       emit(LeaveRequestsLoaded(items));
     } catch (e) {
-      emit(LeaveRequestsError(e.toString()));
+      emit(LeaveRequestsError(ApiErrorMapper.fromObject(e)));
     }
   }
 
-  Future<void> cancel(int id) async {
+  Future<String?> cancel(int id) async {
+    final previous = state;
     try {
       await repository.cancelRequest(id);
       await load();
+      return null;
     } catch (e) {
-      emit(LeaveRequestsError(e.toString()));
+      if (previous is LeaveRequestsLoaded) {
+        emit(previous);
+      }
+      return ApiErrorMapper.fromObject(e);
     }
   }
 }

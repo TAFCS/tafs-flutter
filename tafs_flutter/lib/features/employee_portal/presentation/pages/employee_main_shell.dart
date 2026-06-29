@@ -15,7 +15,7 @@ import '../../../staff_attendance/data/repositories/staff_attendance_repository_
 import '../../../staff_attendance/presentation/pages/staff_attendance_calendar_page.dart';
 import '../../../staff_payroll/data/repositories/staff_payroll_repository_impl.dart';
 import '../../../staff_payroll/presentation/pages/staff_payroll_list_page.dart';
-import '../../../leave_requests/data/repositories/leave_requests_repository_impl.dart';
+import '../../../leave_requests/domain/repositories/leave_requests_repository.dart';
 import '../../../leave_requests/presentation/pages/leave_requests_list_page.dart';
 import '../../../support_tickets/staff/presentation/bloc/staff_pending_approvals_cubit.dart';
 import '../../../support_tickets/staff/presentation/bloc/staff_ticket_queue_bloc.dart';
@@ -42,7 +42,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
 
   StaffAttendanceRepositoryImpl? _attendanceRepo;
   StaffPayrollRepositoryImpl? _payrollRepo;
-  LeaveRequestsRepositoryImpl? _leaveRepo;
+  LeaveRequestsRepository? _leaveRepo;
   EmployeeNoticeRepositoryImpl? _employeeNoticeRepo;
   late List<Widget> _tabBodies;
 
@@ -84,7 +84,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         _payrollRepo = StaffPayrollRepositoryImpl(dio: InjectionContainer.dio);
       }
       if (_showLeave && _leaveRepo == null) {
-        _leaveRepo = LeaveRequestsRepositoryImpl(dio: InjectionContainer.dio);
+        _leaveRepo = InjectionContainer.leaveRequestsRepository;
       }
       if (_showEmployeeNoticeBoard && _employeeNoticeRepo == null) {
         _employeeNoticeRepo = EmployeeNoticeRepositoryImpl(

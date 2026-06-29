@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../data/repositories/leave_requests_repository_impl.dart';
 import '../../domain/entities/leave_request.dart';
+import '../../domain/repositories/leave_requests_repository.dart';
 import '../cubit/leave_requests_cubit.dart';
 import 'submit_leave_page.dart';
 
 class LeaveRequestsListPage extends StatefulWidget {
-  final LeaveRequestsRepositoryImpl repository;
+  final LeaveRequestsRepository repository;
 
   const LeaveRequestsListPage({super.key, required this.repository});
 
@@ -56,6 +57,44 @@ class LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
       ),
     );
     if (submitted == true) refresh();
+  }
+
+  Future<void> _confirmCancel(LeaveRequest item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel leave request?'),
+        content: const Text('This will remove your pending leave request.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Cancel request', style: TextStyle(color: AppTheme.danger)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final error = await _cubit.cancel(item.id);
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: AppTheme.danger),
+      );
+    }
+  }
+
+  Future<void> _openAttachment(LeaveRequest item) async {
+    final url = item.attachmentUrl;
+    if (url == null) return;
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open attachment')),
+      );
+    }
   }
 
   @override
@@ -111,7 +150,10 @@ class LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
                     statusColor: _statusColor(item.status),
                     dateLabel: '${_fmtDate(item.startDate)} – ${_fmtDate(item.endDate)}',
                     onCancel: item.status == 'PENDING'
-                        ? () => _cubit.cancel(item.id)
+                        ? () => _confirmCancel(item)
+                        : null,
+                    onAttachmentTap: item.attachmentUrl != null
+                        ? () => _openAttachment(item)
                         : null,
                   );
                 },
@@ -149,12 +191,14 @@ class _LeaveCard extends StatelessWidget {
   final Color statusColor;
   final String dateLabel;
   final VoidCallback? onCancel;
+  final VoidCallback? onAttachmentTap;
 
   const _LeaveCard({
     required this.item,
     required this.statusColor,
     required this.dateLabel,
     this.onCancel,
+    this.onAttachmentTap,
   });
 
   @override
@@ -208,6 +252,27 @@ class _LeaveCard extends StatelessWidget {
                   color: AppTheme.textMuted,
                   fontSize: 13,
                   fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+            if (item.attachmentUrl != null) ...[
+              const SizedBox(height: 8),
+              if (item.attachmentType == 'image')
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                  child: Image.network(
+                    item.attachmentUrl!,
+                    height: 120,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+              TextButton.icon(
+                onPressed: onAttachmentTap,
+                icon: const Icon(Icons.attach_file, size: 18),
+                label: Text(
+                  item.attachmentType == 'image' ? 'View attachment' : 'Open PDF',
                 ),
               ),
             ],

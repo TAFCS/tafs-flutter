@@ -2,11 +2,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../data/repositories/leave_requests_repository_impl.dart';
+import '../../domain/repositories/leave_requests_repository.dart';
 import '../../domain/entities/leave_request.dart';
 
 class SubmitLeavePage extends StatefulWidget {
-  final LeaveRequestsRepositoryImpl repository;
+  final LeaveRequestsRepository repository;
 
   const SubmitLeavePage({super.key, required this.repository});
 
@@ -52,11 +52,13 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = e is String ? e : 'Something went wrong. Please try again.';
         _loading = false;
       });
     }
   }
+
+  String _errorMessage(Object e) => e is String ? e : 'Something went wrong. Please try again.';
 
   Future<void> _pickAttachment() async {
     final ctx = _context;
@@ -88,7 +90,7 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = _errorMessage(e);
         _submitting = false;
       });
     }
@@ -165,7 +167,7 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = _errorMessage(e);
         _submitting = false;
       });
     }
@@ -283,6 +285,7 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
                       labelText: _needsReason ? 'Reason *' : 'Reason (optional)',
                     ),
                     maxLines: 3,
+                    maxLength: 1000,
                   ),
                   if (_needsAttachment) ...[
                     const SizedBox(height: 14),
