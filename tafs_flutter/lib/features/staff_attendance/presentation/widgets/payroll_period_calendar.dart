@@ -103,32 +103,7 @@ class PayrollPeriodCalendar extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          children: [
-            for (final (cls, label) in attendanceLegend)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: cellStyleFor(cls).dot,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    label,
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF71717A)),
-                  ),
-                ],
-              ),
-          ],
-        ),
+        const SizedBox(height: 4),
       ],
     );
   }

@@ -30,8 +30,20 @@ class DayStatusCell extends StatelessWidget {
     final style = cellStyleFor(classification);
     final dayNumber = day.date.toUtc().day;
 
-    final background = _isFuture ? const Color(0xFFFAFAFA) : style.background;
-    final textColor = _isFuture ? const Color(0xFFA1A1AA) : style.text;
+    // Future days with approved leave keep their color so employees can see it.
+    // All other future days get the neutral grey treatment.
+    final isApprovedLeave = classification == 'EXCUSED';
+    final useMutedStyle = _isFuture && !isApprovedLeave;
+
+    final background = useMutedStyle ? const Color(0xFFFAFAFA) : style.background;
+    final textColor = useMutedStyle ? const Color(0xFFA1A1AA) : style.text;
+    final showDot = !useMutedStyle;
+    final label = _shortLabel(classification);
+    final showLabel = !useMutedStyle &&
+        classification != 'PRESENT' &&
+        classification != 'DAY_OFF' &&
+        classification != 'UNRESOLVED' &&
+        label.isNotEmpty;
 
     return InkWell(
       onTap: onTap,
@@ -43,15 +55,17 @@ class DayStatusCell extends StatelessWidget {
           border: Border.all(
             color: classification == 'ABSENT' && !_isFuture
                 ? const Color(0xFFFECDD3)
-                : const Color(0xFFE4E4E7),
-            width: classification == 'ABSENT' && !_isFuture ? 1.5 : 1,
+                : isApprovedLeave
+                    ? const Color(0xFFBAE6FD)
+                    : const Color(0xFFE4E4E7),
+            width: (classification == 'ABSENT' && !_isFuture) || isApprovedLeave ? 1.5 : 1,
           ),
         ),
         padding: const EdgeInsets.all(4),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            if (!_isFuture)
+            if (showDot)
               Positioned(
                 top: 2,
                 right: 2,
@@ -67,27 +81,40 @@ class DayStatusCell extends StatelessWidget {
             Center(
               child: FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text(
-                  '$dayNumber',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: textColor,
-                    fontSize: 14,
-                    height: 1,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$dayNumber',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: textColor,
+                        fontSize: 14,
+                        height: 1,
+                      ),
+                    ),
+                    if (classification == 'UNRESOLVED')
+                      Text(
+                        '?',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: style.text,
+                          fontSize: 8,
+                          height: 1,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
-            if (!_isFuture &&
-                classification != 'PRESENT' &&
-                classification != 'DAY_OFF' &&
-                _shortLabel(classification).isNotEmpty)
+            if (showLabel)
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 1,
                 child: Text(
-                  _shortLabel(classification),
+                  label,
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.clip,
@@ -114,9 +141,7 @@ class DayStatusCell extends StatelessWidget {
       case 'ABSENT':
         return 'Absent';
       case 'EXCUSED':
-        return 'Excused';
-      case 'UNRESOLVED':
-        return '?';
+        return 'Leave';
       default:
         return '';
     }
