@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../cubit/employee_notice_cubit.dart';
 import '../widgets/employee_notice_card.dart';
-import 'employee_notice_detail_page.dart';
 import '../../domain/repositories/employee_notice_repository.dart';
 
 class EmployeeNoticeBoardPage extends StatefulWidget {
@@ -19,66 +19,76 @@ class _EmployeeNoticeBoardPageState extends State<EmployeeNoticeBoardPage> {
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: context.read<EmployeeNoticeCubit>(),
-      child: const _EmployeeNoticeBoardView(),
+      child: const _EmployeeNoticeFeed(),
     );
   }
 }
 
-class _EmployeeNoticeBoardView extends StatelessWidget {
-  const _EmployeeNoticeBoardView();
+class _EmployeeNoticeFeed extends StatelessWidget {
+  const _EmployeeNoticeFeed();
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<EmployeeNoticeCubit, EmployeeNoticeState>(
       builder: (context, state) {
-        final colorScheme = Theme.of(context).colorScheme;
-
         if (state.loading && state.notices.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: AppTheme.space8),
+              child: CircularProgressIndicator(color: AppTheme.navy, strokeWidth: 2),
+            ),
+          );
         }
 
         if (state.error != null && state.notices.isEmpty) {
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.wifi_off_outlined, size: 48, color: colorScheme.onSurface.withOpacity(0.3)),
-                const SizedBox(height: 12),
-                Text(
-                  state.error!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5)),
-                ),
-                const SizedBox(height: 16),
-                FilledButton.tonal(
-                  onPressed: () => context.read<EmployeeNoticeCubit>().refresh(),
-                  child: const Text('Retry'),
-                ),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.wifi_off_outlined, size: 48,
+                      color: AppTheme.textMuted.withValues(alpha: 0.4)),
+                  const SizedBox(height: 12),
+                  Text(
+                    state.error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppTheme.textMuted),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.tonal(
+                    onPressed: () => context.read<EmployeeNoticeCubit>().refresh(),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
             ),
           );
         }
 
         if (state.notices.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+          return RefreshIndicator(
+            onRefresh: () => context.read<EmployeeNoticeCubit>().refresh(),
+            color: AppTheme.navy,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               children: [
-                Icon(Icons.campaign_outlined, size: 56, color: colorScheme.onSurface.withOpacity(0.2)),
-                const SizedBox(height: 12),
-                Text(
-                  'No notices yet',
-                  style: TextStyle(
-                    color: colorScheme.onSurface.withOpacity(0.45),
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'You\'ll see school announcements here.',
-                  style: TextStyle(
-                    color: colorScheme.onSurface.withOpacity(0.3),
-                    fontSize: 13,
+                const SizedBox(height: 80),
+                Center(
+                  child: Column(
+                    children: [
+                      Icon(Icons.campaign_outlined, size: 48, color: AppTheme.blue100),
+                      const SizedBox(height: AppTheme.space3),
+                      const Text(
+                        'No notices yet',
+                        style: TextStyle(color: AppTheme.blue300, fontSize: 15),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'You\'ll see announcements here.',
+                        style: TextStyle(color: AppTheme.blue300, fontSize: 13),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -88,25 +98,17 @@ class _EmployeeNoticeBoardView extends StatelessWidget {
 
         return RefreshIndicator(
           onRefresh: () => context.read<EmployeeNoticeCubit>().refresh(),
+          color: AppTheme.navy,
           child: ListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 24),
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.space5,
+              AppTheme.space3,
+              AppTheme.space5,
+              AppTheme.space5,
+            ),
             itemCount: state.notices.length,
             itemBuilder: (context, index) {
-              final notice = state.notices[index];
-              return EmployeeNoticeCard(
-                notice: notice,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BlocProvider.value(
-                        value: context.read<EmployeeNoticeCubit>(),
-                        child: EmployeeNoticeDetailPage(notice: notice),
-                      ),
-                    ),
-                  );
-                },
-              );
+              return EmployeeNoticeCard(notice: state.notices[index]);
             },
           ),
         );

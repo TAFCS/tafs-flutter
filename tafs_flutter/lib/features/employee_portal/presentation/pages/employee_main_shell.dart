@@ -16,9 +16,6 @@ import '../../../staff_attendance/presentation/pages/staff_attendance_calendar_p
 import '../../../staff_payroll/data/repositories/staff_payroll_repository_impl.dart';
 import '../../../staff_payroll/presentation/pages/staff_payroll_list_page.dart';
 import '../../../leave_requests/domain/repositories/leave_requests_repository.dart';
-import '../../../leave_requests/presentation/pages/leave_requests_list_page.dart';
-import '../../../support_tickets/staff/presentation/bloc/staff_pending_approvals_cubit.dart';
-import '../../../support_tickets/staff/presentation/bloc/staff_ticket_queue_bloc.dart';
 import '../../../support_tickets/staff/presentation/pages/staff_support_tickets_shell.dart';
 import '../../../support_tickets/staff/support_ticket_staff_access.dart';
 import '../../../../core/session/session_reset.dart';
@@ -28,7 +25,7 @@ import '../../data/employee_profile_repository.dart';
 import '../../employee_portal_access.dart';
 import 'employee_profile_page.dart';
 
-enum _EmployeeTab { attendance, payroll, leave, tickets, noticeBoard, employeeNoticeBoard }
+enum _EmployeeTab { attendance, payroll, tickets, noticeBoard, employeeNoticeBoard, profile }
 
 class EmployeeMainShell extends StatefulWidget {
   final StaffUser staff;
@@ -41,17 +38,17 @@ class EmployeeMainShell extends StatefulWidget {
 
 class _EmployeeMainShellState extends State<EmployeeMainShell> {
   _EmployeeTab? _activeTab;
+  List<_EmployeeTab> _currentTabs = [];
 
   StaffAttendanceRepositoryImpl? _attendanceRepo;
   StaffPayrollRepositoryImpl? _payrollRepo;
   LeaveRequestsRepository? _leaveRepo;
   EmployeeNoticeRepositoryImpl? _employeeNoticeRepo;
   late final EmployeeProfileRepository _profileRepo;
-  late List<Widget> _tabBodies;
+  List<Widget> _tabBodies = [];
 
   final _attendanceKey = GlobalKey<StaffAttendanceCalendarPageState>();
   final _payrollKey = GlobalKey<StaffPayrollListPageState>();
-  final _leaveKey = GlobalKey<LeaveRequestsListPageState>();
 
   String get _accessSignature => staffPortalAccessSignature(widget.staff);
 
@@ -61,6 +58,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
   bool get _showTickets => canViewSupportTickets(widget.staff);
   bool get _showNoticeBoard => canViewStaffNoticeBoard(widget.staff);
   bool get _showEmployeeNoticeBoard => canViewEmployeeNoticeBoard(widget.staff);
+  bool get _showProfile => canViewEmployeeProfile(widget.staff);
 
   @override
   void initState() {
@@ -101,12 +99,14 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
           remoteDataSource: EmployeeNoticeRemoteDataSource(InjectionContainer.dio),
         );
       }
-      _tabBodies = _buildTabBodies();
-      final tabs = _tabs;
-      if (tabs.isEmpty) {
+      // Compute tabs once and cache — _tabBodies must be built from the exact
+      // same list so indices always match what the NavigationBar shows.
+      _currentTabs = _buildTabs();
+      _tabBodies = _buildTabBodies(_currentTabs);
+      if (_currentTabs.isEmpty) {
         _activeTab = null;
-      } else if (_activeTab == null || !tabs.contains(_activeTab)) {
-        _activeTab = tabs.first;
+      } else if (_activeTab == null || !_currentTabs.contains(_activeTab)) {
+        _activeTab = _currentTabs.first;
       }
     }
 
@@ -117,13 +117,12 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
     }
   }
 
-  List<_EmployeeTab> get _tabs {
+  List<_EmployeeTab> _buildTabs() {
     final tabs = <_EmployeeTab>[];
     final isEmployee = isEmployeeSelfServiceRole(widget.staff);
 
     void addTabs() {
       if (_showEmployeeNoticeBoard) tabs.add(_EmployeeTab.employeeNoticeBoard);
-      if (_showLeave) tabs.add(_EmployeeTab.leave);
       if (_showAttendance) tabs.add(_EmployeeTab.attendance);
       if (_showPayroll) tabs.add(_EmployeeTab.payroll);
       if (_showTickets) tabs.add(_EmployeeTab.tickets);
@@ -135,71 +134,47 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
     } else {
       if (_showAttendance) tabs.add(_EmployeeTab.attendance);
       if (_showPayroll) tabs.add(_EmployeeTab.payroll);
-      if (_showLeave) tabs.add(_EmployeeTab.leave);
       if (_showTickets) tabs.add(_EmployeeTab.tickets);
       if (_showNoticeBoard) tabs.add(_EmployeeTab.noticeBoard);
       if (_showEmployeeNoticeBoard) tabs.add(_EmployeeTab.employeeNoticeBoard);
     }
+
+    if (_showProfile) tabs.add(_EmployeeTab.profile);
+
     return tabs;
   }
 
-  void _openProfile() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => EmployeeProfilePage(
-          repository: _profileRepo,
-          fallbackName: widget.staff.fullName,
-        ),
-      ),
-    );
-  }
-
-  List<Widget> _buildTabBodies() {
+  List<Widget> _buildTabBodies(List<_EmployeeTab> tabs) {
     final bodies = <Widget>[];
-    for (final tab in _tabs) {
+    for (final tab in tabs) {
       switch (tab) {
         case _EmployeeTab.employeeNoticeBoard:
-          if (_employeeNoticeRepo != null) {
-            bodies.add(
-              BlocProvider.value(
-                key: const ValueKey('employee_notices_tab'),
-                value: InjectionContainer.employeeNoticeCubit,
-                child: EmployeeNoticeBoardPage(
-                  repository: _employeeNoticeRepo!,
-                ),
+          bodies.add(
+            BlocProvider.value(
+              key: const ValueKey('employee_notices_tab'),
+              value: InjectionContainer.employeeNoticeCubit,
+              child: EmployeeNoticeBoardPage(
+                repository: _employeeNoticeRepo!,
               ),
-            );
-          }
-          break;
-        case _EmployeeTab.leave:
-          if (_leaveRepo != null) {
-            bodies.add(
-              LeaveRequestsListPage(
-                key: _leaveKey,
-                repository: _leaveRepo!,
-              ),
-            );
-          }
+            ),
+          );
           break;
         case _EmployeeTab.attendance:
-          if (_attendanceRepo != null) {
-            bodies.add(
-              StaffAttendanceCalendarPage(
-                key: _attendanceKey,
-                repository: _attendanceRepo!,
-              ),
-            );
-          }
+          bodies.add(
+            StaffAttendanceCalendarPage(
+              key: _attendanceKey,
+              repository: _attendanceRepo!,
+              leaveRepository: _leaveRepo,
+            ),
+          );
           break;
         case _EmployeeTab.payroll:
-          if (_payrollRepo != null) {
-            bodies.add(
-              StaffPayrollListPage(
-                key: _payrollKey,
-                repository: _payrollRepo!,
-              ),
-            );
-          }
+          bodies.add(
+            StaffPayrollListPage(
+              key: _payrollKey,
+              repository: _payrollRepo!,
+            ),
+          );
           break;
         case _EmployeeTab.tickets:
           bodies.add(
@@ -218,57 +193,36 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
             ),
           );
           break;
+        case _EmployeeTab.profile:
+          bodies.add(
+            EmployeeProfilePage(
+              key: const ValueKey('employee_profile_tab'),
+              repository: _profileRepo,
+              fallbackName: widget.staff.fullName,
+              embedded: true,
+            ),
+          );
+          break;
       }
     }
     return bodies;
   }
 
-  void _refreshActiveTab() {
-    final activeTab = _activeTab;
-    if (activeTab == null) return;
-    switch (activeTab) {
-      case _EmployeeTab.tickets:
-        if (_showTickets) {
-          context.read<StaffTicketQueueBloc>().add(StaffQueueRefreshRequested());
-          if (widget.staff.role == 'SUPER_ADMIN') {
-            context.read<StaffPendingApprovalsCubit>().load();
-          }
-        }
-        break;
-      case _EmployeeTab.noticeBoard:
-        if (_showNoticeBoard) context.read<StaffNoticeBoardCubit>().refresh();
-        break;
-      case _EmployeeTab.employeeNoticeBoard:
-        if (_showEmployeeNoticeBoard) InjectionContainer.employeeNoticeCubit.refresh();
-        break;
-      case _EmployeeTab.attendance:
-        _attendanceKey.currentState?.refresh();
-        break;
-      case _EmployeeTab.payroll:
-        _payrollKey.currentState?.refresh();
-        break;
-      case _EmployeeTab.leave:
-        _leaveKey.currentState?.refresh();
-        break;
-    }
-  }
-
   String get _title {
-    final tabs = _tabs;
-    if (tabs.isEmpty) return 'Staff';
-    switch (_activeTab ?? tabs.first) {
+    if (_currentTabs.isEmpty) return 'Staff';
+    switch (_activeTab ?? _currentTabs.first) {
       case _EmployeeTab.attendance:
         return 'Attendance';
       case _EmployeeTab.payroll:
         return 'Payroll';
-      case _EmployeeTab.leave:
-        return 'Leave';
       case _EmployeeTab.tickets:
         return 'Support Tickets';
       case _EmployeeTab.noticeBoard:
         return 'Notice Board';
       case _EmployeeTab.employeeNoticeBoard:
-        return 'Notices';
+        return 'Home';
+      case _EmployeeTab.profile:
+        return 'My Profile';
     }
   }
 
@@ -286,12 +240,6 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
           selectedIcon: Icon(Icons.account_balance_wallet),
           label: 'Payroll',
         );
-      case _EmployeeTab.leave:
-        return const NavigationDestination(
-          icon: Icon(Icons.event_busy_outlined),
-          selectedIcon: Icon(Icons.event_busy),
-          label: 'Leave',
-        );
       case _EmployeeTab.tickets:
         return const NavigationDestination(
           icon: Icon(Icons.confirmation_number_outlined),
@@ -302,7 +250,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         return const NavigationDestination(
           icon: Icon(Icons.article_outlined),
           selectedIcon: Icon(Icons.article),
-          label: 'Notices',
+          label: 'Notice Board',
         );
       case _EmployeeTab.employeeNoticeBoard:
         return NavigationDestination(
@@ -311,7 +259,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
             builder: (_, s) => Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(Icons.campaign_outlined),
+                const Icon(Icons.home_outlined),
                 if (s.hasUnread)
                   Positioned(
                     top: -2,
@@ -328,15 +276,21 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
               ],
             ),
           ),
-          selectedIcon: const Icon(Icons.campaign),
-          label: 'Notices',
+          selectedIcon: const Icon(Icons.home),
+          label: 'Home',
+        );
+      case _EmployeeTab.profile:
+        return const NavigationDestination(
+          icon: Icon(Icons.person_outline),
+          selectedIcon: Icon(Icons.person),
+          label: 'Profile',
         );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_tabs.isEmpty) {
+    if (_currentTabs.isEmpty) {
       return Scaffold(
         backgroundColor: Colors.grey[100],
         appBar: AppBar(
@@ -367,8 +321,10 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
       );
     }
 
-    final tabs = _tabs;
-    final activeTab = tabs.contains(_activeTab) ? _activeTab! : tabs.first;
+    final activeTab = _currentTabs.contains(_activeTab)
+        ? _activeTab!
+        : _currentTabs.first;
+    final activeIndex = _currentTabs.indexOf(activeTab);
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -377,39 +333,23 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         backgroundColor: AppTheme.white,
         foregroundColor: AppTheme.navy,
         elevation: 0,
-        actions: [
-          if (canViewEmployeeProfile(widget.staff))
-            IconButton(
-              icon: const Icon(Icons.person_outline),
-              tooltip: 'My profile',
-              onPressed: _openProfile,
-            ),
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _refreshActiveTab),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              resetStaffSessionState(context);
-              context.read<AuthBloc>().add(AuthLogoutRequested());
-            },
-          ),
-        ],
       ),
       body: IndexedStack(
-        index: tabs.indexOf(activeTab),
+        index: activeIndex,
         children: _tabBodies,
       ),
-      bottomNavigationBar: tabs.length > 1
+      bottomNavigationBar: _currentTabs.length > 1
           ? NavigationBar(
-              selectedIndex: tabs.indexOf(activeTab),
+              selectedIndex: activeIndex,
               onDestinationSelected: (index) {
-                setState(() => _activeTab = tabs[index]);
+                setState(() => _activeTab = _currentTabs[index]);
                 if (_activeTab == _EmployeeTab.noticeBoard) {
                   context.read<StaffNoticeBoardCubit>().load();
                 } else if (_activeTab == _EmployeeTab.employeeNoticeBoard) {
                   InjectionContainer.employeeNoticeCubit.load();
                 }
               },
-              destinations: tabs.map(_destinationFor).toList(),
+              destinations: _currentTabs.map(_destinationFor).toList(),
             )
           : null,
     );

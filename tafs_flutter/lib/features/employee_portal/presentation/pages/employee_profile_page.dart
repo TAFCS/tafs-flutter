@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/session/session_reset.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../data/employee_profile_repository.dart';
 import '../../domain/entities/employee_profile.dart';
 
 class EmployeeProfilePage extends StatefulWidget {
   final EmployeeProfileRepository repository;
   final String fallbackName;
+  final bool embedded;
 
   const EmployeeProfilePage({
     super.key,
     required this.repository,
     required this.fallbackName,
+    this.embedded = false,
   });
 
   @override
@@ -56,15 +62,122 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
     return DateFormat('d MMM yyyy').format(d);
   }
 
-  String _labelRole(String? role) {
-    if (role == null) return '—';
-    return role.replaceAll('_', ' ');
+  void _logout(BuildContext context) {
+    resetStaffSessionState(context);
+    context.read<AuthBloc>().add(AuthLogoutRequested());
   }
 
   @override
   Widget build(BuildContext context) {
     final profile = _profile;
     final displayName = profile?.fullName ?? widget.fallbackName;
+
+    Widget body;
+    if (_loading) {
+      body = const Center(child: CircularProgressIndicator());
+    } else if (_error != null) {
+      body = Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textMuted)),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: _load, child: const Text('Retry')),
+            ],
+          ),
+        ),
+      );
+    } else {
+      body = RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundColor: AppTheme.navy.withValues(alpha: 0.1),
+                      backgroundImage: profile?.photoUrl != null ? NetworkImage(profile!.photoUrl!) : null,
+                      child: profile?.photoUrl == null
+                          ? Text(
+                              displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.navy,
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      displayName,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textMain,
+                      ),
+                    ),
+                    if (profile?.employeeCode != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        profile!.employeeCode!,
+                        style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                      ),
+                    ],
+                    if (profile?.jobTitle != null) ...[
+                      const SizedBox(height: 4),
+                      Text(profile!.jobTitle!, style: const TextStyle(color: AppTheme.textMuted)),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _section('Work', [
+              _row('Campus', profile?.campusName),
+              _row('Department', profile?.departmentName),
+              _row('Designation', profile?.designationName),
+              _row('Category', profile?.staffCategory?.replaceAll('_', ' ')),
+              _row('Join date', _fmtJoinDate(profile?.joinDate)),
+              _row(
+                'Service status',
+                profile?.isPermanentEmployee == true ? 'Permanent (14+ months)' : 'Probation / new hire',
+              ),
+            ]),
+            const SizedBox(height: 12),
+            _section('Contact', [
+              _row('Phone', profile?.personalPhone),
+              _row('Email', profile?.personalEmail),
+            ]),
+            if (widget.embedded) ...[
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: () => _logout(context),
+                icon: const Icon(Icons.logout),
+                label: const Text('Log out'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.danger,
+                  side: const BorderSide(color: AppTheme.danger),
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ],
+        ),
+      );
+    }
+
+    if (widget.embedded) {
+      return body;
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.surface2,
@@ -73,97 +186,8 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
         backgroundColor: AppTheme.white,
         foregroundColor: AppTheme.navy,
         elevation: 0,
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loading ? null : _load),
-        ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textMuted)),
-                        const SizedBox(height: 16),
-                        FilledButton(onPressed: _load, child: const Text('Retry')),
-                      ],
-                    ),
-                  ),
-                )
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          children: [
-                            CircleAvatar(
-                              radius: 40,
-                              backgroundColor: AppTheme.navy.withValues(alpha: 0.1),
-                              backgroundImage: profile?.photoUrl != null ? NetworkImage(profile!.photoUrl!) : null,
-                              child: profile?.photoUrl == null
-                                  ? Text(
-                                      displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                                      style: const TextStyle(
-                                        fontSize: 28,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.navy,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              displayName,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.textMain,
-                              ),
-                            ),
-                            if (profile?.employeeCode != null) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                profile!.employeeCode!,
-                                style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
-                              ),
-                            ],
-                            if (profile?.jobTitle != null) ...[
-                              const SizedBox(height: 4),
-                              Text(profile!.jobTitle!, style: const TextStyle(color: AppTheme.textMuted)),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _section('Work', [
-                      _row('Campus', profile?.campusName),
-                      _row('Department', profile?.departmentName),
-                      _row('Designation', profile?.designationName),
-                      _row('Category', profile?.staffCategory?.replaceAll('_', ' ')),
-                      _row('Join date', _fmtJoinDate(profile?.joinDate)),
-                      _row(
-                        'Service status',
-                        profile?.isPermanentEmployee == true ? 'Permanent (14+ months)' : 'Probation / new hire',
-                      ),
-                    ]),
-                    const SizedBox(height: 12),
-                    _section('Account', [
-                      _row('Username', profile?.username),
-                      _row('Role', _labelRole(profile?.accountRole)),
-                    ]),
-                    const SizedBox(height: 12),
-                    _section('Contact', [
-                      _row('Phone', profile?.personalPhone),
-                      _row('Email', profile?.personalEmail),
-                    ]),
-                  ],
-                ),
+      body: body,
     );
   }
 

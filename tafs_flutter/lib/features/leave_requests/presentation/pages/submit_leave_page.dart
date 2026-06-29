@@ -14,9 +14,9 @@ String? _leaveTypeHint(String code) {
     case 'CASUAL':
       return 'Available after 14 months of service';
     case 'ANNUAL':
-      return 'Paid leave · reason required';
+      return 'Reason required';
     case 'UNPAID':
-      return 'Unpaid · reason required';
+      return 'Reason required';
     default:
       return null;
   }
@@ -169,8 +169,8 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
 
   Future<void> _submit() async {
     final ctx = _context;
-    if (ctx == null || _selectedCode == null || _startDate == null || _endDate == null) {
-      setState(() => _error = 'Please complete all required fields');
+    if (ctx == null || _selectedCode == null || _startDate == null) {
+      setState(() => _error = 'Please select a start date');
       return;
     }
     if (_casualBlocked) {
@@ -192,10 +192,11 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
     });
 
     try {
+      final effectiveEnd = _endDate ?? _startDate!;
       await widget.repository.submitRequest(
         leaveTypeCode: _selectedCode!,
         startDate: _fmt(_startDate!),
-        endDate: _fmt(_endDate!),
+        endDate: _fmt(effectiveEnd),
         reason: _reasonController.text.trim().isEmpty ? null : _reasonController.text.trim(),
         attachmentUrl: _attachmentUrl,
         attachmentType: _attachmentType,
@@ -263,34 +264,13 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  type.name,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: selected ? AppTheme.navy : AppTheme.textMain,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: type.isPaid ? AppTheme.paidBg : AppTheme.unpaidBg,
-                                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                                ),
-                                child: Text(
-                                  type.isPaid ? 'Paid' : 'Unpaid',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: type.isPaid ? AppTheme.paid : AppTheme.danger,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Text(
+                            type.name,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: selected ? AppTheme.navy : AppTheme.textMain,
+                            ),
                           ),
                           if (hint != null) ...[
                             const SizedBox(height: 4),
@@ -374,6 +354,7 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
     required String title,
     required DateTime? value,
     required VoidCallback onTap,
+    VoidCallback? onClear,
   }) {
     return InkWell(
       onTap: onTap,
@@ -404,7 +385,13 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
                 ],
               ),
             ),
-            const Icon(Icons.calendar_today_outlined, color: AppTheme.navy, size: 20),
+            if (onClear != null)
+              GestureDetector(
+                onTap: onClear,
+                child: const Icon(Icons.close, color: AppTheme.textMuted, size: 18),
+              )
+            else
+              const Icon(Icons.calendar_today_outlined, color: AppTheme.navy, size: 20),
           ],
         ),
       ),
@@ -464,9 +451,26 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
                   ),
                   const SizedBox(height: 10),
                   _dateTile(
-                    title: 'End date',
+                    title: 'End date (optional)',
                     value: _endDate,
                     onTap: () => _pickDate(isStart: false),
+                    onClear: _endDate != null ? () => setState(() => _endDate = null) : null,
+                  ),
+                  const SizedBox(height: 6),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline, size: 13, color: AppTheme.textMuted),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'For a single day off, leave the end date empty.',
+                            style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 14),
                   TextField(
