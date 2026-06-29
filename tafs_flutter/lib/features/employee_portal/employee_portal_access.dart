@@ -2,6 +2,7 @@ import '../auth/domain/entities/staff_user.dart';
 
 const attendanceSelfViewPermission = 'attendance.self.view';
 const payrollSelfViewPermission = 'payroll.self.view';
+const leaveApplyPermission = 'hr.leave.apply';
 
 bool _hasPermission(StaffUser user, String permission) =>
     user.permissions.contains(permission);
@@ -25,8 +26,12 @@ bool canViewOwnPayroll(StaffUser user) =>
     (_hasPermission(user, payrollSelfViewPermission) ||
         _isEmployeeSelfServiceRole(user));
 
+bool canApplyLeave(StaffUser user) =>
+    _hasEmployeeProfileForSelfService(user) &&
+    _hasPermission(user, leaveApplyPermission);
+
 bool canViewEmployeePortal(StaffUser user) =>
-    canViewOwnAttendance(user) || canViewOwnPayroll(user);
+    canViewOwnAttendance(user) || canViewOwnPayroll(user) || canApplyLeave(user);
 
 /// Changes when portal tabs should be shown/hidden (permissions, profile, role).
 String staffPortalAccessSignature(StaffUser user) =>

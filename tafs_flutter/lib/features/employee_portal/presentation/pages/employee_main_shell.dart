@@ -15,6 +15,8 @@ import '../../../staff_attendance/data/repositories/staff_attendance_repository_
 import '../../../staff_attendance/presentation/pages/staff_attendance_calendar_page.dart';
 import '../../../staff_payroll/data/repositories/staff_payroll_repository_impl.dart';
 import '../../../staff_payroll/presentation/pages/staff_payroll_list_page.dart';
+import '../../../leave_requests/data/repositories/leave_requests_repository_impl.dart';
+import '../../../leave_requests/presentation/pages/leave_requests_list_page.dart';
 import '../../../support_tickets/staff/presentation/bloc/staff_pending_approvals_cubit.dart';
 import '../../../support_tickets/staff/presentation/bloc/staff_ticket_queue_bloc.dart';
 import '../../../support_tickets/staff/presentation/pages/staff_support_tickets_shell.dart';
@@ -24,7 +26,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
 import '../../employee_portal_access.dart';
 
-enum _EmployeeTab { attendance, payroll, tickets, noticeBoard, employeeNoticeBoard }
+enum _EmployeeTab { attendance, payroll, leave, tickets, noticeBoard, employeeNoticeBoard }
 
 class EmployeeMainShell extends StatefulWidget {
   final StaffUser staff;
@@ -40,16 +42,19 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
 
   StaffAttendanceRepositoryImpl? _attendanceRepo;
   StaffPayrollRepositoryImpl? _payrollRepo;
+  LeaveRequestsRepositoryImpl? _leaveRepo;
   EmployeeNoticeRepositoryImpl? _employeeNoticeRepo;
   late List<Widget> _tabBodies;
 
   final _attendanceKey = GlobalKey<StaffAttendanceCalendarPageState>();
   final _payrollKey = GlobalKey<StaffPayrollListPageState>();
+  final _leaveKey = GlobalKey<LeaveRequestsListPageState>();
 
   String get _accessSignature => staffPortalAccessSignature(widget.staff);
 
   bool get _showAttendance => canViewOwnAttendance(widget.staff);
   bool get _showPayroll => canViewOwnPayroll(widget.staff);
+  bool get _showLeave => canApplyLeave(widget.staff);
   bool get _showTickets => canViewSupportTickets(widget.staff);
   bool get _showNoticeBoard => canViewStaffNoticeBoard(widget.staff);
   bool get _showEmployeeNoticeBoard => canViewEmployeeNoticeBoard(widget.staff);
@@ -78,6 +83,9 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
       if (_showPayroll && _payrollRepo == null) {
         _payrollRepo = StaffPayrollRepositoryImpl(dio: InjectionContainer.dio);
       }
+      if (_showLeave && _leaveRepo == null) {
+        _leaveRepo = LeaveRequestsRepositoryImpl(dio: InjectionContainer.dio);
+      }
       if (_showEmployeeNoticeBoard && _employeeNoticeRepo == null) {
         _employeeNoticeRepo = EmployeeNoticeRepositoryImpl(
           remoteDataSource: EmployeeNoticeRemoteDataSource(InjectionContainer.dio),
@@ -103,6 +111,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
     final tabs = <_EmployeeTab>[];
     if (_showAttendance) tabs.add(_EmployeeTab.attendance);
     if (_showPayroll) tabs.add(_EmployeeTab.payroll);
+    if (_showLeave) tabs.add(_EmployeeTab.leave);
     if (_showTickets) tabs.add(_EmployeeTab.tickets);
     if (_showNoticeBoard) tabs.add(_EmployeeTab.noticeBoard);
     if (_showEmployeeNoticeBoard) tabs.add(_EmployeeTab.employeeNoticeBoard);
@@ -124,6 +133,14 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         StaffPayrollListPage(
           key: _payrollKey,
           repository: _payrollRepo!,
+        ),
+      );
+    }
+    if (_showLeave && _leaveRepo != null) {
+      bodies.add(
+        LeaveRequestsListPage(
+          key: _leaveKey,
+          repository: _leaveRepo!,
         ),
       );
     }
@@ -182,6 +199,9 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
       case _EmployeeTab.payroll:
         _payrollKey.currentState?.refresh();
         break;
+      case _EmployeeTab.leave:
+        _leaveKey.currentState?.refresh();
+        break;
     }
   }
 
@@ -193,6 +213,8 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         return 'Attendance';
       case _EmployeeTab.payroll:
         return 'Payroll';
+      case _EmployeeTab.leave:
+        return 'Leave';
       case _EmployeeTab.tickets:
         return 'Support Tickets';
       case _EmployeeTab.noticeBoard:
@@ -215,6 +237,12 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
           icon: Icon(Icons.account_balance_wallet_outlined),
           selectedIcon: Icon(Icons.account_balance_wallet),
           label: 'Payroll',
+        );
+      case _EmployeeTab.leave:
+        return const NavigationDestination(
+          icon: Icon(Icons.event_busy_outlined),
+          selectedIcon: Icon(Icons.event_busy),
+          label: 'Leave',
         );
       case _EmployeeTab.tickets:
         return const NavigationDestination(
