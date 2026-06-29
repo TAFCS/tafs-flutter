@@ -36,11 +36,11 @@ class LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
   Color _statusColor(String status) {
     switch (status) {
       case 'APPROVED':
-        return Colors.green;
+        return AppTheme.paid;
       case 'REJECTED':
-        return Colors.red;
+        return AppTheme.danger;
       default:
-        return Colors.orange;
+        return AppTheme.warning;
     }
   }
 
@@ -62,42 +62,46 @@ class LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: _cubit,
-      child: Scaffold(
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: _openSubmit,
-          icon: const Icon(Icons.add),
-          label: const Text('Apply'),
-          backgroundColor: AppTheme.primary,
-        ),
-        body: BlocBuilder<LeaveRequestsCubit, LeaveRequestsState>(
-          builder: (context, state) {
-            if (state is LeaveRequestsLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (state is LeaveRequestsError) {
-              return Center(child: Text(state.message));
-            }
-            if (state is! LeaveRequestsLoaded) {
-              return const SizedBox.shrink();
-            }
-
-            if (state.items.isEmpty) {
-              return RefreshIndicator(
-                onRefresh: () async => refresh(),
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  children: const [
-                    SizedBox(height: 120),
-                    Center(child: Text('No leave requests yet.')),
-                  ],
+      child: BlocBuilder<LeaveRequestsCubit, LeaveRequestsState>(
+        builder: (context, state) {
+          Widget body;
+          if (state is LeaveRequestsLoading) {
+            body = const Center(child: CircularProgressIndicator());
+          } else if (state is LeaveRequestsError) {
+            body = Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  state.message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppTheme.textMuted),
                 ),
-              );
-            }
-
-            return RefreshIndicator(
+              ),
+            );
+          } else if (state is! LeaveRequestsLoaded) {
+            body = const SizedBox.shrink();
+          } else if (state.items.isEmpty) {
+            body = RefreshIndicator(
+              onRefresh: () async => refresh(),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 96),
+                children: [
+                  Icon(Icons.event_busy_outlined, size: 48, color: AppTheme.textMuted.withValues(alpha: 0.5)),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'No leave requests yet.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppTheme.textMuted, fontSize: 15),
+                  ),
+                ],
+              ),
+            );
+          } else {
+            body = RefreshIndicator(
               onRefresh: () async => refresh(),
               child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                 itemCount: state.items.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
@@ -113,8 +117,28 @@ class LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
                 },
               ),
             );
-          },
-        ),
+          }
+
+          return Stack(
+            children: [
+              Positioned.fill(child: body),
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: FloatingActionButton.extended(
+                  onPressed: _openSubmit,
+                  backgroundColor: AppTheme.navy,
+                  foregroundColor: AppTheme.white,
+                  icon: const Icon(Icons.add, size: 20),
+                  label: const Text(
+                    'Apply for Leave',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -146,33 +170,45 @@ class _LeaveCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     item.leaveTypeName,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: AppTheme.textMain,
+                    ),
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   ),
                   child: Text(
                     item.status,
-                    style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 6),
-            Text(dateLabel, style: TextStyle(color: Colors.grey.shade600)),
+            Text(dateLabel, style: const TextStyle(color: AppTheme.textMuted, fontSize: 13)),
             if (item.reason != null && item.reason!.isNotEmpty) ...[
               const SizedBox(height: 6),
-              Text(item.reason!),
+              Text(item.reason!, style: const TextStyle(color: AppTheme.textMain, fontSize: 14)),
             ],
             if (item.reviewReason != null && item.reviewReason!.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(
                 'Review: ${item.reviewReason}',
-                style: TextStyle(color: Colors.grey.shade700, fontStyle: FontStyle.italic),
+                style: const TextStyle(
+                  color: AppTheme.textMuted,
+                  fontSize: 13,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ],
             if (onCancel != null) ...[
@@ -181,7 +217,7 @@ class _LeaveCard extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: onCancel,
-                  child: const Text('Cancel'),
+                  child: const Text('Cancel request'),
                 ),
               ),
             ],

@@ -115,6 +115,8 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
 
   String _fmt(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
 
+  String _fmtDisplay(DateTime d) => DateFormat('d MMM yyyy').format(d);
+
   bool get _needsReason {
     final code = _selectedCode;
     return code == 'ANNUAL' || code == 'UNPAID';
@@ -169,10 +171,57 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
     }
   }
 
+  Widget _dateTile({
+    required String title,
+    required DateTime? value,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppTheme.borderSubtle),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          color: AppTheme.white,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                  const SizedBox(height: 4),
+                  Text(
+                    value == null ? 'Tap to select' : _fmtDisplay(value),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: value == null ? AppTheme.textMuted : AppTheme.textMain,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.calendar_today_outlined, color: AppTheme.navy, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Apply for Leave')),
+      backgroundColor: AppTheme.surface2,
+      appBar: AppBar(
+        title: const Text('Apply for Leave'),
+        backgroundColor: AppTheme.white,
+        foregroundColor: AppTheme.navy,
+        elevation: 0,
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -181,69 +230,89 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (_error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Text(_error!, style: const TextStyle(color: Colors.red)),
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.unpaidBg,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        border: Border.all(color: AppTheme.danger.withValues(alpha: 0.2)),
+                      ),
+                      child: Text(
+                        _error!,
+                        style: const TextStyle(color: AppTheme.danger, fontSize: 13),
+                      ),
                     ),
                   DropdownButtonFormField<String>(
                     value: _selectedCode,
-                    decoration: const InputDecoration(labelText: 'Leave type', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Leave type'),
                     items: (_context?.leaveTypes ?? [])
                         .map((t) => DropdownMenuItem(value: t.code, child: Text(t.name)))
                         .toList(),
                     onChanged: (v) => setState(() => _selectedCode = v),
                   ),
                   if (_casualBlocked)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 8),
-                      child: Text(
+                    Container(
+                      margin: const EdgeInsets.only(top: 10),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warningBg,
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      ),
+                      child: const Text(
                         'Casual leave requires 14 months of service.',
-                        style: TextStyle(color: Colors.orange),
+                        style: TextStyle(color: AppTheme.warning, fontSize: 13),
                       ),
                     ),
-                  const SizedBox(height: 12),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Start date'),
-                    subtitle: Text(_startDate == null ? 'Select' : _fmt(_startDate!)),
-                    trailing: const Icon(Icons.calendar_today),
+                  const SizedBox(height: 14),
+                  _dateTile(
+                    title: 'Start date',
+                    value: _startDate,
                     onTap: () => _pickDate(isStart: true),
                   ),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('End date'),
-                    subtitle: Text(_endDate == null ? 'Select' : _fmt(_endDate!)),
-                    trailing: const Icon(Icons.calendar_today),
+                  const SizedBox(height: 10),
+                  _dateTile(
+                    title: 'End date',
+                    value: _endDate,
                     onTap: () => _pickDate(isStart: false),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   TextField(
                     controller: _reasonController,
                     decoration: InputDecoration(
                       labelText: _needsReason ? 'Reason *' : 'Reason (optional)',
-                      border: const OutlineInputBorder(),
                     ),
                     maxLines: 3,
                   ),
                   if (_needsAttachment) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     OutlinedButton.icon(
                       onPressed: _submitting ? null : _pickAttachment,
                       icon: const Icon(Icons.attach_file),
                       label: Text(_attachmentName ?? 'Upload attachment (image/PDF)'),
                     ),
                   ],
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   FilledButton(
                     onPressed: _submitting || _casualBlocked ? null : _submit,
-                    style: FilledButton.styleFrom(backgroundColor: AppTheme.primary),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.navy,
+                      foregroundColor: AppTheme.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                      ),
+                    ),
                     child: _submitting
                         ? const SizedBox(
                             height: 20,
                             width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white),
                           )
-                        : const Text('Submit'),
+                        : const Text(
+                            'Submit request',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                          ),
                   ),
                 ],
               ),
