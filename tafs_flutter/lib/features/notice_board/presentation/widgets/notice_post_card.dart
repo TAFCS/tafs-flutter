@@ -37,14 +37,18 @@ class _NoticePostCardState extends State<NoticePostCard> {
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
+    final isPinned = post.isPinned;
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space3),
       decoration: BoxDecoration(
-        color: AppTheme.white,
+        color: isPinned ? const Color(0xFFF5F8FC) : AppTheme.white,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: AppTheme.blue100),
-        boxShadow: AppTheme.shadowXs,
+        border: Border.all(
+          color: isPinned ? AppTheme.navy.withOpacity(0.2) : AppTheme.blue100,
+          width: isPinned ? 1.5 : 1,
+        ),
+        boxShadow: isPinned ? AppTheme.shadowSm : AppTheme.shadowXs,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -170,7 +174,7 @@ class _ExpandableBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const maxLines = 3;
-    final style = TextStyle(fontSize: 13, color: AppTheme.blue300, height: 1.5);
+    final style = TextStyle(fontSize: 13.5, color: AppTheme.blue300, height: 1.5);
 
     return LayoutBuilder(
       builder: (context, constraints) {

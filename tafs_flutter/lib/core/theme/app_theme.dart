@@ -6,7 +6,7 @@ class AppTheme {
   static const Color white = Color(0xFFFFFFFF);
   static const Color blue100 = Color(0xFFBCD0EA);
   static const Color blue200 = Color(0xFFB1C7E4);
-  static const Color blue300 = Color(0xFFA0BBDD);
+  static const Color blue300 = Color(0xFF4C617F);
   static const Color navy = Color(0xFF021A54);
 
   // Status Colors
