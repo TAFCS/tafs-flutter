@@ -9,6 +9,7 @@ import '../../domain/entities/voucher.dart';
 import '../bloc/fee_ledger_bloc.dart';
 import '../bloc/fee_ledger_event.dart';
 import '../bloc/fee_ledger_state.dart';
+import '../utils/voucher_display.dart';
 import 'voucher_detail_page.dart';
 
 class FeeLedgerPage extends StatefulWidget {
@@ -77,29 +78,15 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
 
           if (state is FeeLedgerLoaded) {
             final months = state.months;
-            final vouchers = state.vouchers;
+            final visibleVouchers = VoucherDisplay.visibleVouchers(state.vouchers);
+            final activeVouchers = visibleVouchers.where((v) => v.status != 'PAID').toList();
+            final paidVouchers = visibleVouchers.where((v) => v.status == 'PAID').toList();
+            final totalOutstanding =
+                VoucherDisplay.outstandingTotal(state.vouchers);
 
-            if (months.isEmpty && vouchers.isEmpty) {
+            if (months.isEmpty && visibleVouchers.isEmpty) {
               return const _NoMonthsView();
             }
-
-            final unpaidVouchers = vouchers
-                .where((v) => v.status != 'PAID' && v.status != 'VOID')
-                .toList()
-              ..sort((a, b) => b.issueDate.compareTo(a.issueDate));
-
-            final activeVoucher = unpaidVouchers.isNotEmpty ? unpaidVouchers.first : null;
-
-            final paidVouchers = vouchers
-                .where((v) => v.status == 'PAID')
-                .toList()
-              ..sort((a, b) => b.issueDate.compareTo(a.issueDate));
-
-            final totalOutstanding = unpaidVouchers.fold<double>(
-              0, (s, v) => s + v.totalBalance,
-            );
-            
-            final runningOutstanding = totalOutstanding;
 
             return Column(
               children: [
@@ -110,7 +97,7 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
                   ),
                 _SummaryStrip(
                   totalOutstanding: totalOutstanding,
-                  runningOutstanding: runningOutstanding,
+                  runningOutstanding: totalOutstanding,
                   monthsCount: months.length,
                 ),
                 Expanded(
@@ -118,38 +105,59 @@ class _FeeLedgerPageState extends State<FeeLedgerPage> {
                     onRefresh: () async {
                       _loadFees();
                     },
-                    child: ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.all(AppTheme.space4),
-                      children: [
-                        if (activeVoucher != null) ...[
-                          _ActiveVoucherCard(voucher: activeVoucher),
-                        ] else ...[
-                          const _AllCaughtUpCard(),
-                        ],
-                        if (paidVouchers.isNotEmpty) ...[
-                          const SizedBox(height: AppTheme.space6),
-                          Text(
-                            'PAYMENT HISTORY',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: AppTheme.blue300,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.2,
+                    child: visibleVouchers.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.all(AppTheme.space4),
+                            children: const [
+                              _AllCaughtUpCard(),
+                            ],
+                          )
+                        : ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.all(AppTheme.space4),
+                            children: [
+                              if (totalOutstanding <= 0 && activeVouchers.isEmpty) ...[
+                                const _AllCaughtUpCard(),
+                                const SizedBox(height: AppTheme.space6),
+                              ],
+                              if (activeVouchers.isNotEmpty) ...[
+                                Text(
+                                  'ACTIVE CHALLAN',
+                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                        color: AppTheme.blue300,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2,
+                                      ),
                                 ),
+                                const SizedBox(height: AppTheme.space3),
+                                ...activeVouchers.map(
+                                  (voucher) => Padding(
+                                    padding: const EdgeInsets.only(bottom: AppTheme.space4),
+                                    child: _ActiveVoucherCard(voucher: voucher),
+                                  ),
+                                ),
+                              ],
+                              if (paidVouchers.isNotEmpty) ...[
+                                const SizedBox(height: AppTheme.space4),
+                                Text(
+                                  'PAYMENT HISTORY',
+                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                        color: AppTheme.blue300,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2,
+                                      ),
+                                ),
+                                const SizedBox(height: AppTheme.space3),
+                                ...paidVouchers.map(
+                                  (voucher) => Padding(
+                                    padding: const EdgeInsets.only(bottom: AppTheme.space3),
+                                    child: _HistoryVoucherCard(voucher: voucher),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                          const SizedBox(height: AppTheme.space3),
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: paidVouchers.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: AppTheme.space3),
-                            itemBuilder: (context, index) {
-                              return _VoucherCard(voucher: paidVouchers[index]);
-                            },
-                          ),
-                        ],
-                      ],
-                    ),
                   ),
                 ),
               ],
@@ -602,48 +610,232 @@ class _VoucherHistoryPage extends StatelessWidget {
             )
           : ListView.separated(
               padding: const EdgeInsets.all(AppTheme.space4),
-              itemCount: vouchers.length,
+              itemCount: VoucherDisplay.visibleVouchers(vouchers).length,
               separatorBuilder: (_, __) => const SizedBox(height: AppTheme.space3),
-              itemBuilder: (_, i) => _VoucherCard(voucher: vouchers[i]),
+              itemBuilder: (_, i) {
+                final voucher = VoucherDisplay.visibleVouchers(vouchers)[i];
+                return voucher.status == 'PAID'
+                    ? _HistoryVoucherCard(voucher: voucher)
+                    : _ActiveVoucherCard(voucher: voucher);
+              },
             ),
     );
   }
 }
 
-class _VoucherCard extends StatelessWidget {
+class _ActiveVoucherCard extends StatelessWidget {
   final Voucher voucher;
 
-  const _VoucherCard({required this.voucher});
-
-  Color get _statusColor {
-    switch (voucher.status) {
-      case 'PAID':
-        return AppTheme.success;
-      case 'OVERDUE':
-        return AppTheme.danger;
-      case 'PARTIALLY_PAID':
-        return AppTheme.warning;
-      case 'VOID':
-        return AppTheme.blue200;
-      default:
-        return AppTheme.navy;
-    }
-  }
+  const _ActiveVoucherCard({required this.voucher});
 
   @override
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0', 'en_US');
-    final dateFmt = DateFormat('dd MMM yyyy');
+    final statusColor = VoucherDisplay.statusColor(voucher);
+    final amount = VoucherDisplay.displayAmount(voucher);
+    final subtitle = VoucherDisplay.subtitle(voucher);
+    final footer = VoucherDisplay.footer(voucher);
+    final canOpen = VoucherDisplay.canOpenDetail(voucher);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(
+          color: voucher.status == 'EXPIRED'
+              ? AppTheme.danger.withValues(alpha: 0.25)
+              : AppTheme.blue100,
+        ),
+        boxShadow: AppTheme.shadowSm,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        child: Stack(
+          children: [
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: 120,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      statusColor.withOpacity(0.18),
+                      statusColor.withOpacity(0.0),
+                    ],
+                    begin: Alignment.centerRight,
+                    end: Alignment.centerLeft,
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppTheme.space5),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        VoucherDisplay.title(voucher),
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.navy,
+                            ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppTheme.space2,
+                          vertical: AppTheme.space1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        ),
+                        child: Text(
+                          VoucherDisplay.statusLabel(voucher).toUpperCase(),
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppTheme.space1),
+                  Text(
+                    'Challan #${voucher.id}',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppTheme.blue300,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  if (amount != null) ...[
+                    const SizedBox(height: AppTheme.space3),
+                    Text(
+                      'Rs. ${fmt.format(amount)}',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.navy,
+                          ),
+                    ),
+                  ],
+                  if (subtitle != null) ...[
+                    const SizedBox(height: AppTheme.space2),
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today_outlined, size: 14, color: AppTheme.blue300),
+                        const SizedBox(width: 6),
+                        Text(
+                          subtitle,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppTheme.blue300,
+                                fontWeight: FontWeight.w500,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (footer != null) ...[
+                    const SizedBox(height: AppTheme.space3),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppTheme.space3),
+                      decoration: BoxDecoration(
+                        color: voucher.status == 'EXPIRED'
+                            ? AppTheme.danger.withValues(alpha: 0.06)
+                            : AppTheme.warning.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        border: Border.all(
+                          color: voucher.status == 'EXPIRED'
+                              ? AppTheme.danger.withValues(alpha: 0.15)
+                              : AppTheme.warning.withValues(alpha: 0.15),
+                        ),
+                      ),
+                      child: Text(
+                        footer,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.navy.withValues(alpha: 0.75),
+                              height: 1.45,
+                              fontWeight: FontWeight.w500,
+                            ),
+                      ),
+                    ),
+                  ],
+                  if (canOpen) ...[
+                    const SizedBox(height: AppTheme.space5),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.navyGradient,
+                          borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                        ),
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => VoucherDetailPage(voucher: voucher),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.visibility_outlined, size: 18),
+                          label: const Text(
+                            'VIEW CHALLAN',
+                            style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            foregroundColor: AppTheme.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryVoucherCard extends StatelessWidget {
+  final Voucher voucher;
+
+  const _HistoryVoucherCard({required this.voucher});
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat('#,##0', 'en_US');
+    final statusColor = VoucherDisplay.statusColor(voucher);
+    final amount = VoucherDisplay.displayAmount(voucher);
+    final subtitle = VoucherDisplay.subtitle(voucher);
+    final canOpen = VoucherDisplay.canOpenDetail(voucher);
 
     return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => VoucherDetailPage(voucher: voucher),
-          ),
-        );
-      },
+      onTap: canOpen
+          ? () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => VoucherDetailPage(voucher: voucher),
+                ),
+              );
+            }
+          : null,
       borderRadius: BorderRadius.circular(AppTheme.radiusMd),
       child: Container(
         decoration: BoxDecoration(
@@ -652,61 +844,102 @@ class _VoucherCard extends StatelessWidget {
           border: Border.all(color: AppTheme.blue100),
           boxShadow: AppTheme.shadowSm,
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.space4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          child: Stack(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'CHALLAN #${voucher.id}',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.navy,
-                          ),
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: 80,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        statusColor.withOpacity(0.12),
+                        statusColor.withOpacity(0.0),
+                      ],
+                      begin: Alignment.centerRight,
+                      end: Alignment.centerLeft,
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTheme.space2,
-                      vertical: AppTheme.space1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                    ),
-                    child: Text(
-                      voucher.status.replaceAll('_', ' '),
-                      style: TextStyle(
-                        color: _statusColor,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-              const SizedBox(height: AppTheme.space3),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Rs. ${fmt.format(voucher.totalPayableBeforeDue)}',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.space4,
+                  vertical: AppTheme.space3 * 1.2,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'CHALLAN #${voucher.id}',
+                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                      color: AppTheme.navy,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                    ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                                ),
+                                child: Text(
+                                  VoucherDisplay.statusLabel(voucher).toUpperCase(),
+                                  style: TextStyle(
+                                    color: statusColor,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppTheme.space2),
+                          if (amount != null)
+                            Text(
+                              'Rs. ${fmt.format(amount)}',
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.navy,
+                                  ),
+                            ),
+                          if (subtitle != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.blue300,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 11,
+                                  ),
+                            ),
+                          ],
+                        ],
                       ),
-                      Text(
-                        'Due: ${dateFmt.format(voucher.dueDate)}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.blue300),
+                    ),
+                    if (canOpen)
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppTheme.blue300,
+                        size: 20,
                       ),
-                    ],
-                  ),
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.blue100),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -777,165 +1010,6 @@ class _ErrorView extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusFull)),
               ),
               child: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActiveVoucherCard extends StatelessWidget {
-  final Voucher voucher;
-
-  const _ActiveVoucherCard({required this.voucher});
-
-  Color get _statusColor {
-    switch (voucher.status) {
-      case 'OVERDUE':
-        return AppTheme.danger;
-      case 'PARTIALLY_PAID':
-        return AppTheme.warning;
-      default:
-        return AppTheme.navy;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final fmt = NumberFormat('#,##0', 'en_US');
-    final dateFmt = DateFormat('dd MMM yyyy');
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.white,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.blue100, width: 1.5),
-        boxShadow: AppTheme.shadowSm,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        child: Stack(
-          children: [
-            Positioned(
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: 100,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      _statusColor.withOpacity(0.18),
-                      _statusColor.withOpacity(0.0),
-                    ],
-                    begin: Alignment.centerRight,
-                    end: Alignment.centerLeft,
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(AppTheme.space5),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppTheme.navy.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                        ),
-                        child: const Text(
-                          'ACTIVE CHALLAN',
-                          style: TextStyle(
-                            color: AppTheme.navy,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _statusColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                        ),
-                        child: Text(
-                          voucher.status.replaceAll('_', ' '),
-                          style: TextStyle(
-                            color: _statusColor,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppTheme.space4),
-                  Text(
-                    'Challan #${voucher.id}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.blue300,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Rs. ${fmt.format(voucher.totalPayableBeforeDue)}',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.navy,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.calendar_today_rounded, size: 14, color: AppTheme.blue300),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Due Date: ${dateFmt.format(voucher.dueDate)}',
-                        style: const TextStyle(
-                          color: AppTheme.blue300,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppTheme.space5),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => VoucherDetailPage(voucher: voucher),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.visibility_rounded),
-                      label: const Text('VIEW CHALLAN'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.navy,
-                        foregroundColor: AppTheme.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ],
         ),
