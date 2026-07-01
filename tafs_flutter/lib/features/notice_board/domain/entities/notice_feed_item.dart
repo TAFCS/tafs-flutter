@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'attendance_alert.dart';
 import 'calendar_alert.dart';
 import 'notice_post.dart';
+import 'voucher_alert.dart';
 
 abstract class NoticeFeedItem extends Equatable {
   const NoticeFeedItem();
@@ -53,6 +54,22 @@ class NoticeFeedCalendarAlert extends NoticeFeedItem {
   bool get isRead => alert.isRead;
 
   NoticeFeedCalendarAlert copyWith({bool? isRead}) => NoticeFeedCalendarAlert(alert.copyWith(isRead: isRead));
+
+  @override
+  List<Object?> get props => [alert];
+}
+
+class NoticeFeedVoucherAlert extends NoticeFeedItem {
+  final VoucherAlert alert;
+  const NoticeFeedVoucherAlert(this.alert);
+
+  @override
+  DateTime get timestamp => alert.createdAt;
+
+  @override
+  bool get isRead => alert.isRead;
+
+  NoticeFeedVoucherAlert copyWith({bool? isRead}) => NoticeFeedVoucherAlert(alert.copyWith(isRead: isRead));
 
   @override
   List<Object?> get props => [alert];

@@ -32,6 +32,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   final _disconnectController = StreamController<void>.broadcast();
   final _sessionExpiredController = StreamController<void>.broadcast();
   final _ticketMessageController = StreamController<Map<String, dynamic>>.broadcast();
+  final _voucherAlertController = StreamController<Map<String, dynamic>>.broadcast();
   final _ticketQueueChangedController = StreamController<void>.broadcast();
   final _replyPendingApprovalController =
       StreamController<Map<String, dynamic>>.broadcast();
@@ -58,6 +59,10 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   @override
   Stream<Map<String, dynamic>> get onTicketMessagePayload =>
       _ticketMessageController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get onVoucherAlertPayload =>
+      _voucherAlertController.stream;
 
   @override
   Stream<void> get onTicketQueueChanged =>
@@ -348,6 +353,16 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
         _emitTicketQueueChanged();
       } catch (e) {
         print('Error parsing ticketMessageReceived: $e');
+      }
+    });
+
+    _socket!.on('voucherAlertReceived', (data) {
+      try {
+        if (data is Map) {
+          _voucherAlertController.add(Map<String, dynamic>.from(data));
+        }
+      } catch (e) {
+        print('Error parsing voucherAlertReceived: $e');
       }
     });
 

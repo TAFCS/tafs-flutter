@@ -7,9 +7,11 @@ import 'package:flutter/material.dart';
 import '../navigation/app_navigator.dart';
 import 'fcm_registration_service.dart';
 import 'in_app_notification_service.dart';
+import 'voucher_alert_banner_helper.dart';
 import '../../injection_container.dart';
 import '../../features/attendance_history/presentation/pages/attendance_calendar_page.dart';
-import '../../features/employee_notice_board/presentation/cubit/employee_notice_cubit.dart';
+import '../../features/fee_ledger/presentation/pages/fee_ledger_page.dart';
+import '../../features/notice_board/presentation/bloc/notice_board_event.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -60,37 +62,58 @@ class NotificationService {
   }
 
   void setupInteractions() {
-    FirebaseMessaging.onMessage.listen((message) {
-      _showLocalNotification(message);
-      
-      // Also trigger in-app notification banner if title/body exists and a context is available
-      final context = appNavigatorKey.currentContext;
-      if (context != null) {
-        final title = message.notification?.title ?? message.data['title'] ?? 'Notification';
-        final body = message.notification?.body ?? message.data['body'] ?? '';
-        final type = message.data['type'] as String?;
-        final ticketId = message.data['ticketId'] as String?;
-
-        InAppNotificationService.show(
-          context: context,
-          title: title,
-          message: body,
-          onTap: () {
-            if (type == 'SUPPORT_TICKET_MESSAGE' && ticketId != null && ticketId.isNotEmpty) {
-              navigateToSupportTicketThread(ticketId);
-            } else if (type == 'ATTENDANCE_ALERT' || type == 'biometric_attendance' || type == 'calendar_alert') {
-              _handleNotificationRouting(message.data);
-            } else if (type == 'EMPLOYEE_NOTICE') {
-              InjectionContainer.employeeNoticeCubit.refresh();
-            }
-          },
-        );
-      }
-    });
+    FirebaseMessaging.onMessage.listen(_deliverForegroundMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(_handleRemoteMessage);
     FirebaseMessaging.instance.getInitialMessage().then((message) {
       if (message != null) _handleRemoteMessage(message);
     });
+  }
+
+  void _deliverForegroundMessage(RemoteMessage message) {
+    _showLocalNotification(message);
+
+    void deliver() {
+      final context = appNavigatorKey.currentContext;
+      if (context == null) return;
+
+      final type = message.data['type'] as String?;
+      final title = _resolveTitle(message);
+      final body = _resolveBody(message);
+      final ticketId = message.data['ticketId'] as String?;
+
+      if (type == 'voucher_alert') {
+        InjectionContainer.noticeBoardBloc.add(const NoticeBoardLoadRequested());
+        VoucherAlertBannerHelper.showFromFcm(
+          context,
+          title: title,
+          body: body,
+          studentCc: message.data['student_cc'],
+          alertType: message.data['alert_type'] as String?,
+          voucherId: message.data['voucher_id'],
+        );
+        return;
+      }
+
+      InAppNotificationService.show(
+        context: context,
+        title: title,
+        message: body,
+        onTap: () {
+          if (type == 'SUPPORT_TICKET_MESSAGE' && ticketId != null && ticketId.isNotEmpty) {
+            navigateToSupportTicketThread(ticketId);
+          } else if (type == 'ATTENDANCE_ALERT' || type == 'biometric_attendance' || type == 'calendar_alert') {
+            _handleNotificationRouting(message.data);
+          } else if (type == 'EMPLOYEE_NOTICE') {
+            InjectionContainer.employeeNoticeCubit.refresh();
+          }
+        },
+      );
+    }
+
+    deliver();
+    if (appNavigatorKey.currentContext == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => deliver());
+    }
   }
 
   void _onLocalNotificationTap(fln.NotificationResponse details) {
@@ -105,6 +128,16 @@ class NotificationService {
     _handleNotificationRouting(message.data);
   }
 
+  String _resolveTitle(RemoteMessage message) {
+    return message.notification?.title ??
+        message.data['title'] as String? ??
+        'Notification';
+  }
+
+  String _resolveBody(RemoteMessage message) {
+    return message.notification?.body ?? message.data['body'] as String? ?? '';
+  }
+
   void _handleNotificationRouting(Map<String, dynamic> data) {
     final type = data['type'] as String?;
     
@@ -114,35 +147,58 @@ class NotificationService {
         navigateToSupportTicketThread(ticketId);
       }
     } else if (type == 'ATTENDANCE_ALERT' || type == 'biometric_attendance' || type == 'calendar_alert') {
-      // Find the context to push the screen
-      final context = appNavigatorKey.currentContext;
-      if (context != null) {
-        final studentCcStr = data['studentCc'] ?? data['student_cc'];
-        final studentCc = studentCcStr != null ? int.tryParse(studentCcStr.toString()) : null;
-        
-        // Grab currently selected student or default
-        final activeStudent = InjectionContainer.selectedStudentCubit.state;
-        if (activeStudent != null && activeStudent.cc == studentCc) {
-          final scanTimeStr = data['scanTime'] ?? data['scan_time'] ?? data['date'];
-          final parsedDate = scanTimeStr != null ? DateTime.tryParse(scanTimeStr.toString()) : null;
-          
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AttendanceCalendarPage(
-                student: activeStudent,
-                initialSelectedDate: parsedDate?.toLocal(),
-              ),
-            ),
-          );
-        }
-      }
+      _handleAttendanceRouting(data);
+    } else if (type == 'voucher_alert') {
+      _handleVoucherAlertRouting(studentCcStr: data['student_cc']);
+      InjectionContainer.noticeBoardBloc.add(const NoticeBoardLoadRequested());
     } else if (type == 'EMPLOYEE_NOTICE') {
       // Refresh the employee notice cubit so the Notices tab is up-to-date
       try {
         InjectionContainer.employeeNoticeCubit.refresh();
       } catch (_) {}
     }
+  }
+
+  void _handleAttendanceRouting(Map<String, dynamic> data) {
+    final context = appNavigatorKey.currentContext;
+    if (context == null) return;
+
+    final studentCcStr = data['studentCc'] ?? data['student_cc'];
+    final studentCc = studentCcStr != null ? int.tryParse(studentCcStr.toString()) : null;
+    final activeStudent = InjectionContainer.selectedStudentCubit.state;
+    if (activeStudent == null || activeStudent.cc != studentCc) return;
+
+    final scanTimeStr = data['scanTime'] ?? data['scan_time'] ?? data['date'];
+    final parsedDate = scanTimeStr != null ? DateTime.tryParse(scanTimeStr.toString()) : null;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AttendanceCalendarPage(
+          student: activeStudent,
+          initialSelectedDate: parsedDate?.toLocal(),
+        ),
+      ),
+    );
+  }
+
+  void _handleVoucherAlertRouting({Object? studentCcStr}) {
+    final context = appNavigatorKey.currentContext;
+    if (context == null) return;
+
+    final parsedCc = studentCcStr != null ? int.tryParse(studentCcStr.toString()) : null;
+    final activeStudent = InjectionContainer.selectedStudentCubit.state;
+    if (activeStudent == null || (parsedCc != null && activeStudent.cc != parsedCc)) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FeeLedgerPage(
+          studentCc: activeStudent.cc,
+          studentName: activeStudent.fullName,
+        ),
+      ),
+    );
   }
 
   Future<void> _showLocalNotification(RemoteMessage message) async {

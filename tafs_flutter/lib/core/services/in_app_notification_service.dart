@@ -15,7 +15,7 @@ class InAppNotificationService {
     _currentEntry?.remove();
     _currentEntry = null;
 
-    final overlay = Overlay.of(context);
+    final overlay = Overlay.of(context, rootOverlay: true);
     
     _currentEntry = OverlayEntry(
       builder: (context) => _NotificationWrapper(

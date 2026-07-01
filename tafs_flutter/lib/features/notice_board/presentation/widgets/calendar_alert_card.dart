@@ -34,110 +34,135 @@ class _CalendarAlertCardState extends State<CalendarAlertCard> {
   Widget build(BuildContext context) {
     final alert = widget.alert;
     
-    IconData icon;
-    Color iconColor;
-    Color iconBg;
+    final IconData icon;
+    final Color statusColor;
+    final String badgeText;
 
     if (alert.alertType == 'SCHOOL_OPEN') {
       icon = Icons.event_available_rounded;
-      iconColor = AppTheme.paid;
-      iconBg = AppTheme.paidBg;
+      statusColor = AppTheme.paid;
+      badgeText = 'School Open';
     } else if (alert.alertType == 'DAY_OFF') {
       icon = Icons.calendar_today_rounded;
-      iconColor = AppTheme.warning;
-      iconBg = AppTheme.warningBg;
+      statusColor = AppTheme.warning;
+      badgeText = 'Day Off';
     } else {
-      // HOLIDAY
       icon = Icons.event_busy_rounded;
-      iconColor = AppTheme.unpaid;
-      iconBg = AppTheme.unpaidBg;
+      statusColor = AppTheme.unpaid;
+      badgeText = 'Holiday';
     }
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space3),
       decoration: BoxDecoration(
-        color: iconBg,
+        color: AppTheme.white,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: iconColor.withOpacity(0.15)),
+        border: Border.all(color: AppTheme.blue100.withOpacity(0.7), width: 1.0),
         boxShadow: AppTheme.shadowXs,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: InkWell(
+          onTap: () {
+            final activeStudent = context.read<SelectedStudentCubit>().state;
+            if (activeStudent != null && activeStudent.cc == alert.studentCc) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AttendanceCalendarPage(
+                    student: activeStudent,
+                    initialSelectedDate: alert.date.toLocal(),
+                  ),
+                ),
+              );
+            }
+          },
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          child: Stack(
             children: [
-              Container(
-                width: 4.5,
-                color: iconColor,
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: 180,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        statusColor.withOpacity(0.24),
+                        statusColor.withOpacity(0.0),
+                      ],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
+                ),
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.space4, vertical: AppTheme.space3 * 1.2),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: AppTheme.white.withOpacity(0.8),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(icon, size: 18, color: iconColor),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.space4,
+                  vertical: AppTheme.space3 * 1.2,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                       ),
-                      const SizedBox(width: AppTheme.space3),
-                      Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            final activeStudent = context.read<SelectedStudentCubit>().state;
-                            if (activeStudent != null && activeStudent.cc == alert.studentCc) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AttendanceCalendarPage(
-                                    student: activeStudent,
-                                    initialSelectedDate: alert.date.toLocal(),
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                          child: Text(
-                            alert.body,
-                            style: const TextStyle(
+                      child: Icon(icon, size: 20, color: statusColor),
+                    ),
+                    const SizedBox(width: AppTheme.space3 * 1.2),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            badgeText,
+                            style: TextStyle(
                               fontSize: 13.5,
-                              color: AppTheme.navy,
-                              fontWeight: FontWeight.w600,
-                              height: 1.45,
+                              color: statusColor,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: AppTheme.space2),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (alert.isPinned) ...[
-                            const Icon(
-                              Icons.push_pin_rounded,
-                              size: 14,
-                              color: AppTheme.navy,
-                            ),
-                            const SizedBox(height: 4),
-                          ],
+                          const SizedBox(height: 3),
                           Text(
-                            _formatTime(alert.createdAt),
+                            alert.body,
                             style: TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.navy.withOpacity(0.6),
+                              fontSize: 13.0,
+                              color: AppTheme.navy.withOpacity(0.75),
                               fontWeight: FontWeight.w500,
+                              height: 1.45,
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: AppTheme.space2),
+                    Row(
+                      children: [
+                        if (alert.isPinned) ...[
+                          Icon(
+                            Icons.push_pin_rounded,
+                            size: 13,
+                            color: AppTheme.navy.withOpacity(0.4),
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                        Text(
+                          _formatTime(alert.createdAt),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.navy.withOpacity(0.45),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],

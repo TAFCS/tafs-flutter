@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../models/attendance_alert_dto.dart';
 import '../models/notice_post_dto.dart';
 import '../models/calendar_alert_dto.dart';
+import '../models/voucher_alert_dto.dart';
 
 class NoticeBoardRemoteDataSource {
   final Dio dio;
@@ -48,5 +49,19 @@ class NoticeBoardRemoteDataSource {
 
   Future<void> markCalendarAlertRead(int alertId) async {
     await dio.post('/calendar-notifications/$alertId/read');
+  }
+
+  Future<List<VoucherAlertDto>> getVoucherAlerts({int? cursor}) async {
+    final response = await dio.get(
+      '/voucher-notifications',
+      queryParameters: cursor != null ? {'cursor': cursor} : null,
+    );
+    final data = response.data;
+    final list = data is List ? data : (data['data'] as List? ?? []);
+    return list.map((e) => VoucherAlertDto.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> markVoucherAlertRead(int alertId) async {
+    await dio.post('/voucher-notifications/$alertId/read');
   }
 }

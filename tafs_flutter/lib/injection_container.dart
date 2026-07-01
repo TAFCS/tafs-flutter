@@ -74,6 +74,7 @@ class InjectionContainer {
   static late final StaffNoticeBoardCubit staffNoticeBoardCubit;
   static late final EmployeeNoticeRepository employeeNoticeRepository;
   static late final EmployeeNoticeCubit employeeNoticeCubit;
+  static late final ChatRepository chatRepository;
   static late final Dio dio;
   static late final NoticeBoardBloc noticeBoardBloc;
   static late final ProfileBloc profileBloc;
@@ -113,7 +114,7 @@ class InjectionContainer {
     );
 
     final chatOutboxDataSource = ChatOutboxLocalDataSource();
-    final ChatRepository chatRepository = ChatRepositoryImpl(
+    chatRepository = ChatRepositoryImpl(
       dio: dio,
       localDataSource: localDataSource,
       outboxDataSource: chatOutboxDataSource,

@@ -9,6 +9,7 @@ import '../../notice_board/presentation/bloc/notice_board_state.dart';
 import '../../notice_board/presentation/widgets/attendance_alert_card.dart';
 import '../../notice_board/presentation/widgets/notice_post_card.dart';
 import '../../notice_board/presentation/widgets/calendar_alert_card.dart';
+import '../../notice_board/presentation/widgets/voucher_alert_card.dart';
 import '../../auth/presentation/bloc/selected_student_cubit.dart';
 import '../../attendance_history/presentation/pages/attendance_calendar_page.dart';
 
@@ -53,7 +54,11 @@ class _HomeTabBodyState extends State<HomeTabBody> {
                 bool hasUnreadNotices = false;
                 bool hasUnreadAttendance = false;
                 if (state is NoticeBoardLoaded) {
-                  hasUnreadNotices = state.items.any((i) => (i is NoticeFeedPost || i is NoticeFeedCalendarAlert) && !i.isRead);
+                  hasUnreadNotices = state.items.any((i) =>
+                      (i is NoticeFeedPost ||
+                          i is NoticeFeedCalendarAlert ||
+                          i is NoticeFeedVoucherAlert) &&
+                      !i.isRead);
                   hasUnreadAttendance = state.items.whereType<NoticeFeedAlert>().any((i) => !i.isRead);
                 }
                 return _FilterBar(
@@ -282,13 +287,23 @@ class _NoticeBoardSection extends StatelessWidget {
   }
 
   List<NoticeFeedItem> _applyFilter(List<NoticeFeedItem> items) {
+    final cleanItems = items.where((item) {
+      if (item is NoticeFeedVoucherAlert && item.alert.isIssuedAlert) {
+        return false;
+      }
+      return true;
+    }).toList();
+
     switch (filter) {
       case _FeedFilter.notices:
-        return items.where((item) => item is NoticeFeedPost || item is NoticeFeedCalendarAlert).toList();
+        return cleanItems.where((item) =>
+            item is NoticeFeedPost ||
+            item is NoticeFeedCalendarAlert ||
+            item is NoticeFeedVoucherAlert).toList();
       case _FeedFilter.attendance:
-        return items.whereType<NoticeFeedAlert>().toList();
+        return cleanItems.whereType<NoticeFeedAlert>().toList();
       case _FeedFilter.all:
-        return items;
+        return cleanItems;
     }
   }
 
@@ -365,6 +380,8 @@ class _GroupedFeedList extends StatelessWidget {
           widgets.add(NoticePostCard(key: ValueKey('post-${item.post.id}'), post: item.post));
         } else if (item is NoticeFeedCalendarAlert) {
           widgets.add(CalendarAlertCard(key: ValueKey('cal-alert-${item.alert.id}'), alert: item.alert));
+        } else if (item is NoticeFeedVoucherAlert) {
+          widgets.add(VoucherAlertCard(key: ValueKey('voucher-alert-${item.alert.id}'), alert: item.alert));
         } else if (item is NoticeFeedAlert) {
           widgets.add(AttendanceAlertCard(key: ValueKey('alert-${item.alert.id}'), alert: item.alert));
         }

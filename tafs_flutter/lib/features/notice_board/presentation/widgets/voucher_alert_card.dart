@@ -2,52 +2,68 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../domain/entities/attendance_alert.dart';
+import '../../domain/entities/voucher_alert.dart';
 import '../../presentation/bloc/notice_board_bloc.dart';
 import '../../presentation/bloc/notice_board_event.dart';
 import '../../../auth/presentation/bloc/selected_student_cubit.dart';
-import '../../../attendance_history/presentation/pages/attendance_calendar_page.dart';
+import '../../../fee_ledger/presentation/pages/fee_ledger_page.dart';
 
-class AttendanceAlertCard extends StatefulWidget {
-  final AttendanceAlert alert;
+class VoucherAlertCard extends StatefulWidget {
+  final VoucherAlert alert;
 
-  const AttendanceAlertCard({super.key, required this.alert});
+  const VoucherAlertCard({super.key, required this.alert});
 
   @override
-  State<AttendanceAlertCard> createState() => _AttendanceAlertCardState();
+  State<VoucherAlertCard> createState() => _VoucherAlertCardState();
 }
 
-class _AttendanceAlertCardState extends State<AttendanceAlertCard> {
+class _VoucherAlertCardState extends State<VoucherAlertCard> {
   @override
   void initState() {
     super.initState();
     if (!widget.alert.isRead) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          context.read<NoticeBoardBloc>().add(NoticeBoardAlertRead(widget.alert.id));
+          context.read<NoticeBoardBloc>().add(NoticeBoardVoucherAlertRead(widget.alert.id));
         }
       });
     }
   }
 
+  void _openFees() {
+    final activeStudent = context.read<SelectedStudentCubit>().state;
+    if (activeStudent == null || activeStudent.cc != widget.alert.studentCc) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FeeLedgerPage(
+          studentCc: activeStudent.cc,
+          studentName: activeStudent.fullName,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-     final alert = widget.alert;
-     final isClockIn = alert.direction == 'IN';
-     
-     final IconData icon;
-     final Color statusColor;
-     final String badgeText;
+    final alert = widget.alert;
 
-     if (isClockIn) {
-       icon = Icons.login_rounded;
-       statusColor = AppTheme.paid;
-       badgeText = 'Check In';
-     } else {
-       icon = Icons.logout_rounded;
-       statusColor = AppTheme.navy;
-       badgeText = 'Check Out';
-     }
+    final IconData icon;
+    final Color statusColor;
+
+    if (alert.isIssuedAlert) {
+      icon = Icons.receipt_long_rounded;
+      statusColor = AppTheme.navy;
+    } else if (alert.isOverdueAlert) {
+      icon = Icons.error_outline_rounded;
+      statusColor = AppTheme.danger;
+    } else if (alert.isExpiryAlert) {
+      icon = Icons.timer_outlined;
+      statusColor = AppTheme.danger;
+    } else {
+      icon = Icons.warning_amber_rounded;
+      statusColor = AppTheme.warning;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space3),
@@ -60,20 +76,7 @@ class _AttendanceAlertCardState extends State<AttendanceAlertCard> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         child: InkWell(
-          onTap: () {
-            final activeStudent = context.read<SelectedStudentCubit>().state;
-            if (activeStudent != null && activeStudent.cc == alert.studentCc) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AttendanceCalendarPage(
-                    student: activeStudent,
-                    initialSelectedDate: alert.scanTimeUtc.toLocal(),
-                  ),
-                ),
-              );
-            }
-          },
+          onTap: _openFees,
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           child: Stack(
             children: [
@@ -118,7 +121,7 @@ class _AttendanceAlertCardState extends State<AttendanceAlertCard> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            badgeText,
+                            alert.title,
                             style: TextStyle(
                               fontSize: 13.5,
                               color: statusColor,
@@ -140,7 +143,7 @@ class _AttendanceAlertCardState extends State<AttendanceAlertCard> {
                     ),
                     const SizedBox(width: AppTheme.space2),
                     Text(
-                      _formatTime(alert.scanTimeUtc),
+                      _formatTime(alert.createdAt),
                       style: TextStyle(
                         fontSize: 11,
                         color: AppTheme.navy.withOpacity(0.45),

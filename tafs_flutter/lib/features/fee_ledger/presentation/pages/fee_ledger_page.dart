@@ -807,111 +807,138 @@ class _ActiveVoucherCard extends StatelessWidget {
     final dateFmt = DateFormat('dd MMM yyyy');
 
     return Container(
-      padding: const EdgeInsets.all(AppTheme.space5),
       decoration: BoxDecoration(
         color: AppTheme.white,
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.blue100, width: 2),
-        boxShadow: AppTheme.shadowMd,
+        border: Border.all(color: AppTheme.blue100, width: 1.5),
+        boxShadow: AppTheme.shadowSm,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        child: Stack(
+          children: [
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: 100,
+              child: Container(
                 decoration: BoxDecoration(
-                  color: AppTheme.navy.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                ),
-                child: const Text(
-                  'ACTIVE CHALLAN',
-                  style: TextStyle(
-                    color: AppTheme.navy,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
+                  gradient: LinearGradient(
+                    colors: [
+                      _statusColor.withOpacity(0.18),
+                      _statusColor.withOpacity(0.0),
+                    ],
+                    begin: Alignment.centerRight,
+                    end: Alignment.centerLeft,
                   ),
                 ),
               ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                ),
-                child: Text(
-                  voucher.status.replaceAll('_', ' '),
-                  style: TextStyle(
-                    color: _statusColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppTheme.space5),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.navy.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        ),
+                        child: const Text(
+                          'ACTIVE CHALLAN',
+                          style: TextStyle(
+                            color: AppTheme.navy,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _statusColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        ),
+                        child: Text(
+                          voucher.status.replaceAll('_', ' '),
+                          style: TextStyle(
+                            color: _statusColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTheme.space4),
-          Text(
-            'Challan #${voucher.id}',
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppTheme.blue300,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Rs. ${fmt.format(voucher.totalPayableBeforeDue)}',
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.navy,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Icon(Icons.calendar_today_rounded, size: 14, color: AppTheme.blue300),
-              const SizedBox(width: 6),
-              Text(
-                'Due Date: ${dateFmt.format(voucher.dueDate)}',
-                style: const TextStyle(
-                  color: AppTheme.blue300,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTheme.space5),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => VoucherDetailPage(voucher: voucher),
+                  const SizedBox(height: AppTheme.space4),
+                  Text(
+                    'Challan #${voucher.id}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.blue300,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                );
-              },
-              icon: const Icon(Icons.visibility_rounded),
-              label: const Text('VIEW CHALLAN'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.navy,
-                foregroundColor: AppTheme.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-                ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Rs. ${fmt.format(voucher.totalPayableBeforeDue)}',
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.navy,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today_rounded, size: 14, color: AppTheme.blue300),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Due Date: ${dateFmt.format(voucher.dueDate)}',
+                        style: const TextStyle(
+                          color: AppTheme.blue300,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppTheme.space5),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => VoucherDetailPage(voucher: voucher),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.visibility_rounded),
+                      label: const Text('VIEW CHALLAN'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.navy,
+                        foregroundColor: AppTheme.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

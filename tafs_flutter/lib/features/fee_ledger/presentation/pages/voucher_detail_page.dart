@@ -60,17 +60,6 @@ class VoucherDetailPage extends StatelessWidget {
             const SizedBox(height: AppTheme.space6),
             _SummaryCard(voucher: voucher),
             const SizedBox(height: AppTheme.space6),
-            Text(
-              'FEE BREAKDOWN',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppTheme.blue300,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                  ),
-            ),
-            const SizedBox(height: AppTheme.space3),
-            _FeeBreakdown(voucher: voucher),
-            const SizedBox(height: AppTheme.space6),
             if (voucher.bankInfo != null) ...[
               Text(
                 'PAYMENT INSTRUCTIONS',

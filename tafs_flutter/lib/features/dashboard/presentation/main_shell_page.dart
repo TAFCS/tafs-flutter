@@ -17,6 +17,9 @@ import '../../support_tickets/presentation/pages/ticket_list_page.dart';
 import '../../support_tickets/presentation/pages/ticket_thread_page.dart';
 import '../../support_tickets/presentation/utils/ticket_thread_presence.dart';
 import '../../../../injection_container.dart';
+import '../../../core/services/voucher_alert_watcher.dart';
+import '../../../core/services/voucher_alert_banner_helper.dart';
+import '../../notice_board/domain/entities/notice_feed_item.dart';
 import '../../notice_board/presentation/bloc/notice_board_bloc.dart';
 import '../../notice_board/presentation/bloc/notice_board_event.dart';
 import '../../notice_board/presentation/bloc/notice_board_state.dart';
@@ -42,6 +45,9 @@ class MainShellPage extends StatefulWidget {
 class _MainShellPageState extends State<MainShellPage> {
   int _selectedIndex = 0;
   StreamSubscription? _ticketMessageSub;
+  StreamSubscription? _voucherAlertSub;
+  final Set<int> _seenVoucherAlertIds = {};
+  bool _noticeBoardPrimed = false;
 
   @override
   void initState() {
@@ -51,6 +57,11 @@ class _MainShellPageState extends State<MainShellPage> {
       context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
     }
     context.read<NoticeBoardBloc>().add(const NoticeBoardLoadRequested());
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      VoucherAlertWatcher.instance.start(context);
+    });
 
     _ticketMessageSub = InjectionContainer.supportTicketRepository.onTicketMessage.listen((msg) {
       if (!mounted) return;
@@ -70,11 +81,57 @@ class _MainShellPageState extends State<MainShellPage> {
       );
       context.read<SupportTicketListBloc>().add(const SupportTicketListLoadRequested());
     });
+
+    _voucherAlertSub =
+        InjectionContainer.chatRepository.onVoucherAlertPayload.listen((data) {
+      if (!mounted) return;
+      final alertId = data['id'];
+      if (alertId is int) {
+        _seenVoucherAlertIds.add(alertId);
+      }
+      VoucherAlertBannerHelper.showFromFcm(
+        context,
+        title: data['title'] as String? ?? '',
+        body: data['body'] as String? ?? '',
+        studentCc: data['student_cc'],
+        alertType: data['alert_type'] as String?,
+        voucherId: data['voucher_id'],
+      );
+      context.read<NoticeBoardBloc>().add(const NoticeBoardLoadRequested());
+    });
+  }
+
+  void _onNoticeBoardLoaded(BuildContext context, NoticeBoardLoaded state) {
+    final voucherAlerts = state.items
+        .whereType<NoticeFeedVoucherAlert>()
+        .map((i) => i.alert)
+        .toList();
+    final currentIds = voucherAlerts.map((a) => a.id).toSet();
+
+    if (!_noticeBoardPrimed) {
+      _noticeBoardPrimed = true;
+      _seenVoucherAlertIds
+        ..clear()
+        ..addAll(currentIds);
+      VoucherAlertWatcher.instance.syncBaseline(currentIds);
+      return;
+    }
+
+    final newUnread = voucherAlerts
+        .where((a) => !_seenVoucherAlertIds.contains(a.id) && !a.isRead)
+        .toList();
+    _seenVoucherAlertIds.addAll(currentIds);
+
+    if (newUnread.isNotEmpty) {
+      VoucherAlertBannerHelper.showNewAlerts(context, newUnread);
+    }
   }
 
   @override
   void dispose() {
     _ticketMessageSub?.cancel();
+    _voucherAlertSub?.cancel();
+    VoucherAlertWatcher.instance.stop();
     super.dispose();
   }
 
@@ -139,6 +196,13 @@ class _MainShellPageState extends State<MainShellPage> {
                   });
                 },
               );
+            }
+          },
+        ),
+        BlocListener<NoticeBoardBloc, NoticeBoardState>(
+          listener: (context, state) {
+            if (state is NoticeBoardLoaded) {
+              _onNoticeBoardLoaded(context, state);
             }
           },
         ),
