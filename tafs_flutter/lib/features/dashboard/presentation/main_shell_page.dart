@@ -17,7 +17,6 @@ import '../../support_tickets/presentation/pages/ticket_list_page.dart';
 import '../../support_tickets/presentation/pages/ticket_thread_page.dart';
 import '../../support_tickets/presentation/utils/ticket_thread_presence.dart';
 import '../../../../injection_container.dart';
-import '../../../core/services/voucher_alert_watcher.dart';
 import '../../../core/services/voucher_alert_banner_helper.dart';
 import '../../notice_board/domain/entities/notice_feed_item.dart';
 import '../../notice_board/presentation/bloc/notice_board_bloc.dart';
@@ -57,11 +56,6 @@ class _MainShellPageState extends State<MainShellPage> {
       context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
     }
     context.read<NoticeBoardBloc>().add(const NoticeBoardLoadRequested());
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      VoucherAlertWatcher.instance.start(context);
-    });
 
     _ticketMessageSub = InjectionContainer.supportTicketRepository.onTicketMessage.listen((msg) {
       if (!mounted) return;
@@ -113,7 +107,6 @@ class _MainShellPageState extends State<MainShellPage> {
       _seenVoucherAlertIds
         ..clear()
         ..addAll(currentIds);
-      VoucherAlertWatcher.instance.syncBaseline(currentIds);
       return;
     }
 
@@ -131,7 +124,6 @@ class _MainShellPageState extends State<MainShellPage> {
   void dispose() {
     _ticketMessageSub?.cancel();
     _voucherAlertSub?.cancel();
-    VoucherAlertWatcher.instance.stop();
     super.dispose();
   }
 

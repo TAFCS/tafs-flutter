@@ -244,16 +244,19 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.space5),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((day) {
+            children: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) {
+              final isWeekend = day == 'Su' || day == 'Sa';
               return SizedBox(
                 width: 40,
                 child: Text(
                   day,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.blue300,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: isWeekend
+                        ? const Color(0xFFF43F5E)
+                        : const Color(0xFF71717A),
                   ),
                 ),
               );
@@ -343,7 +346,7 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
 
   Widget _buildCalendarGrid(List<AttendanceDay> days) {
     final firstDayOfWeek = _currentMonth.weekday; // 1 = Monday, 7 = Sunday
-    final totalEmptyCells = firstDayOfWeek - 1;
+    final totalEmptyCells = firstDayOfWeek == 7 ? 0 : firstDayOfWeek;
 
     final daysInMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
     final totalCells = totalEmptyCells + daysInMonth;
@@ -354,7 +357,7 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
         crossAxisCount: 7,
         mainAxisSpacing: 6,
         crossAxisSpacing: 6,
-        childAspectRatio: 0.95,
+        childAspectRatio: 1.0,
       ),
       itemCount: totalCells,
       itemBuilder: (context, index) {
@@ -405,69 +408,45 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
     final isWeekendOverride = day.isWeekend;
     final isExcused = day.isExcused;
 
-    final hasFilter = _filterType != null;
-    final matchesFilter = !hasFilter || _matchesFilter(day);
+    final date = DateTime(_currentMonth.year, _currentMonth.month, dayNumber);
+    final now = DateTime.now();
+    final todayKey = DateTime(now.year, now.month, now.day);
+    final dayKey = DateTime(date.year, date.month, date.day);
+    final isFuture = dayKey.isAfter(todayKey);
 
-    Color cellColor = AppTheme.white;
-    Color borderCol = isSelected
-        ? AppTheme.navy
-        : isToday
-            ? AppTheme.blue300
-            : AppTheme.blue100;
-    double borderWidth = isSelected ? 2.0 : (isToday ? 1.5 : 1.0);
-    Color dotColor = Colors.transparent;
-    Color textColor = AppTheme.navy.withOpacity(0.8);
-
-    // Weekends always get grey fill, no dot — regardless of filter state
+    String classification = 'PRESENT';
     if (isWeekendOverride) {
-      cellColor = const Color(0xFFF3F4F6);
-      borderCol = isSelected ? AppTheme.navy : const Color(0xFFD1D5DB);
-      dotColor = Colors.transparent;
-      textColor = AppTheme.navy.withOpacity(0.55);
-      if (isSelected) borderWidth = 2.0;
-    } else if (matchesFilter) {
-      if (isHoliday || isExcused) {
-        if (hasFilter) cellColor = const Color(0xFFF3E8FF);
-        borderCol = isSelected ? AppTheme.navy : (hasFilter ? const Color(0xFFD8B4FE) : AppTheme.blue100);
-        dotColor = const Color(0xFF9333EA);
-      } else if (day.status == 'PRESENT') {
-        if (hasFilter) cellColor = AppTheme.paid.withOpacity(0.12);
-        dotColor = AppTheme.paid;
-      } else if (day.status == 'LATE') {
-        if (hasFilter) cellColor = AppTheme.warning.withOpacity(0.15);
-        dotColor = AppTheme.warning;
-      } else if (day.status == 'ABSENT') {
-        if (hasFilter) cellColor = AppTheme.danger.withOpacity(0.10);
-        dotColor = AppTheme.danger;
-      }
-      if (isSelected) {
-        borderCol = AppTheme.navy;
-        borderWidth = 2.0;
-      }
+      classification = 'DAY_OFF';
+    } else if (isHoliday || isExcused) {
+      classification = 'EXCUSED';
+    } else if (day.status == 'LATE') {
+      classification = 'LATE';
+    } else if (day.status == 'ABSENT') {
+      classification = 'ABSENT';
+    } else if (day.status == 'PRESENT') {
+      classification = 'PRESENT';
     } else {
-      // Non-matching when filter active — mute but keep faded dot
-      cellColor = AppTheme.white;
-      borderCol = AppTheme.blue100.withOpacity(0.3);
-      borderWidth = 1.0;
-      textColor = AppTheme.blue100;
-      if (isHoliday || isExcused) {
-        dotColor = const Color(0xFF9333EA);
-      } else if (day.status == 'PRESENT') {
-        dotColor = AppTheme.paid;
-      } else if (day.status == 'LATE') {
-        dotColor = AppTheme.warning;
-      } else if (day.status == 'ABSENT') {
-        dotColor = AppTheme.danger;
-      } else {
-        dotColor = Colors.transparent;
-      }
+      classification = 'NONE';
     }
 
-    final date = DateTime(_currentMonth.year, _currentMonth.month, dayNumber);
-    final isFuture = date.isAfter(DateTime.now());
+    final hasFilter = _filterType != null;
+    final matchesFilter = !hasFilter || _matchesFilter(day);
+    final isApprovedLeave = classification == 'EXCUSED';
+    final useMutedStyle = (isFuture && !isApprovedLeave) || (hasFilter && !matchesFilter);
+
+    final style = _getCellStyle(useMutedStyle ? 'NONE' : classification, isSelected, isToday, isFuture);
+
+    final background = style.background;
+    final textColor = style.text;
+    final showDot = !useMutedStyle && classification != 'DAY_OFF' && classification != 'NONE';
+    final label = _shortLabel(classification);
+    final showLabel = !useMutedStyle &&
+        classification != 'DAY_OFF' &&
+        classification != 'NONE' &&
+        label.isNotEmpty;
 
     return Opacity(
-      opacity: isFuture ? 0.4 : 1.0,
+      opacity: isFuture ? 0.5 : 1.0,
       child: GestureDetector(
         onTap: isFuture
             ? null
@@ -478,38 +457,132 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
               },
         child: Container(
           decoration: BoxDecoration(
-            color: cellColor,
-            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-            border: Border.all(color: borderCol, width: borderWidth),
+            color: background,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: style.border,
+              width: isSelected ? 2.0 : (isToday ? 1.5 : 1.0),
+            ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          padding: const EdgeInsets.all(4),
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              Text(
-                '$dayNumber',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
+              if (showDot)
+                Positioned(
+                  top: 2,
+                  right: 2,
+                  child: Container(
+                    width: 5,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: style.dot,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              Center(
+                child: Text(
+                  '$dayNumber',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: textColor,
+                    fontSize: 14,
+                  ),
                 ),
               ),
-              const SizedBox(height: 4),
-              if (dotColor != Colors.transparent)
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: dotColor,
-                    shape: BoxShape.circle,
+              if (showLabel)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 1,
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.clip,
+                    style: TextStyle(
+                      fontSize: 7.5,
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                      height: 1,
+                    ),
                   ),
-                )
-              else
-                const SizedBox(height: 6),
+                ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  String _shortLabel(String classification) {
+    switch (classification) {
+      case 'PRESENT':
+        return 'Present';
+      case 'LATE':
+        return 'Late';
+      case 'ABSENT':
+        return 'Absent';
+      case 'EXCUSED':
+        return 'Leave';
+      default:
+        return '';
+    }
+  }
+
+  _CellStyle _getCellStyle(String classification, bool isSelected, bool isToday, bool isFuture) {
+    Color borderCol = isSelected
+        ? AppTheme.navy
+        : isToday
+            ? AppTheme.blue300
+            : const Color(0xFFE4E4E7);
+
+    switch (classification) {
+      case 'LATE':
+        return _CellStyle(
+          background: const Color(0xFFFFFBEB),
+          dot: const Color(0xFFF59E0B),
+          text: const Color(0xFFB45309),
+          border: isSelected ? AppTheme.navy : (isToday ? AppTheme.blue300 : const Color(0xFFFDE68A)),
+        );
+      case 'ABSENT':
+        return _CellStyle(
+          background: const Color(0xFFFFF1F2),
+          dot: const Color(0xFFF43F5E),
+          text: const Color(0xFFE11D48),
+          border: isSelected ? AppTheme.navy : (isToday ? AppTheme.blue300 : const Color(0xFFFECDD3)),
+        );
+      case 'EXCUSED':
+        return _CellStyle(
+          background: const Color(0xFFF0F9FF),
+          dot: const Color(0xFF38BDF8),
+          text: const Color(0xFF0369A1),
+          border: isSelected ? AppTheme.navy : (isToday ? AppTheme.blue300 : const Color(0xFFBAE6FD)),
+        );
+      case 'DAY_OFF':
+        return _CellStyle(
+          background: const Color(0xFFF4F4F5),
+          dot: Colors.transparent,
+          text: const Color(0xFF71717A),
+          border: isSelected ? AppTheme.navy : (isToday ? AppTheme.blue300 : const Color(0xFFD1D5DB)),
+        );
+      case 'PRESENT':
+        return _CellStyle(
+          background: const Color(0xFFECFDF5),
+          dot: const Color(0xFF10B981),
+          text: const Color(0xFF065F46),
+          border: isSelected ? AppTheme.navy : (isToday ? AppTheme.blue300 : const Color(0xFFA7F3D0)),
+        );
+      case 'NONE':
+      default:
+        return _CellStyle(
+          background: isFuture ? const Color(0xFFFAFAFA) : Colors.white,
+          dot: Colors.transparent,
+          text: isFuture ? const Color(0xFFA1A1AA) : const Color(0xFF71717A),
+          border: borderCol,
+        );
+    }
   }
 
   Widget _buildDetailsPanel(List<AttendanceDay> days) {
@@ -804,4 +877,18 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
       ),
     );
   }
+}
+
+class _CellStyle {
+  final Color background;
+  final Color dot;
+  final Color text;
+  final Color border;
+
+  const _CellStyle({
+    required this.background,
+    required this.dot,
+    required this.text,
+    required this.border,
+  });
 }
