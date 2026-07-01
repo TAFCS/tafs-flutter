@@ -117,17 +117,6 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _ParentHeaderCard(parent: parent),
-                      const SizedBox(height: AppTheme.space6),
-                      Text(
-                        'HOUSEHOLD DETAILS',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: AppTheme.blue300,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                            ),
-                      ),
-                      const SizedBox(height: AppTheme.space3),
-                      _ParentDetailsCard(parent: parent),
                       if (parent.guardians.isNotEmpty) ...[
                         const SizedBox(height: AppTheme.space6),
                         Text(
@@ -347,31 +336,7 @@ class _ParentHeaderCard extends StatelessWidget {
   }
 }
 
-class _ParentDetailsCard extends StatelessWidget {
-  final Parent parent;
-  const _ParentDetailsCard({required this.parent});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.space5),
-      decoration: BoxDecoration(
-        color: AppTheme.white,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.blue100),
-      ),
-      child: Column(
-        children: [
-          _DetailRow(label: 'Family ID', value: '#${parent.id}'),
-          const Divider(height: AppTheme.space4, color: AppTheme.blue100),
-          _DetailRow(label: 'Primary Contact', value: parent.username.isNotEmpty ? parent.username : 'N/A'),
-          const Divider(height: AppTheme.space4, color: AppTheme.blue100),
-          _DetailRow(label: 'Students Linked', value: '${parent.students.length} Total'),
-        ],
-      ),
-    );
-  }
-}
 
 class _DetailRow extends StatelessWidget {
   final String label;

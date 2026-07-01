@@ -335,6 +335,15 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         backgroundColor: AppTheme.white,
         foregroundColor: AppTheme.navy,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout_rounded),
+            onPressed: () {
+              resetStaffSessionState(context);
+              context.read<AuthBloc>().add(AuthLogoutRequested());
+            },
+          ),
+        ],
       ),
       body: IndexedStack(
         index: activeIndex,
