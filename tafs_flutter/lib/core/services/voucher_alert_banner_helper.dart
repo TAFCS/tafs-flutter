@@ -103,18 +103,18 @@ class VoucherAlertBannerHelper {
 
   static String _displayTitle(String title, String? alertType) {
     if (title.isNotEmpty && title != 'Notification') return title;
-    if (alertType == 'VOUCHER_ISSUED') return 'New Fee Challan';
+    if (alertType == 'VOUCHER_ISSUED') return 'School Fees';
     if (alertType == 'BECAME_OVERDUE') return 'Fee Overdue';
-    if (alertType?.startsWith('EXPIRY_REMINDER_') == true) return 'Voucher Expiring Soon';
-    if (alertType?.startsWith('DUE_REMINDER_') == true) return 'Fee Due Soon';
+    if (alertType?.startsWith('EXPIRY_REMINDER_') == true) return 'Payment Deadline';
+    if (alertType?.startsWith('DUE_REMINDER_') == true) return 'Fee Reminder';
     return 'Fee Reminder';
   }
 
   static String _fallbackBody(String? alertType) {
     if (alertType == 'VOUCHER_ISSUED') {
-      return 'Your fee challan is ready. Tap to view and pay.';
+      return 'School fees are ready to pay. Tap to view details.';
     }
-    return 'You have an update about your fee voucher. Tap to view.';
+    return 'You have an update about school fees. Tap to view.';
   }
 
   static void _openFees(Object? studentCc) {
