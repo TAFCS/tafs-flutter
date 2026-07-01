@@ -444,7 +444,9 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            widget.replyingTo!.senderType == ChatSenderType.guardian ? 'You' : 'TAFS Support',
+                            widget.replyingTo!.senderType == ChatSenderType.guardian
+                                ? 'You'
+                                : (widget.replyingTo!.senderName ?? 'TAFS Support'),
                             style: const TextStyle(
                               fontWeight: FontWeight.w900,
                               color: AppTheme.navy,

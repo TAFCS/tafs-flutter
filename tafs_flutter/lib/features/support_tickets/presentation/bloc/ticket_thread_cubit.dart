@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../chat/domain/entities/chat_message.dart';
 import '../../domain/entities/support_ticket.dart';
 import '../../domain/entities/ticket_message.dart';
 import '../../domain/repositories/support_ticket_repository.dart';
@@ -62,6 +63,19 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
     emit(state.copyWith(messages: [...state.messages, msg], clearError: true));
   }
 
+  Map<String, dynamic> _replyMetadata(ChatMessage? replyTo) {
+    if (replyTo == null) return {};
+    return {
+      'replyTo': {
+        'id': replyTo.id,
+        'content': replyTo.content,
+        'type': replyTo.messageType.name.toUpperCase(),
+        'senderName': replyTo.senderName ??
+            (replyTo.senderType == ChatSenderType.guardian ? 'You' : 'TAFS Support'),
+      },
+    };
+  }
+
   Future<void> load(String ticketId) async {
     _activeTicketId = ticketId;
     TicketThreadPresence.activeTicketId = ticketId;
@@ -85,15 +99,17 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
     }
   }
 
-  Future<void> sendText(String content) async {
+  Future<void> sendText(String content, {ChatMessage? replyTo}) async {
     final ticket = state.ticket;
     if (ticket == null || content.trim().isEmpty) return;
     emit(state.copyWith(sending: true, clearError: true));
     try {
+      final replyMeta = _replyMetadata(replyTo);
       final msg = await repository.sendMessage(
         ticketId: ticket.id,
         messageType: 'TEXT',
         content: content.trim(),
+        mediaMetadata: replyMeta.isEmpty ? null : replyMeta,
       );
       _appendMessage(msg);
       emit(state.copyWith(sending: false));
@@ -106,16 +122,21 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
     required String messageType,
     required String content,
     required Map<String, dynamic> mediaMetadata,
+    ChatMessage? replyTo,
   }) async {
     final ticket = state.ticket;
     if (ticket == null) return;
     emit(state.copyWith(sending: true, clearError: true));
     try {
+      final mergedMetadata = {
+        ...mediaMetadata,
+        ..._replyMetadata(replyTo),
+      };
       final msg = await repository.sendMessage(
         ticketId: ticket.id,
         messageType: messageType,
         content: content,
-        mediaMetadata: mediaMetadata,
+        mediaMetadata: mergedMetadata,
       );
       _appendMessage(msg);
       emit(state.copyWith(sending: false));

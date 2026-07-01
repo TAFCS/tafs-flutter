@@ -287,23 +287,16 @@ class _NoticeBoardSection extends StatelessWidget {
   }
 
   List<NoticeFeedItem> _applyFilter(List<NoticeFeedItem> items) {
-    final cleanItems = items.where((item) {
-      if (item is NoticeFeedVoucherAlert && item.alert.isIssuedAlert) {
-        return false;
-      }
-      return true;
-    }).toList();
-
     switch (filter) {
       case _FeedFilter.notices:
-        return cleanItems.where((item) =>
+        return items.where((item) =>
             item is NoticeFeedPost ||
             item is NoticeFeedCalendarAlert ||
             item is NoticeFeedVoucherAlert).toList();
       case _FeedFilter.attendance:
-        return cleanItems.whereType<NoticeFeedAlert>().toList();
+        return items.whereType<NoticeFeedAlert>().toList();
       case _FeedFilter.all:
-        return cleanItems;
+        return items;
     }
   }
 

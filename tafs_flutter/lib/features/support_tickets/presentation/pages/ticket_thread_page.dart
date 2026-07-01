@@ -22,6 +22,7 @@ class TicketThreadPage extends StatefulWidget {
 class _TicketThreadPageState extends State<TicketThreadPage> {
   late final TicketThreadCubit _cubit;
   final ScrollController _scrollController = ScrollController();
+  ChatMessage? _replyingTo;
 
   @override
   void initState() {
@@ -46,6 +47,21 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
         curve: Curves.easeOut,
       );
     });
+  }
+
+  void _scrollToMessage(List<TicketMessage> messages, String messageId) {
+    final index = messages.indexWhere((m) => m.id == messageId);
+    if (index < 0 || !_scrollController.hasClients) return;
+    const itemExtent = 96.0;
+    final target = (index * itemExtent).clamp(
+      0.0,
+      _scrollController.position.maxScrollExtent,
+    );
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   String _categoryLabel(String name) {
@@ -227,8 +243,10 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
                                           ),
                                         );
                                       },
-                                      onReplyTap: (_) {},
-                                      onReply: (_) {},
+                                      onReplyTap: (id) => _scrollToMessage(state.messages, id),
+                                      onReply: (message) {
+                                        setState(() => _replyingTo = message);
+                                      },
                                     ),
                                   ),
                                 ],
@@ -241,8 +259,8 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
                       children: [
                         MessageInput(
                             isSending: state.sending,
-                            replyingTo: null,
-                            onCancelReply: () {},
+                            replyingTo: _replyingTo,
+                            onCancelReply: () => setState(() => _replyingTo = null),
                             students: const [],
                             onSend: (content, type, file, replyTo, batchId) async {
                             final cubit = context.read<TicketThreadCubit>();
@@ -258,9 +276,13 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
                                 messageType: messageType,
                                 content: mediaUrl ?? (content.isEmpty ? file.name : content),
                                 mediaMetadata: media,
+                                replyTo: replyTo,
                               );
                             } else {
-                              await cubit.sendText(content);
+                              await cubit.sendText(content, replyTo: replyTo);
+                            }
+                            if (_replyingTo != null) {
+                              setState(() => _replyingTo = null);
                             }
                             _scrollToBottom();
                           },
