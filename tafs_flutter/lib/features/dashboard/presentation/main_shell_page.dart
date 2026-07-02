@@ -17,6 +17,7 @@ import '../../support_tickets/presentation/pages/ticket_list_page.dart';
 import '../../support_tickets/presentation/pages/ticket_thread_page.dart';
 import '../../support_tickets/presentation/utils/ticket_thread_presence.dart';
 import '../../../../injection_container.dart';
+import '../../../core/navigation/app_navigator.dart';
 import '../../../core/services/voucher_alert_banner_helper.dart';
 import '../../notice_board/domain/entities/notice_feed_item.dart';
 import '../../notice_board/presentation/bloc/notice_board_bloc.dart';
@@ -56,6 +57,8 @@ class _MainShellPageState extends State<MainShellPage> {
       context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
     }
     context.read<NoticeBoardBloc>().add(const NoticeBoardLoadRequested());
+
+    mainShellTabRequest.addListener(_onTabRequest);
 
     _ticketMessageSub = InjectionContainer.supportTicketRepository.onTicketMessage.listen((msg) {
       if (!mounted) return;
@@ -122,9 +125,17 @@ class _MainShellPageState extends State<MainShellPage> {
 
   @override
   void dispose() {
+    mainShellTabRequest.removeListener(_onTabRequest);
     _ticketMessageSub?.cancel();
     _voucherAlertSub?.cancel();
     super.dispose();
+  }
+
+  void _onTabRequest() {
+    final index = mainShellTabRequest.value;
+    if (index == null) return;
+    mainShellTabRequest.value = null;
+    _onTabTapped(index);
   }
 
   void _onTabTapped(int index) {

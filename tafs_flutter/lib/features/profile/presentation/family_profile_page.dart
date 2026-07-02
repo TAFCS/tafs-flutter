@@ -157,7 +157,31 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                       const SizedBox(height: AppTheme.space10),
                       const Divider(color: AppTheme.blue100),
                       const SizedBox(height: AppTheme.space4),
-                      Center(
+                      if (!widget.showAppBar) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: OutlinedButton.icon(
+                            onPressed: () =>
+                                context.read<AuthBloc>().add(AuthLogoutRequested()),
+                            icon: const Icon(Icons.logout_rounded, size: 18),
+                            label: const Text(
+                              'Log out',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.navy,
+                              side: const BorderSide(color: AppTheme.navy),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.space5),
+                      ],
+                      Align(
+                        alignment: Alignment.centerRight,
                         child: TextButton.icon(
                           onPressed: () async {
                             final confirmed = await _showDeleteAccountDialog(context);
@@ -166,40 +190,21 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                             context.read<AuthBloc>().add(AuthDeleteAccountRequested());
                           },
                           icon: const Icon(
-                            Icons.delete_forever_rounded,
-                            size: 18,
-                            color: AppTheme.danger,
+                            Icons.delete_forever_outlined,
+                            size: 14,
+                            color: AppTheme.blue300,
                           ),
                           label: const Text(
                             'Request account deletion',
                             style: TextStyle(
-                              color: AppTheme.danger,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                              color: AppTheme.blue300,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(height: AppTheme.space2),
-                      if (!widget.showAppBar) ...[
-                        const SizedBox(height: AppTheme.space3),
-                        Center(
-                          child: TextButton.icon(
-                            onPressed: () =>
-                                context.read<AuthBloc>().add(AuthLogoutRequested()),
-                            icon: const Icon(Icons.logout_rounded,
-                                size: 16, color: AppTheme.blue300),
-                            label: const Text(
-                              'Log out',
-                              style: TextStyle(
-                                  color: AppTheme.blue300,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppTheme.space5),
-                      ],
                     ],
                   ),
                 ),

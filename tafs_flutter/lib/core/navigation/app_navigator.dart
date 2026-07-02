@@ -12,3 +12,12 @@ void navigateToSupportTicketThread(String ticketId) {
     ),
   );
 }
+
+/// Requests that [MainShellPage] switch its bottom-nav tab to the given
+/// index. Listened to by `_MainShellPageState`, which resets this back to
+/// null once handled.
+final ValueNotifier<int?> mainShellTabRequest = ValueNotifier<int?>(null);
+
+void switchToFeesTab() {
+  mainShellTabRequest.value = 1;
+}

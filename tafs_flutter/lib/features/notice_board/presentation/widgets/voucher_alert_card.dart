@@ -6,7 +6,7 @@ import '../../domain/entities/voucher_alert.dart';
 import '../../presentation/bloc/notice_board_bloc.dart';
 import '../../presentation/bloc/notice_board_event.dart';
 import '../../../auth/presentation/bloc/selected_student_cubit.dart';
-import '../../../fee_ledger/presentation/pages/fee_ledger_page.dart';
+import '../../../../core/navigation/app_navigator.dart';
 
 class VoucherAlertCard extends StatefulWidget {
   final VoucherAlert alert;
@@ -37,15 +37,7 @@ class _VoucherAlertCardState extends State<VoucherAlertCard> {
   void _openFees() {
     final activeStudent = context.read<SelectedStudentCubit>().state;
     if (activeStudent == null || activeStudent.cc != widget.alert.studentCc) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => FeeLedgerPage(
-          studentCc: activeStudent.cc,
-          studentName: activeStudent.fullName,
-        ),
-      ),
-    );
+    switchToFeesTab();
   }
 
   @override
