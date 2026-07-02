@@ -30,6 +30,10 @@ class _VoucherAlertCardState extends State<VoucherAlertCard> {
     }
   }
 
+  void _markRead() {
+    context.read<NoticeBoardBloc>().add(NoticeBoardVoucherAlertRead(widget.alert.id));
+  }
+
   void _openFees() {
     final activeStudent = context.read<SelectedStudentCubit>().state;
     if (activeStudent == null || activeStudent.cc != widget.alert.studentCc) return;
@@ -68,7 +72,7 @@ class _VoucherAlertCardState extends State<VoucherAlertCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space3),
       decoration: BoxDecoration(
-        color: AppTheme.white,
+        color: alert.isRead ? AppTheme.white : AppTheme.blue100.withOpacity(0.22),
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         border: Border.all(color: AppTheme.blue100.withOpacity(0.7), width: 1.0),
         boxShadow: AppTheme.shadowXs,
@@ -78,32 +82,15 @@ class _VoucherAlertCardState extends State<VoucherAlertCard> {
         child: InkWell(
           onTap: _openFees,
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          child: Stack(
-            children: [
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: 180,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        statusColor.withOpacity(0.24),
-                        statusColor.withOpacity(0.0),
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.space4,
-                  vertical: AppTheme.space3 * 1.2,
-                ),
-                child: Row(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.space4,
+              vertical: AppTheme.space3 * 1.2,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
@@ -123,7 +110,7 @@ class _VoucherAlertCardState extends State<VoucherAlertCard> {
                           Text(
                             alert.title,
                             style: TextStyle(
-                              fontSize: 13.5,
+                              fontSize: 15.5,
                               color: statusColor,
                               fontWeight: FontWeight.bold,
                             ),
@@ -132,8 +119,8 @@ class _VoucherAlertCardState extends State<VoucherAlertCard> {
                           Text(
                             alert.body,
                             style: TextStyle(
-                              fontSize: 13.0,
-                              color: AppTheme.navy.withOpacity(0.75),
+                              fontSize: 15.0,
+                              color: AppTheme.navy.withOpacity(0.88),
                               fontWeight: FontWeight.w500,
                               height: 1.45,
                             ),
@@ -152,8 +139,27 @@ class _VoucherAlertCardState extends State<VoucherAlertCard> {
                     ),
                   ],
                 ),
-              ),
-            ],
+                if (!alert.isRead) ...[
+                  const SizedBox(height: AppTheme.space2),
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: TextButton.icon(
+                      onPressed: _markRead,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                        minimumSize: const Size(0, 28),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.done_rounded, size: 15, color: AppTheme.navy),
+                      label: const Text(
+                        'Mark as read',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),

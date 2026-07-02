@@ -15,6 +15,8 @@ class FamilyAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: AppTheme.white,
       foregroundColor: AppTheme.navy,
       elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
       centerTitle: false,
       actions: actions,
       title: Row(

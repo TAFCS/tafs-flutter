@@ -76,7 +76,14 @@ class MyApp extends StatelessWidget {
           return GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-            child: child ?? const SizedBox.shrink(),
+            child: Container(
+              color: AppTheme.white,
+              child: SafeArea(
+                top: false,
+                bottom: true,
+                child: child ?? const SizedBox.shrink(),
+              ),
+            ),
           );
         },
       ),

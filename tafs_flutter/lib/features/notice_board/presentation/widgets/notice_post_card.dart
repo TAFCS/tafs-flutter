@@ -34,6 +34,10 @@ class _NoticePostCardState extends State<NoticePostCard> {
     }
   }
 
+  void _markRead() {
+    context.read<NoticeBoardBloc>().add(NoticeBoardPostRead(widget.post.id));
+  }
+
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
@@ -42,7 +46,9 @@ class _NoticePostCardState extends State<NoticePostCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space3),
       decoration: BoxDecoration(
-        color: isPinned ? const Color(0xFFF5F8FC) : AppTheme.white,
+        color: !post.isRead
+            ? AppTheme.blue100.withOpacity(0.22)
+            : (isPinned ? const Color(0xFFF5F8FC) : AppTheme.white),
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         border: Border.all(
           color: isPinned ? AppTheme.navy.withOpacity(0.2) : AppTheme.blue100,
@@ -73,7 +79,7 @@ class _NoticePostCardState extends State<NoticePostCard> {
                               post.postedByName,
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: 15,
                                 color: AppTheme.navy,
                               ),
                             ),
@@ -105,7 +111,7 @@ class _NoticePostCardState extends State<NoticePostCard> {
                     post.title!,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 15,
+                      fontSize: 17,
                       color: AppTheme.navy,
                     ),
                   ),
@@ -122,6 +128,29 @@ class _NoticePostCardState extends State<NoticePostCard> {
           if (post.mediaUrls.isNotEmpty) ...[
             const SizedBox(height: AppTheme.space3),
             _MediaStrip(mediaUrls: post.mediaUrls, mediaTypes: post.mediaTypes),
+          ],
+
+          if (!post.isRead) ...[
+            const SizedBox(height: AppTheme.space2),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space4),
+              child: Align(
+                alignment: Alignment.bottomRight,
+                child: TextButton.icon(
+                  onPressed: _markRead,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    minimumSize: const Size(0, 28),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  icon: const Icon(Icons.done_rounded, size: 15, color: AppTheme.navy),
+                  label: const Text(
+                    'Mark as read',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                  ),
+                ),
+              ),
+            ),
           ],
 
           const SizedBox(height: AppTheme.space4),
@@ -174,7 +203,7 @@ class _ExpandableBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const maxLines = 3;
-    final style = TextStyle(fontSize: 13.5, color: AppTheme.blue300, height: 1.5);
+    final style = TextStyle(fontSize: 15.5, color: AppTheme.navy.withOpacity(0.85), height: 1.5);
 
     return LayoutBuilder(
       builder: (context, constraints) {

@@ -32,6 +32,10 @@ class _EmployeeNoticeCardState extends State<EmployeeNoticeCard> {
     }
   }
 
+  void _markRead() {
+    context.read<EmployeeNoticeCubit>().markRead(widget.notice.id);
+  }
+
   @override
   Widget build(BuildContext context) {
     final notice = widget.notice;
@@ -39,7 +43,7 @@ class _EmployeeNoticeCardState extends State<EmployeeNoticeCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space3),
       decoration: BoxDecoration(
-        color: AppTheme.white,
+        color: notice.isRead ? AppTheme.white : AppTheme.blue100.withOpacity(0.22),
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         border: Border.all(color: AppTheme.blue100),
         boxShadow: AppTheme.shadowXs,
@@ -66,7 +70,7 @@ class _EmployeeNoticeCardState extends State<EmployeeNoticeCard> {
                               notice.postedByName,
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: 15,
                                 color: AppTheme.navy,
                               ),
                             ),
@@ -96,7 +100,7 @@ class _EmployeeNoticeCardState extends State<EmployeeNoticeCard> {
                     notice.title!,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 15,
+                      fontSize: 17,
                       color: AppTheme.navy,
                     ),
                   ),
@@ -113,6 +117,28 @@ class _EmployeeNoticeCardState extends State<EmployeeNoticeCard> {
           if (notice.mediaUrls.isNotEmpty) ...[
             const SizedBox(height: AppTheme.space3),
             _MediaStrip(mediaUrls: notice.mediaUrls, mediaTypes: notice.mediaTypes),
+          ],
+          if (!notice.isRead) ...[
+            const SizedBox(height: AppTheme.space2),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space4),
+              child: Align(
+                alignment: Alignment.bottomRight,
+                child: TextButton.icon(
+                  onPressed: _markRead,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    minimumSize: const Size(0, 28),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  icon: const Icon(Icons.done_rounded, size: 15, color: AppTheme.navy),
+                  label: const Text(
+                    'Mark as read',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                  ),
+                ),
+              ),
+            ),
           ],
           const SizedBox(height: AppTheme.space4),
         ],
@@ -164,7 +190,7 @@ class _ExpandableBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const maxLines = 3;
-    final style = TextStyle(fontSize: 13, color: AppTheme.blue300, height: 1.5);
+    final style = TextStyle(fontSize: 15, color: AppTheme.navy.withOpacity(0.85), height: 1.5);
 
     return LayoutBuilder(
       builder: (context, constraints) {

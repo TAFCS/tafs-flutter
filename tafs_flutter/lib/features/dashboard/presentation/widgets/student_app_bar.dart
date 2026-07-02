@@ -35,6 +35,8 @@ class StudentAppBar extends StatelessWidget implements PreferredSizeWidget {
       return AppBar(
         backgroundColor: AppTheme.white,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         title: const Text('Loading...'),
       );
     }
@@ -43,6 +45,8 @@ class StudentAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: AppTheme.white,
       foregroundColor: AppTheme.navy,
       elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
       centerTitle: false,
       actions: [
         if (actions != null) ...actions!,
