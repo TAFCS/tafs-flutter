@@ -11,6 +11,7 @@ import '../../../../core/error/api_error_mapper.dart';
 import '../../../../core/theme/app_theme.dart';
 
 import '../../../../core/widgets/student_profile_card.dart';
+import '../../../support_tickets/presentation/pages/ticket_list_page.dart';
 import '../../domain/entities/voucher.dart';
 
 class VoucherDetailPage extends StatefulWidget {
@@ -25,6 +26,16 @@ class VoucherDetailPage extends StatefulWidget {
 class _VoucherDetailPageState extends State<VoucherDetailPage> {
   bool _isDownloading = false;
   double _downloadProgress = 0;
+
+  Future<void> _openSupportTickets() async {
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const TicketListPage(),
+      ),
+    );
+  }
 
   Future<void> _viewInBrowser() async {
     if (widget.voucher.pdfUrl == null) return;
@@ -201,6 +212,12 @@ class _VoucherDetailPageState extends State<VoucherDetailPage> {
                   const StudentProfileCard(),
                   const SizedBox(height: AppTheme.space6),
                   _StatusHeader(voucher: widget.voucher),
+                  if (widget.voucher.status == 'EXPIRED') ...[
+                    const SizedBox(height: AppTheme.space4),
+                    _ExpiredVoucherActions(
+                      onContactAdmin: _openSupportTickets,
+                    ),
+                  ],
                   const SizedBox(height: AppTheme.space6),
                   _SummaryCard(voucher: widget.voucher),
                   const SizedBox(height: AppTheme.space6),
@@ -223,9 +240,61 @@ class _VoucherDetailPageState extends State<VoucherDetailPage> {
           ),
         ],
       ),
-      bottomNavigationBar: widget.voucher.pdfUrl == null
-          ? null
-          : Container(
+      bottomNavigationBar: widget.voucher.status == 'EXPIRED'
+          ? Container(
+              padding: EdgeInsets.fromLTRB(
+                AppTheme.space5,
+                AppTheme.space4,
+                AppTheme.space5,
+                MediaQuery.of(context).padding.bottom + AppTheme.space4,
+              ),
+              decoration: BoxDecoration(
+                color: AppTheme.white,
+                border: const Border(
+                  top: BorderSide(color: AppTheme.blue100, width: 1.0),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.navy.withValues(alpha: 0.04),
+                    offset: const Offset(0, -4),
+                    blurRadius: 16,
+                  ),
+                ],
+              ),
+              child: SizedBox(
+                height: 50,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.navyGradient,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                    boxShadow: AppTheme.shadowSm,
+                  ),
+                  child: ElevatedButton.icon(
+                    onPressed: _openSupportTickets,
+                    icon: const Icon(Icons.support_agent_outlined, size: 18),
+                    label: const Text(
+                      'CONTACT ADMIN FOR REPRINT (RS. 100)',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: AppTheme.white,
+                      shape: const StadiumBorder(),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : widget.voucher.pdfUrl == null
+              ? null
+              : Container(
               padding: EdgeInsets.fromLTRB(
                 AppTheme.space5,
                 AppTheme.space4,
@@ -311,6 +380,79 @@ class _VoucherDetailPageState extends State<VoucherDetailPage> {
                 ],
               ),
             ),
+    );
+  }
+}
+
+class _ExpiredVoucherActions extends StatelessWidget {
+  final VoidCallback onContactAdmin;
+
+  const _ExpiredVoucherActions({required this.onContactAdmin});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.space4),
+      decoration: BoxDecoration(
+        color: AppTheme.danger.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.danger.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Voucher expired',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.danger,
+                ),
+          ),
+          const SizedBox(height: 6),
+          RichText(
+            text: TextSpan(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.navy.withValues(alpha: 0.75),
+                    height: 1.4,
+                    fontWeight: FontWeight.w500,
+                  ),
+              children: [
+                const TextSpan(
+                  text: 'To pay this fee, the voucher must be regenerated by the school.\n'
+                      'Reprinting fee: ',
+                ),
+                TextSpan(
+                  text: 'Rs. 100',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.navy.withValues(alpha: 0.85),
+                        height: 1.4,
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppTheme.space3),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: OutlinedButton.icon(
+              onPressed: onContactAdmin,
+              icon: const Icon(Icons.support_agent_outlined, size: 18),
+              label: const Text(
+                'Contact admin to regenerate',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.navy,
+                side: BorderSide(color: AppTheme.navy.withValues(alpha: 0.6)),
+                shape: const StadiumBorder(),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

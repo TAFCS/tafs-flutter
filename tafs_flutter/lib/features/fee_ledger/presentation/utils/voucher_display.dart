@@ -126,5 +126,5 @@ class VoucherDisplay {
     }
   }
 
-  static bool canOpenDetail(Voucher voucher) => voucher.status != 'EXPIRED';
+  static bool canOpenDetail(Voucher voucher) => true;
 }

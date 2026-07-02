@@ -628,6 +628,24 @@ class _ActiveVoucherCard extends StatelessWidget {
 
   const _ActiveVoucherCard({required this.voucher});
 
+  Future<void> _showReprintDialog(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Request reprint'),
+        content: const Text(
+          'This voucher is expired.\n\nReprinting fee: Rs. 100\n\nFor now, please contact the school admin to regenerate this voucher.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final fmt = NumberFormat('#,##0', 'en_US');
@@ -756,17 +774,42 @@ class _ActiveVoucherCard extends StatelessWidget {
                               : AppTheme.warning.withValues(alpha: 0.15),
                         ),
                       ),
-                      child: Text(
-                        footer,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.navy.withValues(alpha: 0.75),
-                              height: 1.45,
-                              fontWeight: FontWeight.w500,
+                      child: voucher.status == 'EXPIRED'
+                          ? RichText(
+                              text: TextSpan(
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppTheme.navy.withValues(alpha: 0.75),
+                                      height: 1.45,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                children: [
+                                  const TextSpan(
+                                    text: 'Contact the school admin to regenerate this voucher. '
+                                        'A regenerated voucher carries a ',
+                                  ),
+                                  TextSpan(
+                                    text: 'Rs. 100',
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: AppTheme.navy.withValues(alpha: 0.85),
+                                          height: 1.45,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                  ),
+                                  const TextSpan(text: ' reprinting fee.'),
+                                ],
+                              ),
+                            )
+                          : Text(
+                              footer,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.navy.withValues(alpha: 0.75),
+                                    height: 1.45,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                             ),
-                      ),
                     ),
                   ],
-                  if (canOpen) ...[
+                  if (canOpen && voucher.status != 'EXPIRED') ...[
                     const SizedBox(height: AppTheme.space5),
                     SizedBox(
                       width: double.infinity,
@@ -778,6 +821,10 @@ class _ActiveVoucherCard extends StatelessWidget {
                         ),
                         child: ElevatedButton.icon(
                           onPressed: () {
+                            if (voucher.status == 'EXPIRED') {
+                              _showReprintDialog(context);
+                              return;
+                            }
                             Navigator.push(
                               context,
                               MaterialPageRoute(
