@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
@@ -707,12 +708,33 @@ class _ActiveVoucherCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: AppTheme.space1),
-                  Text(
-                    'Challan #${voucher.id}',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  Row(
+                    children: [
+                      Text(
+                        'Challan #${voucher.id}',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: AppTheme.blue300,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(width: AppTheme.space1),
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: '${voucher.id}'));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Challan number copied to clipboard'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        child: const Icon(
+                          Icons.copy_rounded,
+                          size: 14,
                           color: AppTheme.blue300,
-                          fontWeight: FontWeight.w600,
                         ),
+                      ),
+                    ],
                   ),
                   if (amount != null) ...[
                     const SizedBox(height: AppTheme.space3),
@@ -889,6 +911,23 @@ class _HistoryVoucherCard extends StatelessWidget {
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: 0.5,
                                 ),
+                          ),
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(text: '${voucher.id}'));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Challan number copied to clipboard'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            child: const Icon(
+                              Icons.copy_rounded,
+                              size: 13,
+                              color: AppTheme.blue300,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Container(
