@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../navigation/app_navigator.dart';
 import 'in_app_notification_service.dart';
-import '../../features/fee_ledger/presentation/pages/fee_ledger_page.dart';
 import '../../features/notice_board/domain/entities/voucher_alert.dart';
 import '../../injection_container.dart';
 
@@ -12,23 +11,11 @@ class VoucherAlertBannerHelper {
 
   static final Set<int> _shownAlertIds = {};
   static final Set<String> _shownFcmKeys = {};
-  static DateTime? _lastBannerShownAt;
 
   /// Clear dedupe state (e.g. after test data reset).
   static void resetSession() {
     _shownAlertIds.clear();
     _shownFcmKeys.clear();
-    _lastBannerShownAt = null;
-  }
-
-  static bool _throttle() {
-    final now = DateTime.now();
-    if (_lastBannerShownAt != null &&
-        now.difference(_lastBannerShownAt!) < const Duration(seconds: 4)) {
-      return false;
-    }
-    _lastBannerShownAt = now;
-    return true;
   }
 
   static void maybeShowForAlerts(BuildContext context, List<VoucherAlert> alerts) {
@@ -70,12 +57,40 @@ class VoucherAlertBannerHelper {
     required Object? studentCc,
     String? alertType,
     Object? voucherId,
+    Object? alertId,
   }) {
-    final fcmKey = '${voucherId ?? ''}_${alertType ?? ''}';
-    if (voucherId != null && alertType != null && !_shownFcmKeys.add(fcmKey)) {
-      return;
+    showFromRealtime(
+      context,
+      title: title,
+      body: body,
+      studentCc: studentCc,
+      alertType: alertType,
+      voucherId: voucherId,
+      alertId: alertId,
+    );
+  }
+
+  /// Socket / foreground FCM — always attempt to show (no throttle).
+  static bool showFromRealtime(
+    BuildContext context, {
+    required String title,
+    required String body,
+    required Object? studentCc,
+    String? alertType,
+    Object? voucherId,
+    Object? alertId,
+  }) {
+    final parsedAlertId = _parseInt(alertId);
+    if (parsedAlertId != null && _shownAlertIds.contains(parsedAlertId)) {
+      return false;
     }
-    if (!_throttle()) return;
+
+    final fcmKey = '${voucherId ?? ''}_${alertType ?? ''}';
+    if (voucherId != null &&
+        alertType != null &&
+        !_shownFcmKeys.add(fcmKey)) {
+      return false;
+    }
 
     final preview = body.length > 80 ? '${body.substring(0, 80)}…' : body;
     final displayTitle = _displayTitle(title, alertType);
@@ -89,6 +104,18 @@ class VoucherAlertBannerHelper {
       message: displayBody,
       onTap: () => _openFees(studentCc),
     );
+
+    if (parsedAlertId != null) {
+      _shownAlertIds.add(parsedAlertId);
+    }
+    return true;
+  }
+
+  static int? _parseInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
   static void _show(BuildContext context, VoucherAlert alert) {
@@ -125,14 +152,6 @@ class VoucherAlertBannerHelper {
     final activeStudent = InjectionContainer.selectedStudentCubit.state;
     if (activeStudent == null || (parsedCc != null && activeStudent.cc != parsedCc)) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => FeeLedgerPage(
-          studentCc: activeStudent.cc,
-          studentName: activeStudent.fullName,
-        ),
-      ),
-    );
+    switchToFeesTab();
   }
 }

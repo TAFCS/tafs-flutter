@@ -10,8 +10,9 @@ import 'in_app_notification_service.dart';
 import 'voucher_alert_banner_helper.dart';
 import '../../injection_container.dart';
 import '../../features/attendance_history/presentation/pages/attendance_calendar_page.dart';
-import '../../features/fee_ledger/presentation/pages/fee_ledger_page.dart';
 import '../../features/notice_board/presentation/bloc/notice_board_event.dart';
+import '../../features/notice_board/presentation/utils/notice_board_realtime.dart';
+import '../../features/auth/presentation/bloc/auth_state.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -82,15 +83,26 @@ class NotificationService {
       final ticketId = message.data['ticketId'] as String?;
 
       if (type == 'voucher_alert') {
-        InjectionContainer.noticeBoardBloc.add(const NoticeBoardLoadRequested());
-        VoucherAlertBannerHelper.showFromFcm(
-          context,
-          title: title,
-          body: body,
-          studentCc: message.data['student_cc'],
-          alertType: message.data['alert_type'] as String?,
-          voucherId: message.data['voucher_id'],
-        );
+        _applyVoucherAlertToFeed(message.data);
+
+        void deliverBanner() {
+          final context = appNavigatorKey.currentContext;
+          if (context == null) return;
+          VoucherAlertBannerHelper.showFromRealtime(
+            context,
+            title: title,
+            body: body,
+            studentCc: message.data['student_cc'],
+            alertType: message.data['alert_type'] as String?,
+            voucherId: message.data['voucher_id'],
+            alertId: message.data['notification_id'],
+          );
+        }
+
+        deliverBanner();
+        if (appNavigatorKey.currentContext == null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => deliverBanner());
+        }
         return;
       }
 
@@ -150,7 +162,7 @@ class NotificationService {
       _handleAttendanceRouting(data);
     } else if (type == 'voucher_alert') {
       _handleVoucherAlertRouting(studentCcStr: data['student_cc']);
-      InjectionContainer.noticeBoardBloc.add(const NoticeBoardLoadRequested());
+      _applyVoucherAlertToFeed(data);
     } else if (type == 'EMPLOYEE_NOTICE') {
       // Refresh the employee notice cubit so the Notices tab is up-to-date
       try {
@@ -190,14 +202,43 @@ class NotificationService {
     final activeStudent = InjectionContainer.selectedStudentCubit.state;
     if (activeStudent == null || (parsedCc != null && activeStudent.cc != parsedCc)) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => FeeLedgerPage(
-          studentCc: activeStudent.cc,
-          studentName: activeStudent.fullName,
-        ),
-      ),
+    switchToFeesTab();
+  }
+
+  void _applyVoucherAlertToFeed(Map<String, dynamic> data) {
+    final authState = InjectionContainer.authBloc.state;
+    if (authState is! AuthAuthenticated) {
+      InjectionContainer.noticeBoardBloc.add(const NoticeBoardRefreshRequested());
+      return;
+    }
+
+    final studentCcRaw = data['student_cc'];
+    final studentCc = studentCcRaw is int
+        ? studentCcRaw
+        : studentCcRaw is num
+            ? studentCcRaw.toInt()
+            : int.tryParse(studentCcRaw?.toString() ?? '');
+
+    String studentName = 'Student';
+    if (studentCc != null) {
+      final selected = InjectionContainer.selectedStudentCubit.state;
+      if (selected != null && selected.cc == studentCc) {
+        studentName = selected.fullName;
+      } else {
+        for (final student in authState.parent.students) {
+          if (student.cc == studentCc) {
+            studentName = student.fullName;
+            break;
+          }
+        }
+      }
+    }
+
+    applyVoucherAlertRealtime(
+      InjectionContainer.noticeBoardBloc,
+      data,
+      familyId: authState.parent.id,
+      studentName: studentName,
     );
   }
 

@@ -25,7 +25,6 @@ import '../../notice_board/presentation/bloc/notice_board_event.dart';
 import '../../notice_board/presentation/bloc/notice_board_state.dart';
 import '../../fee_ledger/presentation/bloc/fee_ledger_bloc.dart';
 import '../../fee_ledger/presentation/bloc/fee_ledger_event.dart';
-import '../../fee_ledger/presentation/bloc/fee_ledger_state.dart';
 import '../../fee_ledger/presentation/bloc/fee_summary_bloc.dart';
 import '../../fee_ledger/presentation/bloc/fee_summary_event.dart';
 import '../../fee_ledger/presentation/pages/fee_ledger_page.dart';
@@ -42,16 +41,16 @@ class MainShellPage extends StatefulWidget {
   State<MainShellPage> createState() => _MainShellPageState();
 }
 
-class _MainShellPageState extends State<MainShellPage> {
+class _MainShellPageState extends State<MainShellPage> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   StreamSubscription? _ticketMessageSub;
-  StreamSubscription? _voucherAlertSub;
   final Set<int> _seenVoucherAlertIds = {};
   bool _noticeBoardPrimed = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final student = context.read<SelectedStudentCubit>().state;
     if (student != null) {
       context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
@@ -78,24 +77,13 @@ class _MainShellPageState extends State<MainShellPage> {
       );
       context.read<SupportTicketListBloc>().add(const SupportTicketListLoadRequested());
     });
+  }
 
-    _voucherAlertSub =
-        InjectionContainer.chatRepository.onVoucherAlertPayload.listen((data) {
-      if (!mounted) return;
-      final alertId = data['id'];
-      if (alertId is int) {
-        _seenVoucherAlertIds.add(alertId);
-      }
-      VoucherAlertBannerHelper.showFromFcm(
-        context,
-        title: data['title'] as String? ?? '',
-        body: data['body'] as String? ?? '',
-        studentCc: data['student_cc'],
-        alertType: data['alert_type'] as String?,
-        voucherId: data['voucher_id'],
-      );
-      context.read<NoticeBoardBloc>().add(const NoticeBoardLoadRequested());
-    });
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<NoticeBoardBloc>().add(const NoticeBoardRefreshRequested());
+    }
   }
 
   void _onNoticeBoardLoaded(BuildContext context, NoticeBoardLoaded state) {
@@ -125,9 +113,9 @@ class _MainShellPageState extends State<MainShellPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     mainShellTabRequest.removeListener(_onTabRequest);
     _ticketMessageSub?.cancel();
-    _voucherAlertSub?.cancel();
     super.dispose();
   }
 
@@ -135,6 +123,17 @@ class _MainShellPageState extends State<MainShellPage> {
     final index = mainShellTabRequest.value;
     if (index == null) return;
     mainShellTabRequest.value = null;
+
+    // Programmatic navigation (e.g. voucher alert tap) should refresh even
+    // when the Fees tab is already selected — IndexedStack keeps it mounted.
+    if (index == 1) {
+      if (_selectedIndex != 1) {
+        setState(() => _selectedIndex = 1);
+      }
+      _reloadFees();
+      return;
+    }
+
     _onTabTapped(index);
   }
 
@@ -142,20 +141,16 @@ class _MainShellPageState extends State<MainShellPage> {
     if (_selectedIndex == index) return;
     setState(() => _selectedIndex = index);
     if (index == 1) {
-      _ensureFeesLoaded();
+      _reloadFees();
     }
   }
 
-  void _ensureFeesLoaded() {
+  void _reloadFees() {
     final student = context.read<SelectedStudentCubit>().state;
     if (student == null) return;
 
-    final ledgerState = context.read<FeeLedgerBloc>().state;
-    if (ledgerState is! FeeLedgerLoaded) {
-      context
-          .read<FeeLedgerBloc>()
-          .add(FeeLedgerLoadRequested(student.cc));
-    }
+    context.read<FeeSummaryBloc>().add(FeeSummaryLoadRequested(student.cc));
+    context.read<FeeLedgerBloc>().add(FeeLedgerLoadRequested(student.cc));
   }
 
   @override

@@ -12,9 +12,14 @@ import 'notice_board_state.dart';
 class NoticeBoardBloc extends Bloc<NoticeBoardEvent, NoticeBoardState> {
   final NoticeBoardRepository repository;
   final Set<String> _markedReadIds = {};
+  final List<VoucherAlert> _pendingVoucherAlerts = [];
+  bool _refreshRequestedWhileLoading = false;
+  int _loadGeneration = 0;
 
   NoticeBoardBloc({required this.repository}) : super(const NoticeBoardInitial()) {
     on<NoticeBoardLoadRequested>(_onLoad);
+    on<NoticeBoardRefreshRequested>(_onRefresh);
+    on<NoticeBoardVoucherAlertReceived>(_onVoucherAlertReceived);
     on<NoticeBoardNextPageRequested>(_onNextPage);
     on<NoticeBoardPostRead>(_onPostRead);
     on<NoticeBoardAlertRead>(_onAlertRead);
@@ -47,32 +52,141 @@ class NoticeBoardBloc extends Bloc<NoticeBoardEvent, NoticeBoardState> {
     return items;
   }
 
+  Future<({
+    List<NoticePost> posts,
+    List<AttendanceAlert> alerts,
+    List<CalendarAlert> calendarAlerts,
+    List<VoucherAlert> voucherAlerts,
+  })> _fetchFeed() async {
+    final results = await Future.wait([
+      repository.getPosts(),
+      repository.getAttendanceAlerts(),
+      repository.getCalendarAlerts(),
+      repository.getVoucherAlerts(),
+    ]);
+    return (
+      posts: results[0] as List<NoticePost>,
+      alerts: results[1] as List<AttendanceAlert>,
+      calendarAlerts: results[2] as List<CalendarAlert>,
+      voucherAlerts: results[3] as List<VoucherAlert>,
+    );
+  }
+
   Future<void> _onLoad(
     NoticeBoardLoadRequested event,
     Emitter<NoticeBoardState> emit,
   ) async {
+    final generation = ++_loadGeneration;
     emit(const NoticeBoardLoading());
     try {
-      final results = await Future.wait([
-        repository.getPosts(),
-        repository.getAttendanceAlerts(),
-        repository.getCalendarAlerts(),
-        repository.getVoucherAlerts(),
-      ]);
-      final posts = results[0] as List<NoticePost>;
-      final alerts = results[1] as List<AttendanceAlert>;
-      final calendarAlerts = results[2] as List<CalendarAlert>;
-      final voucherAlerts = results[3] as List<VoucherAlert>;
-      final items = _mergeAndSort(posts, alerts, calendarAlerts, voucherAlerts);
+      final feed = await _fetchFeed();
+      if (generation != _loadGeneration) return;
+
+      final items = _mergeAndSort(
+        feed.posts,
+        feed.alerts,
+        feed.calendarAlerts,
+        _mergePendingVoucherAlerts(feed.voucherAlerts),
+      );
       final unread = items.where((i) => !i.isRead).length;
       emit(NoticeBoardLoaded(
         items: items,
-        hasMore: posts.length == 20,
+        hasMore: feed.posts.length == 20,
         unreadCount: unread,
       ));
+
+      if (_refreshRequestedWhileLoading) {
+        _refreshRequestedWhileLoading = false;
+        add(const NoticeBoardRefreshRequested());
+      }
     } catch (e) {
+      if (generation != _loadGeneration) return;
       emit(NoticeBoardError(ApiErrorMapper.fromObject(e)));
     }
+  }
+
+  Future<void> _onRefresh(
+    NoticeBoardRefreshRequested event,
+    Emitter<NoticeBoardState> emit,
+  ) async {
+    final previous = state;
+    if (previous is NoticeBoardLoading) {
+      _refreshRequestedWhileLoading = true;
+      return;
+    }
+    if (previous is NoticeBoardInitial) {
+      add(const NoticeBoardLoadRequested());
+      return;
+    }
+    if (previous is! NoticeBoardLoaded) {
+      add(const NoticeBoardLoadRequested());
+      return;
+    }
+
+    try {
+      final feed = await _fetchFeed();
+      final items = _mergeAndSort(
+        feed.posts,
+        feed.alerts,
+        feed.calendarAlerts,
+        _mergePendingVoucherAlerts(feed.voucherAlerts),
+      );
+      final unread = items.where((i) => !i.isRead).length;
+      emit(previous.copyWith(
+        items: items,
+        hasMore: feed.posts.length == 20,
+        unreadCount: unread,
+      ));
+    } catch (_) {}
+  }
+
+  List<VoucherAlert> _mergePendingVoucherAlerts(List<VoucherAlert> fromApi) {
+    if (_pendingVoucherAlerts.isEmpty) return fromApi;
+
+    final merged = [...fromApi];
+    for (final pending in _pendingVoucherAlerts) {
+      if (!merged.any((alert) => alert.id == pending.id)) {
+        merged.add(pending);
+      }
+    }
+    return merged;
+  }
+
+  void _queuePendingVoucherAlert(VoucherAlert alert) {
+    if (_pendingVoucherAlerts.any((pending) => pending.id == alert.id)) return;
+    _pendingVoucherAlerts.add(alert);
+  }
+
+  void _onVoucherAlertReceived(
+    NoticeBoardVoucherAlertReceived event,
+    Emitter<NoticeBoardState> emit,
+  ) {
+    final current = state;
+    if (current is! NoticeBoardLoaded) {
+      _queuePendingVoucherAlert(event.alert);
+      return;
+    }
+
+    final alreadyPresent = current.items
+        .whereType<NoticeFeedVoucherAlert>()
+        .any((item) => item.alert.id == event.alert.id);
+    if (alreadyPresent) return;
+
+    final existingPosts = current.items.whereType<NoticeFeedPost>().map((i) => i.post).toList();
+    final existingAlerts = current.items.whereType<NoticeFeedAlert>().map((i) => i.alert).toList();
+    final existingCalendarAlerts =
+        current.items.whereType<NoticeFeedCalendarAlert>().map((i) => i.alert).toList();
+    final existingVoucherAlerts =
+        current.items.whereType<NoticeFeedVoucherAlert>().map((i) => i.alert).toList();
+
+    final items = _mergeAndSort(
+      existingPosts,
+      existingAlerts,
+      existingCalendarAlerts,
+      [...existingVoucherAlerts, event.alert],
+    );
+    final unread = items.where((i) => !i.isRead).length;
+    emit(current.copyWith(items: items, unreadCount: unread));
   }
 
   Future<void> _onNextPage(
@@ -199,6 +313,9 @@ class NoticeBoardBloc extends Bloc<NoticeBoardEvent, NoticeBoardState> {
     Emitter<NoticeBoardState> emit,
   ) {
     _markedReadIds.clear();
+    _pendingVoucherAlerts.clear();
+    _refreshRequestedWhileLoading = false;
+    _loadGeneration++;
     emit(const NoticeBoardInitial());
   }
 }

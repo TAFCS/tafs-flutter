@@ -17,12 +17,14 @@ import '../../features/fee_ledger/presentation/bloc/fee_summary_event.dart';
 import '../../features/fee_ledger/presentation/bloc/student_ledger_bloc.dart';
 import '../../features/fee_ledger/presentation/bloc/student_ledger_event.dart';
 import '../../features/notice_board/presentation/bloc/notice_board_bloc.dart';
+import '../services/voucher_alert_realtime_service.dart';
 import '../../features/notice_board/presentation/bloc/notice_board_event.dart';
 import '../../features/profile/presentation/bloc/profile_bloc.dart';
 import '../../features/profile/presentation/bloc/profile_event.dart';
 
 /// Clears session-scoped UI state when the parent logs out.
 void resetSessionState(BuildContext context) {
+  VoucherAlertRealtimeService.instance.stop();
   context.read<SelectedStudentCubit>().clear();
   context.read<FeeLedgerBloc>().add(const FeeLedgerResetRequested());
   context.read<FeeSummaryBloc>().add(const FeeSummaryResetRequested());

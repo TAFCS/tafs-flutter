@@ -41,7 +41,7 @@ class _HomeTabBodyState extends State<HomeTabBody> {
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: () async {
-        context.read<NoticeBoardBloc>().add(const NoticeBoardLoadRequested());
+        context.read<NoticeBoardBloc>().add(const NoticeBoardRefreshRequested());
         await Future.delayed(const Duration(milliseconds: 500));
       },
       color: AppTheme.navy,

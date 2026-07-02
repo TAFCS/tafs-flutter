@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../widgets/notification_banner.dart';
 
@@ -11,30 +12,36 @@ class InAppNotificationService {
     String? iconUrl,
     required VoidCallback onTap,
   }) {
-    // Remove existing if any
     _currentEntry?.remove();
     _currentEntry = null;
 
-    final overlay = Overlay.of(context, rootOverlay: true);
-    
-    _currentEntry = OverlayEntry(
-      builder: (context) => _NotificationWrapper(
-        title: title,
-        message: message,
-        iconUrl: iconUrl,
-        onTap: () {
-          _currentEntry?.remove();
-          _currentEntry = null;
-          onTap();
-        },
-        onDismiss: () {
-          _currentEntry?.remove();
-          _currentEntry = null;
-        },
-      ),
-    );
+    void insert(BuildContext ctx) {
+      if (!ctx.mounted) return;
+      try {
+        final overlay = Overlay.of(ctx, rootOverlay: true);
+        _currentEntry = OverlayEntry(
+          builder: (context) => _NotificationWrapper(
+            title: title,
+            message: message,
+            iconUrl: iconUrl,
+            onTap: () {
+              _currentEntry?.remove();
+              _currentEntry = null;
+              onTap();
+            },
+            onDismiss: () {
+              _currentEntry?.remove();
+              _currentEntry = null;
+            },
+          ),
+        );
+        overlay.insert(_currentEntry!);
+      } catch (e) {
+        debugPrint('InAppNotificationService: could not show banner: $e');
+      }
+    }
 
-    overlay.insert(_currentEntry!);
+    insert(context);
   }
 }
 
