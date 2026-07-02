@@ -428,7 +428,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         emit(successState.copyWith(hasReachedMax: true));
       } else {
         emit(successState.copyWith(
-          messages: successState.messages + messages,
+          messages: mergeOlderMessagesIntoHistory(
+            current: successState.messages,
+            olderPage: messages,
+          ),
           hasReachedMax: messages.length < 50,
           serverMessageCount: successState.serverMessageCount + messages.length,
         ));

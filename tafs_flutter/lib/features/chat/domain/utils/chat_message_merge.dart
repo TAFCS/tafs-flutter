@@ -41,3 +41,25 @@ List<ChatMessage> mergeChatMessagesWithServer({
   combined.sort((a, b) => b.createdAt.compareTo(a.createdAt));
   return combined;
 }
+
+/// Merges an older page of history (fetched for infinite-scroll pagination)
+/// into the current list. Unlike a plain append, this dedupes by id (a
+/// message the older-page REST call re-fetches that already arrived live in
+/// the meantime must not be duplicated) and re-sorts, since [current] and
+/// [olderPage] are not guaranteed to be non-overlapping or already ordered
+/// relative to each other.
+List<ChatMessage> mergeOlderMessagesIntoHistory({
+  required List<ChatMessage> current,
+  required List<ChatMessage> olderPage,
+}) {
+  final byId = <String, ChatMessage>{};
+  for (final m in current) {
+    byId[m.id] = m;
+  }
+  for (final m in olderPage) {
+    byId.putIfAbsent(m.id, () => m);
+  }
+  final combined = byId.values.toList();
+  combined.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return combined;
+}
