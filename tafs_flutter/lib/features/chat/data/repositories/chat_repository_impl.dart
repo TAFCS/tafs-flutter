@@ -267,6 +267,16 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
           // Restore auto-reconnect so the next attempt can retry the refresh.
           // Leaving it at 0 permanently bricks the socket for the session.
           _socket?.io.options?['reconnectionAttempts'] = 99999;
+          // Restoring the option alone isn't enough: if the client's internal
+          // reconnection loop already gave up (emitted reconnect_failed) while
+          // this refresh was in flight, it won't resume on its own. Explicitly
+          // retry after a short delay so a transient failure (network blip,
+          // 5xx) doesn't leave the socket silently dead until app restart.
+          Future.delayed(const Duration(seconds: 5), () {
+            if (_socket != null && !_socket!.connected) {
+              _socket!.connect();
+            }
+          });
         } finally {
           _isRefreshingToken = false;
         }
