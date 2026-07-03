@@ -118,6 +118,7 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
                     const SizedBox(height: 12),
                     Text(
                       displayName,
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -128,12 +129,17 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
                       const SizedBox(height: 4),
                       Text(
                         profile!.employeeCode!,
+                        textAlign: TextAlign.center,
                         style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
                       ),
                     ],
                     if (profile?.jobTitle != null) ...[
                       const SizedBox(height: 4),
-                      Text(profile!.jobTitle!, style: const TextStyle(color: AppTheme.textMuted)),
+                      Text(
+                        profile!.jobTitle!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppTheme.textMuted),
+                      ),
                     ],
                   ],
                 ),
@@ -161,7 +167,7 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
               OutlinedButton.icon(
                 onPressed: () => _logout(context),
                 icon: const Icon(Icons.logout),
-                label: const Text('Log out'),
+                label: const Text('Log out', maxLines: 1, overflow: TextOverflow.ellipsis),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.danger,
                   side: const BorderSide(color: AppTheme.danger),

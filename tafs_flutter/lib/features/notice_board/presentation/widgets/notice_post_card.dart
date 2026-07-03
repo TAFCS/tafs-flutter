@@ -79,7 +79,7 @@ class _NoticePostCardState extends State<NoticePostCard> {
                               post.postedByName,
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 15,
+                                fontSize: 13,
                                 color: AppTheme.navy,
                               ),
                             ),
@@ -111,7 +111,7 @@ class _NoticePostCardState extends State<NoticePostCard> {
                     post.title!,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 17,
+                      fontSize: 15,
                       color: AppTheme.navy,
                     ),
                   ),
@@ -203,7 +203,7 @@ class _ExpandableBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const maxLines = 3;
-    final style = TextStyle(fontSize: 15.5, color: AppTheme.navy.withOpacity(0.85), height: 1.5);
+    final style = TextStyle(fontSize: 13.5, color: AppTheme.navy.withOpacity(0.85), height: 1.5);
 
     return LayoutBuilder(
       builder: (context, constraints) {

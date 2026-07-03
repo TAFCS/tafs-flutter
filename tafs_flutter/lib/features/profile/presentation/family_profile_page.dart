@@ -167,6 +167,8 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                             icon: const Icon(Icons.logout_rounded, size: 18),
                             label: const Text(
                               'Log out',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                             ),
                             style: OutlinedButton.styleFrom(

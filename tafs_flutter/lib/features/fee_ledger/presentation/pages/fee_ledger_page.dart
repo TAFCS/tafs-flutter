@@ -225,7 +225,6 @@ class _SummaryStrip extends StatelessWidget {
             'Total Outstanding Balance',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppTheme.white.withValues(alpha: 0.8),
-                  fontSize: 15,
                 ),
           ),
         ],
@@ -678,14 +677,18 @@ class _ActiveVoucherCard extends StatelessWidget {
               Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        VoucherDisplay.title(voucher),
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.navy,
-                            ),
+                      Expanded(
+                        child: Text(
+                          VoucherDisplay.title(voucher),
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.navy,
+                              ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
+                      const SizedBox(width: AppTheme.space2),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppTheme.space2,
@@ -783,7 +786,6 @@ class _ActiveVoucherCard extends StatelessWidget {
                               text: TextSpan(
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                       color: AppTheme.navy.withValues(alpha: 0.85),
-                                      fontSize: 15,
                                       height: 1.45,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -796,7 +798,6 @@ class _ActiveVoucherCard extends StatelessWidget {
                                     text: 'Rs. 100',
                                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                           color: AppTheme.navy.withValues(alpha: 0.9),
-                                          fontSize: 15,
                                           height: 1.45,
                                           fontWeight: FontWeight.w900,
                                         ),
@@ -809,7 +810,6 @@ class _ActiveVoucherCard extends StatelessWidget {
                               footer,
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: AppTheme.navy.withValues(alpha: 0.85),
-                                    fontSize: 15,
                                     height: 1.45,
                                     fontWeight: FontWeight.w500,
                                   ),

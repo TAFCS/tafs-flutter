@@ -847,9 +847,11 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
         children: [
           Icon(Icons.cancel_rounded, color: AppTheme.danger, size: 24),
           SizedBox(width: AppTheme.space3),
-          Text(
-            'Absent — No attendance registered',
-            style: TextStyle(color: AppTheme.danger, fontWeight: FontWeight.bold, fontSize: 13),
+          Expanded(
+            child: Text(
+              'Absent — No attendance registered',
+              style: TextStyle(color: AppTheme.danger, fontWeight: FontWeight.bold, fontSize: 13),
+            ),
           ),
         ],
       ),
@@ -869,9 +871,11 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
         children: [
           Icon(Icons.info_outline_rounded, color: AppTheme.blue300, size: 24),
           SizedBox(width: AppTheme.space3),
-          Text(
-            'No scan records found for this date',
-            style: TextStyle(color: AppTheme.blue300, fontWeight: FontWeight.w500, fontSize: 13),
+          Expanded(
+            child: Text(
+              'No scan records found for this date',
+              style: TextStyle(color: AppTheme.blue300, fontWeight: FontWeight.w500, fontSize: 13),
+            ),
           ),
         ],
       ),

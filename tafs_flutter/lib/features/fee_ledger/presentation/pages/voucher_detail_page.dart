@@ -363,6 +363,8 @@ class _VoucherDetailPageState extends State<VoucherDetailPage> {
                             : const Icon(Icons.file_download_outlined, size: 18),
                         label: Text(
                           _isDownloading ? 'Downloading...' : 'Download PDF',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,

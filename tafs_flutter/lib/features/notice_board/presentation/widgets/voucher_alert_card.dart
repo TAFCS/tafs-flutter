@@ -102,7 +102,7 @@ class _VoucherAlertCardState extends State<VoucherAlertCard> {
                           Text(
                             alert.title,
                             style: TextStyle(
-                              fontSize: 15.5,
+                              fontSize: 13.5,
                               color: statusColor,
                               fontWeight: FontWeight.bold,
                             ),
@@ -111,7 +111,7 @@ class _VoucherAlertCardState extends State<VoucherAlertCard> {
                           Text(
                             alert.body,
                             style: TextStyle(
-                              fontSize: 15.0,
+                              fontSize: 13.0,
                               color: AppTheme.navy.withOpacity(0.88),
                               fontWeight: FontWeight.w500,
                               height: 1.45,
