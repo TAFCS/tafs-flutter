@@ -5,9 +5,14 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:photo_view/photo_view.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/cdn_utils.dart';
+import '../../../auth/domain/entities/student.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../domain/entities/notice_post.dart';
 import '../bloc/notice_board_bloc.dart';
 import '../bloc/notice_board_event.dart';
+import '../utils/notice_targeting.dart';
 
 class NoticePostCard extends StatefulWidget {
   final NoticePost post;
@@ -42,6 +47,15 @@ class _NoticePostCardState extends State<NoticePostCard> {
   Widget build(BuildContext context) {
     final post = widget.post;
     final isPinned = post.isPinned;
+
+    final authParent = switch (context.watch<AuthBloc>().state) {
+      AuthAuthenticated(:final parent) => parent,
+      AuthProfileRefreshFailed(:final parent) => parent,
+      _ => null,
+    };
+    final matchedStudents = authParent != null
+        ? NoticeTargeting.matchedStudents(post, authParent.students)
+        : const <Student>[];
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.space3),
@@ -124,6 +138,22 @@ class _NoticePostCardState extends State<NoticePostCard> {
             ),
           ),
 
+          // Targeted student(s) — shown when this post is aimed at a
+          // specific class/section that matches one of the family's kids.
+          if (matchedStudents.isNotEmpty) ...[
+            const SizedBox(height: AppTheme.space2),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.space4),
+              child: Wrap(
+                spacing: AppTheme.space2,
+                runSpacing: AppTheme.space2,
+                children: matchedStudents
+                    .map((s) => _TargetedStudentChip(student: s))
+                    .toList(),
+              ),
+            ),
+          ],
+
           // Media strip
           if (post.mediaUrls.isNotEmpty) ...[
             const SizedBox(height: AppTheme.space3),
@@ -165,6 +195,51 @@ class _NoticePostCardState extends State<NoticePostCard> {
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     return DateFormat('MMM d').format(dt);
+  }
+}
+
+class _TargetedStudentChip extends StatelessWidget {
+  final Student student;
+
+  const _TargetedStudentChip({required this.student});
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitle = [student.className, student.section]
+        .where((s) => s != null && s.isNotEmpty)
+        .join(' ');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.space2, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppTheme.blue100.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppTheme.blue100),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 10,
+            backgroundColor: AppTheme.blue100.withValues(alpha: 0.3),
+            backgroundImage: student.photographUrl != null
+                ? NetworkImage(CdnUtils.resolve(student.photographUrl))
+                : null,
+            child: student.photographUrl == null
+                ? Text(
+                    student.fullName.isNotEmpty ? student.fullName[0] : '?',
+                    style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            subtitle.isNotEmpty ? '${student.fullName} · $subtitle' : student.fullName,
+            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.navy),
+          ),
+        ],
+      ),
+    );
   }
 }
 

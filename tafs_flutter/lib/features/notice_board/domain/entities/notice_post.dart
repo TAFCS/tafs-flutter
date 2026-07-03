@@ -50,5 +50,16 @@ class NoticePost extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, title, body, postedByName, isPinned, postedAt, isRead];
+  List<Object?> get props => [
+        id,
+        title,
+        body,
+        postedByName,
+        campusIds,
+        classIds,
+        sectionIds,
+        isPinned,
+        postedAt,
+        isRead,
+      ];
 }

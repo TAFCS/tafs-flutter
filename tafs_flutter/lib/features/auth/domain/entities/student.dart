@@ -11,6 +11,9 @@ class Student extends Equatable {
   final String? classCode;
   final String? section;
   final String? academicYear;
+  final int? campusId;
+  final int? classId;
+  final int? sectionId;
 
   const Student({
     required this.cc,
@@ -23,6 +26,9 @@ class Student extends Equatable {
     this.classCode,
     this.section,
     this.academicYear,
+    this.campusId,
+    this.classId,
+    this.sectionId,
   });
 
   @override
@@ -35,5 +41,8 @@ class Student extends Equatable {
         className,
         section,
         academicYear,
+        campusId,
+        classId,
+        sectionId,
       ];
 }
