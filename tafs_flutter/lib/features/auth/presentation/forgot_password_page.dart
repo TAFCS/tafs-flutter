@@ -60,7 +60,15 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         builder: (context, state) {
           final isLoading = state is ForgotPasswordSending;
 
-          return Scaffold(
+          return PopScope(
+            onPopInvokedWithResult: (didPop, _) {
+              if (didPop) {
+                context.read<AuthBloc>().add(
+                  const AuthSignupExitToLoginRequested(),
+                );
+              }
+            },
+            child: Scaffold(
             appBar: AppBar(
               title: const Text('Forgot Password'),
             ),
@@ -117,6 +125,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 ),
               ),
             ),
+          ),
           );
         },
       ),

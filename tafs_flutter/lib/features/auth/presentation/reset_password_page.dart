@@ -117,7 +117,15 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         builder: (context, state) {
           final isLoading = state is ResetPasswordSubmitting;
 
-          return Scaffold(
+          return PopScope(
+            onPopInvokedWithResult: (didPop, _) {
+              if (didPop) {
+                context.read<AuthBloc>().add(
+                  const AuthSignupExitToLoginRequested(),
+                );
+              }
+            },
+            child: Scaffold(
             appBar: AppBar(
               title: const Text('Reset Password'),
             ),
@@ -215,6 +223,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 ),
               ),
             ),
+          ),
           );
         },
       ),
