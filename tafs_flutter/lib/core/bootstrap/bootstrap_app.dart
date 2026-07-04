@@ -10,6 +10,7 @@ import 'app_bootstrap.dart';
 import '../app_status/app_status_screens.dart';
 import '../app_status/app_status_service.dart';
 import '../services/fcm_registration_service.dart';
+import '../services/notification_service.dart';
 import '../../features/auth/presentation/bloc/auth_event.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
 
@@ -56,6 +57,16 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
       }
       _reregisterFcmIfAuthenticated();
       _refreshStaffSessionIfLoggedIn();
+      _clearBadgeIfAuthenticated();
+    }
+  }
+
+  void _clearBadgeIfAuthenticated() {
+    if (!InjectionContainer.isInitialized) return;
+    final authState = InjectionContainer.authBloc.state;
+    if (authState is AuthAuthenticated ||
+        authState is AuthAuthenticatedStaff) {
+      unawaited(NotificationService.clearBadge());
     }
   }
 

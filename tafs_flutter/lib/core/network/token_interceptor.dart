@@ -51,7 +51,10 @@ class TokenInterceptor extends Interceptor {
         _PendingRequest(options: original, completer: completer),
       );
       try {
-        final response = await completer.future;
+        final response = await completer.future.timeout(
+          const Duration(seconds: 10),
+          onTimeout: () => throw err,
+        );
         return handler.resolve(response);
       } catch (e) {
         return handler.next(err);
