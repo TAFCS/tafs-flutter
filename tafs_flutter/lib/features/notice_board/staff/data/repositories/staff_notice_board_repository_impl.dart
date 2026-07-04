@@ -29,6 +29,7 @@ class StaffNoticeBoardRepositoryImpl implements StaffNoticeBoardRepository {
     required List<String> mediaUrls,
     required List<String> mediaTypes,
     required bool isPinned,
+    bool notificationOnly = false,
     DateTime? expiresAt,
   }) {
     return remoteDataSource.createPost({
@@ -41,6 +42,7 @@ class StaffNoticeBoardRepositoryImpl implements StaffNoticeBoardRepository {
       'media_urls': mediaUrls,
       'media_types': mediaTypes,
       'is_pinned': isPinned,
+      if (notificationOnly) 'notification_only': true,
       if (expiresAt != null) 'expires_at': expiresAt.toUtc().toIso8601String(),
     });
   }

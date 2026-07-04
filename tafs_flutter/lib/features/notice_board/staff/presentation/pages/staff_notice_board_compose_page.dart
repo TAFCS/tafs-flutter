@@ -26,6 +26,7 @@ class _StaffNoticeBoardComposePageState
   final List<int> _sectionIds = [];
   final List<UploadedNoticeMedia> _uploadedMedia = [];
   bool _isPinned = false;
+  bool _notificationOnly = false;
   DateTime? _expiresAt;
 
   bool _bodyEmpty = true;
@@ -273,6 +274,7 @@ class _StaffNoticeBoardComposePageState
       mediaUrls: _uploadedMedia.map((m) => m.url).toList(),
       mediaTypes: _uploadedMedia.map((m) => m.type).toList(),
       isPinned: _isPinned,
+      notificationOnly: _notificationOnly,
       expiresAt: _expiresAt,
     );
     if (post != null && mounted) {
@@ -558,6 +560,14 @@ class _StaffNoticeBoardComposePageState
                       title: const Text('Pin post'),
                       value: _isPinned,
                       onChanged: (v) => setState(() => _isPinned = v),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Notification only'),
+                      subtitle: const Text('Don\'t show on notice board',
+                          style: TextStyle(fontSize: 12)),
+                      value: _notificationOnly,
+                      onChanged: (v) => setState(() => _notificationOnly = v),
                     ),
                     ListTile(
                       contentPadding: EdgeInsets.zero,

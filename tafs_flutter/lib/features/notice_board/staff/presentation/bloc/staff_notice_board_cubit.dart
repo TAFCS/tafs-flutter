@@ -131,6 +131,7 @@ class StaffNoticeBoardCubit extends Cubit<StaffNoticeBoardState> {
     required List<String> mediaUrls,
     required List<String> mediaTypes,
     required bool isPinned,
+    bool notificationOnly = false,
     DateTime? expiresAt,
   }) async {
     emit(state.copyWith(actionLoading: true, clearActionError: true));
@@ -145,6 +146,7 @@ class StaffNoticeBoardCubit extends Cubit<StaffNoticeBoardState> {
         mediaUrls: mediaUrls,
         mediaTypes: mediaTypes,
         isPinned: isPinned,
+        notificationOnly: notificationOnly,
         expiresAt: expiresAt,
       );
       emit(state.copyWith(

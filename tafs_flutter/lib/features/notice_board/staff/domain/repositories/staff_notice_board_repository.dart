@@ -14,6 +14,7 @@ abstract class StaffNoticeBoardRepository {
     required List<String> mediaUrls,
     required List<String> mediaTypes,
     required bool isPinned,
+    bool notificationOnly = false,
     DateTime? expiresAt,
   });
   Future<List<Map<String, dynamic>>> searchStudents(String query);
