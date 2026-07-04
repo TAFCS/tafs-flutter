@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../cubit/employee_notice_cubit.dart';
 import '../widgets/employee_notice_card.dart';
+import '../../../notice_board/presentation/widgets/notice_board_skeleton.dart';
 import '../../domain/repositories/employee_notice_repository.dart';
 
 class EmployeeNoticeBoardPage extends StatefulWidget {
@@ -32,11 +33,14 @@ class _EmployeeNoticeFeed extends StatelessWidget {
     return BlocBuilder<EmployeeNoticeCubit, EmployeeNoticeState>(
       builder: (context, state) {
         if (state.loading && state.notices.isEmpty) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: AppTheme.space8),
-              child: CircularProgressIndicator(color: AppTheme.navy, strokeWidth: 2),
+          return const Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppTheme.space5,
+              AppTheme.space3,
+              AppTheme.space5,
+              AppTheme.space5,
             ),
+            child: NoticeBoardSkeletonList(),
           );
         }
 

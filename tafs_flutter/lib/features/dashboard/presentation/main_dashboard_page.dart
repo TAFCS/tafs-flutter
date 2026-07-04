@@ -10,6 +10,7 @@ import '../../notice_board/presentation/widgets/attendance_alert_card.dart';
 import '../../notice_board/presentation/widgets/notice_post_card.dart';
 import '../../notice_board/presentation/widgets/calendar_alert_card.dart';
 import '../../notice_board/presentation/widgets/voucher_alert_card.dart';
+import '../../notice_board/presentation/widgets/notice_board_skeleton.dart';
 import '../../auth/presentation/bloc/selected_student_cubit.dart';
 import '../../attendance_history/presentation/pages/attendance_calendar_page.dart';
 
@@ -231,12 +232,7 @@ class _NoticeBoardSection extends StatelessWidget {
     return BlocBuilder<NoticeBoardBloc, NoticeBoardState>(
       builder: (context, state) {
         if (state is NoticeBoardLoading || state is NoticeBoardInitial) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: AppTheme.space8),
-              child: CircularProgressIndicator(color: AppTheme.navy, strokeWidth: 2),
-            ),
-          );
+          return const NoticeBoardSkeletonList();
         }
 
         if (state is NoticeBoardError) {

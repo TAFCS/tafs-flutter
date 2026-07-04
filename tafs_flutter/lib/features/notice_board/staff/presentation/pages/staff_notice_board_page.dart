@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../domain/entities/staff_notice_post.dart';
+import '../../../presentation/widgets/notice_board_skeleton.dart';
 import '../bloc/staff_notice_board_cubit.dart';
 import 'staff_notice_board_compose_page.dart';
 import 'staff_notice_board_detail_page.dart';
@@ -38,8 +39,9 @@ class _StaffNoticeBoardPageState extends State<StaffNoticeBoardPage> {
               child: Stack(
                 children: [
                   state.loading && state.posts.isEmpty
-                      ? const Center(
-                          child: CircularProgressIndicator(color: AppTheme.navy),
+                      ? const Padding(
+                          padding: EdgeInsets.fromLTRB(12, 12, 12, 88),
+                          child: NoticeBoardSkeletonList(),
                         )
                       : state.posts.isEmpty
                           ? const Center(
