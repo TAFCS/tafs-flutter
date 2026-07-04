@@ -392,7 +392,7 @@ class _StudentInfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.white,
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: isActive ? AppTheme.navy : AppTheme.blue100, width: isActive ? 1.5 : 1.0),
+        border: Border.all(color: AppTheme.blue100, width: 1.0),
         boxShadow: AppTheme.shadowSm,
       ),
       child: InkWell(
@@ -439,15 +439,7 @@ class _StudentInfoCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (isActive)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.navy.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppTheme.radiusXs),
-                      ),
-                      child: const Text('ACTIVE', style: TextStyle(color: AppTheme.navy, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ),
+
                   const SizedBox(width: AppTheme.space2),
                   const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.blue100),
                 ],

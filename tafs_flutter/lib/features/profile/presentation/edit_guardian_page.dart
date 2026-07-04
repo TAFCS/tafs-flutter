@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/app_theme.dart';
@@ -20,6 +21,7 @@ class EditGuardianPage extends StatefulWidget {
 
 class _EditGuardianPageState extends State<EditGuardianPage> {
   final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _whatsappController;
   late TextEditingController _emailController;
@@ -33,6 +35,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
   @override
   void initState() {
     super.initState();
+    _nameController = TextEditingController(text: widget.guardian.name);
     _phoneController = TextEditingController(text: widget.guardian.phone);
     _whatsappController = TextEditingController(text: widget.guardian.whatsapp);
     _emailController = TextEditingController(text: widget.guardian.email);
@@ -46,6 +49,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _phoneController.dispose();
     _whatsappController.dispose();
     _emailController.dispose();
@@ -75,6 +79,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
       changes[key] = normalizedNext;
     }
 
+    addIfChanged('full_name', widget.guardian.name, _nameController.text);
     addIfChanged('primary_phone', widget.guardian.phone, _phoneController.text);
     addIfChanged('whatsapp_number', widget.guardian.whatsapp, _whatsappController.text);
     addIfChanged('email_address', widget.guardian.email, _emailController.text);
@@ -176,6 +181,17 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                     ),
                     const SizedBox(height: AppTheme.space6),
                     Text(
+                      'BASIC INFORMATION',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: AppTheme.blue200,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                    ),
+                    const SizedBox(height: AppTheme.space4),
+                    _buildTextField(_nameController, 'Full Name', Icons.person_rounded),
+                    const SizedBox(height: AppTheme.space6),
+                    Text(
                       'CONTACT INFORMATION',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             color: AppTheme.blue200,
@@ -184,8 +200,20 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                           ),
                     ),
                     const SizedBox(height: AppTheme.space4),
-                    _buildTextField(_phoneController, 'Primary Phone', Icons.phone_rounded),
-                    _buildTextField(_whatsappController, 'WhatsApp Number', Icons.chat_bubble_rounded),
+                    _buildTextField(
+                      _phoneController,
+                      'Primary Phone',
+                      Icons.phone_rounded,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+]'))],
+                    ),
+                    _buildTextField(
+                      _whatsappController,
+                      'WhatsApp Number',
+                      Icons.chat_bubble_rounded,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+]'))],
+                    ),
                     _buildTextField(_emailController, 'Email Address', Icons.email_rounded),
                     const SizedBox(height: AppTheme.space4),
                     Text(
@@ -211,7 +239,13 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                           ),
                     ),
                     const SizedBox(height: AppTheme.space4),
-                    _buildTextField(_cnicController, 'CNIC Number', Icons.badge_rounded),
+                    _buildTextField(
+                      _cnicController,
+                      'CNIC Number',
+                      Icons.badge_rounded,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9-]'))],
+                    ),
                     _buildTextField(_addressController, 'Home Address', Icons.location_on_rounded, maxLines: 2),
                     const SizedBox(height: AppTheme.space8),
                     SizedBox(
@@ -248,12 +282,16 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
     String label,
     IconData icon, {
     int maxLines = 1,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTheme.space4),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.navy),
         decoration: InputDecoration(
           labelText: label,
