@@ -186,10 +186,10 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                         alignment: Alignment.centerRight,
                         child: TextButton.icon(
                           onPressed: () async {
-                            final confirmed = await _showDeleteAccountDialog(context);
-                            if (confirmed != true) return;
+                            final reason = await _showDeleteAccountDialog(context);
+                            if (reason == null) return;
                             if (!context.mounted) return;
-                            context.read<AuthBloc>().add(AuthDeleteAccountRequested());
+                            context.read<AuthBloc>().add(AuthDeleteAccountRequested(reason));
                           },
                           icon: const Icon(
                             Icons.delete_forever_outlined,
@@ -220,45 +220,63 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
   }
 }
 
-Future<bool?> _showDeleteAccountDialog(BuildContext context) async {
+Future<String?> _showDeleteAccountDialog(BuildContext context) async {
   final controller = TextEditingController();
+  final reasonController = TextEditingController();
 
-  return showDialog<bool>(
+  return showDialog<String?>(
     context: context,
     builder: (dialogContext) {
-      return AlertDialog(
-        title: const Text('Request account deletion?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Your request will be sent to the school admin for review. '
-              'Your account stays active until it is approved.',
+      return StatefulBuilder(
+        builder: (context, setState) {
+          final reasonFilled = reasonController.text.trim().isNotEmpty;
+          final deleteTyped = controller.text.trim().toUpperCase() == 'DELETE';
+
+          return AlertDialog(
+            title: const Text('Request account deletion?'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Your request will be sent to the school admin for review. '
+                  'Your account stays active until it is approved.',
+                ),
+                const SizedBox(height: 12),
+                const Text('Reason for deletion:'),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    hintText: 'Please provide a reason',
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 12),
+                const Text('Type DELETE to confirm:'),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  onChanged: (_) => setState(() {}),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            const Text('Type DELETE to confirm:'),
-            const SizedBox(height: 8),
-            TextField(
-              controller: controller,
-              autofocus: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final ok = controller.text.trim().toUpperCase() == 'DELETE';
-              if (!ok) return;
-              Navigator.of(dialogContext).pop(true);
-            },
-            child: const Text('Submit request'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(null),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: (reasonFilled && deleteTyped)
+                    ? () => Navigator.of(dialogContext).pop(reasonController.text.trim())
+                    : null,
+                child: const Text('Submit request'),
+              ),
+            ],
+          );
+        },
       );
     },
   );

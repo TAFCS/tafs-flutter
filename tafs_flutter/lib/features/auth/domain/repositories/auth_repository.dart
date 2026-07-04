@@ -12,7 +12,7 @@ abstract class AuthRepository {
     String? deviceType,
   });
   Future<Either<Failure, void>> logout();
-  Future<Either<Failure, void>> requestAccountDeletion();
+  Future<Either<Failure, void>> requestAccountDeletion({required String reason});
   Future<Either<Failure, Parent?>> getCachedUser();
   Future<Either<Failure, StaffUser?>> getCachedStaff();
   Future<Either<Failure, StaffUser>> staffLogin(String username, String password);

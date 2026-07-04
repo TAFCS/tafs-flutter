@@ -209,7 +209,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     };
     if (currentParent == null) return;
 
-    final result = await repository.requestAccountDeletion();
+    final result = await repository.requestAccountDeletion(reason: event.reason);
     result.fold(
       (failure) => emit(AuthProfileRefreshFailed(
         parent: currentParent,

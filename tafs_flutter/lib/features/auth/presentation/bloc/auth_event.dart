@@ -54,7 +54,14 @@ class AuthLoginRequested extends AuthEvent {
 
 class AuthLogoutRequested extends AuthEvent {}
 
-class AuthDeleteAccountRequested extends AuthEvent {}
+class AuthDeleteAccountRequested extends AuthEvent {
+  final String reason;
+
+  const AuthDeleteAccountRequested(this.reason);
+
+  @override
+  List<Object?> get props => [reason];
+}
 
 class AuthAccountDeletionRequestedAcknowledged extends AuthEvent {
   final Parent parent;

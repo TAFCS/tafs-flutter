@@ -13,7 +13,7 @@ abstract class AuthRemoteDataSource {
     String? deviceType,
   });
   Future<void> logout(String accessToken);
-  Future<void> requestAccountDeletion(String accessToken);
+  Future<void> requestAccountDeletion(String accessToken, String reason);
   Future<Map<String, dynamic>> verifyCnic(String cnic);
   Future<ParentDto> registerParent(
     String cnic,
@@ -111,11 +111,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> requestAccountDeletion(String accessToken) async {
+  Future<void> requestAccountDeletion(String accessToken, String reason) async {
     final String baseUrl = AppConfig.apiBaseUrl;
     try {
       await dio.post(
         '$baseUrl/auth/parent/account/deletion-request',
+        data: {'reason': reason},
         options: Options(
           headers: {
             'Content-Type': 'application/json',
