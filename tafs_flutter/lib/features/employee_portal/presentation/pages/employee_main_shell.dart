@@ -354,6 +354,10 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
               selectedIndex: activeIndex,
               labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
               indicatorColor: Colors.transparent,
+              backgroundColor: AppTheme.white,
+              surfaceTintColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              elevation: 0,
               height: 64,
               onDestinationSelected: (index) {
                 setState(() => _activeTab = _currentTabs[index]);
