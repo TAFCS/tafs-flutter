@@ -19,13 +19,20 @@ abstract class AuthRepository {
 
   // Signup methods
   Future<Either<Failure, CnicVerificationResult>> verifyCnic(String cnic);
+  Future<Either<Failure, void>> sendSignupOtp(String cnic, String email);
   Future<Either<Failure, Parent>> registerParent(
     String cnic,
     String email,
     String password, {
+    required String otp,
     String? fcmToken,
     String? deviceType,
   });
+
+  // Forgot / reset password
+  Future<Either<Failure, void>> forgotPassword(String email);
+  Future<Either<Failure, void>> resetPassword(String email, String otp, String newPassword);
+
   Future<Either<Failure, Parent>> refreshProfile();
   Future<Either<Failure, StaffUser>> refreshStaffSession();
 }

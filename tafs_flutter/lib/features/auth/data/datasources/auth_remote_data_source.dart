@@ -15,13 +15,17 @@ abstract class AuthRemoteDataSource {
   Future<void> logout(String accessToken);
   Future<void> requestAccountDeletion(String accessToken, String reason);
   Future<Map<String, dynamic>> verifyCnic(String cnic);
+  Future<void> sendSignupOtp(String cnic, String email);
   Future<ParentDto> registerParent(
     String cnic,
     String email,
     String password, {
+    required String otp,
     String? fcmToken,
     String? deviceType,
   });
+  Future<void> forgotPassword(String email);
+  Future<void> resetPassword(String email, String otp, String newPassword);
   Future<ParentDto> getProfile(String accessToken);
   Future<StaffUserDto> staffLogin(String username, String password);
   Future<StaffUserDto> staffRefresh(String refreshToken);
@@ -192,10 +196,42 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
+  Future<void> sendSignupOtp(String cnic, String email) async {
+    final String baseUrl = AppConfig.apiBaseUrl;
+
+    try {
+      await dio.post(
+        '$baseUrl/auth/parent/signup/send-otp',
+        data: {"cnic": cnic, "email": email},
+        options: Options(
+          headers: {'Content-Type': 'application/json', 'accept': '*/*'},
+        ),
+      );
+    } on DioException catch (e) {
+      throw ServerFailure(
+        ApiErrorMapper.fromDioException(
+          e,
+          fallback: 'Unable to send verification code. Please try again.',
+        ),
+      );
+    } on Failure {
+      rethrow;
+    } catch (e) {
+      throw ServerFailure(
+        ApiErrorMapper.fromObject(
+          e,
+          fallback: 'Unable to send verification code. Please try again.',
+        ),
+      );
+    }
+  }
+
+  @override
   Future<ParentDto> registerParent(
     String cnic,
     String email,
     String password, {
+    required String otp,
     String? fcmToken,
     String? deviceType,
   }) async {
@@ -208,6 +244,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           "cnic": cnic,
           "email": email,
           "password": password,
+          "otp": otp,
           if (fcmToken != null) "fcmToken": fcmToken,
           if (deviceType != null) "deviceType": deviceType,
         },
@@ -237,6 +274,68 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         ApiErrorMapper.fromObject(
           e,
           fallback: 'Unable to create your account right now. Please try again.',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<void> forgotPassword(String email) async {
+    final String baseUrl = AppConfig.apiBaseUrl;
+
+    try {
+      await dio.post(
+        '$baseUrl/auth/parent/forgot-password',
+        data: {"email": email},
+        options: Options(
+          headers: {'Content-Type': 'application/json', 'accept': '*/*'},
+        ),
+      );
+    } on DioException catch (e) {
+      throw ServerFailure(
+        ApiErrorMapper.fromDioException(
+          e,
+          fallback: 'Unable to process your request right now. Please try again.',
+        ),
+      );
+    } on Failure {
+      rethrow;
+    } catch (e) {
+      throw ServerFailure(
+        ApiErrorMapper.fromObject(
+          e,
+          fallback: 'Unable to process your request right now. Please try again.',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<void> resetPassword(String email, String otp, String newPassword) async {
+    final String baseUrl = AppConfig.apiBaseUrl;
+
+    try {
+      await dio.post(
+        '$baseUrl/auth/parent/reset-password',
+        data: {"email": email, "code": otp, "newPassword": newPassword},
+        options: Options(
+          headers: {'Content-Type': 'application/json', 'accept': '*/*'},
+        ),
+      );
+    } on DioException catch (e) {
+      throw ServerFailure(
+        ApiErrorMapper.fromDioException(
+          e,
+          fallback: 'Unable to reset your password right now. Please try again.',
+        ),
+      );
+    } on Failure {
+      rethrow;
+    } catch (e) {
+      throw ServerFailure(
+        ApiErrorMapper.fromObject(
+          e,
+          fallback: 'Unable to reset your password right now. Please try again.',
         ),
       );
     }

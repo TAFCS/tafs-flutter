@@ -8,6 +8,7 @@ import 'bloc/auth_bloc.dart';
 import 'bloc/auth_event.dart';
 import 'bloc/auth_state.dart';
 import 'signup_page.dart';
+import 'forgot_password_page.dart';
 
 enum _LoginMode { parent, staff }
 
@@ -195,6 +196,35 @@ class _LoginPageState extends State<LoginPage> {
                                       ),
                                     ),
                                   ],
+                                ),
+                              ),
+                            ],
+                            if (!isStaff) ...[
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ForgotPasswordPage(),
+                                      ),
+                                    );
+                                  },
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    'Forgot password?',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: AppTheme.navy,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],

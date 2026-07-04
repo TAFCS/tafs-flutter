@@ -21,12 +21,14 @@ class _SignupPageState extends State<SignupPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _otpController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   String? _verifiedCnic;
   String? _guardianName;
   bool _isSubmitting = false;
   bool _successDialogShown = false;
+  int _resendCooldown = 0;
 
   @override
   void dispose() {
@@ -34,6 +36,7 @@ class _SignupPageState extends State<SignupPage> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
@@ -53,13 +56,55 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  Future<void> _register() async {
+  Future<void> _sendOtp() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Passwords do not match'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    context.read<AuthBloc>().add(
+      AuthSendSignupOtpRequested(
+        cnic: _verifiedCnic!,
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        guardianName: _guardianName ?? 'Guardian',
+      ),
+    );
+  }
+
+  void _startResendCooldown() {
+    setState(() => _resendCooldown = 60);
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return false;
+      setState(() => _resendCooldown--);
+      return _resendCooldown > 0;
+    });
+  }
+
+  void _resendOtp() {
+    context.read<AuthBloc>().add(
+      AuthSendSignupOtpRequested(
+        cnic: _verifiedCnic!,
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        guardianName: _guardianName ?? 'Guardian',
+      ),
+    );
+  }
+
+  Future<void> _verifyOtpAndRegister() async {
+    if (_otpController.text.trim().length != 4) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter the 4-digit code'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -79,6 +124,7 @@ class _SignupPageState extends State<SignupPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         guardianName: _guardianName ?? 'Guardian',
+        otp: _otpController.text.trim(),
         fcmToken: fcmToken,
         deviceType: deviceType,
       ),
@@ -91,10 +137,12 @@ class _SignupPageState extends State<SignupPage> {
     _emailController.clear();
     _passwordController.clear();
     _confirmPasswordController.clear();
+    _otpController.clear();
     _verifiedCnic = null;
     _guardianName = null;
     _isSubmitting = false;
     _successDialogShown = false;
+    _resendCooldown = 0;
   }
 
   @override
@@ -103,7 +151,9 @@ class _SignupPageState extends State<SignupPage> {
       listenWhen: (previous, current) =>
           current is SignupSuccess ||
           current is SignupRegisterFailed ||
-          current is SignupCnicInvalid,
+          current is SignupCnicInvalid ||
+          current is SignupOtpSent ||
+          current is SignupOtpFailed,
       listener: (context, state) {
         if (state is SignupSuccess) {
           if (_successDialogShown) return;
@@ -135,6 +185,21 @@ class _SignupPageState extends State<SignupPage> {
               );
             },
           );
+        } else if (state is SignupOtpSent) {
+          _startResendCooldown();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Verification code sent to your email'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else if (state is SignupOtpFailed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
         } else if (state is SignupRegisterFailed) {
           setState(() => _isSubmitting = false);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -154,13 +219,24 @@ class _SignupPageState extends State<SignupPage> {
       },
       builder: (context, state) {
         final isCnicVerifying = state is SignupCnicVerifying;
-        final isCnicValid = state is SignupCnicValid ||
+        final isOtpStep = state is SignupOtpSent ||
             state is SignupRegistering ||
             state is SignupRegisterFailed ||
             state is SignupSuccess;
+        final isCnicValid = state is SignupCnicValid ||
+            state is SignupOtpSending ||
+            state is SignupOtpFailed ||
+            isOtpStep;
         final isRegistering = _isSubmitting || state is SignupRegistering;
+        final isSendingOtp = state is SignupOtpSending;
 
         if (state is SignupCnicValid) {
+          _verifiedCnic = state.cnic;
+          _guardianName = state.guardianName;
+        } else if (state is SignupOtpFailed) {
+          _verifiedCnic = state.cnic;
+          _guardianName = state.guardianName;
+        } else if (state is SignupOtpSent) {
           _verifiedCnic = state.cnic;
           _guardianName = state.guardianName;
         } else if (state is SignupRegisterFailed) {
@@ -224,8 +300,8 @@ class _SignupPageState extends State<SignupPage> {
                         isLoading: isCnicVerifying,
                         onPressed: isCnicVerifying ? null : _verifyCnic,
                       ),
-                    ] else ...[
-                      // Registration Step
+                    ] else if (!isOtpStep) ...[
+                      // Step 2: Email/Password
                       Text(
                         'Step 2: Set Up Your Account',
                         style: Theme.of(context).textTheme.titleMedium,
@@ -306,16 +382,65 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                       const SizedBox(height: 24),
                       CustomButton(
-                        text: isRegistering
-                            ? 'Creating Account...'
-                            : 'Create Account',
-                        isLoading: isRegistering,
-                        onPressed: isRegistering ? null : _register,
+                        text: isSendingOtp
+                            ? 'Sending Code...'
+                            : 'Continue',
+                        isLoading: isSendingOtp,
+                        onPressed: isSendingOtp ? null : _sendOtp,
                       ),
                       const SizedBox(height: 12),
                       TextButton(
-                        onPressed: isRegistering ? null : _resetSignup,
+                        onPressed: isSendingOtp ? null : _resetSignup,
                         child: const Text('Change CNIC'),
+                      ),
+                    ] else ...[
+                      // Step 3: OTP Verification
+                      Text(
+                        'Step 3: Verify Your Email',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'A 4-digit code has been sent to ${_emailController.text.trim()}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      CustomTextField(
+                        label: 'Verification Code',
+                        hint: 'Enter 4-digit code',
+                        controller: _otpController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(4),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      CustomButton(
+                        text: isRegistering
+                            ? 'Verifying...'
+                            : 'Verify & Create Account',
+                        isLoading: isRegistering,
+                        onPressed: isRegistering ? null : _verifyOtpAndRegister,
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: _resendCooldown > 0 || isRegistering
+                            ? null
+                            : _resendOtp,
+                        child: Text(
+                          _resendCooldown > 0
+                              ? 'Resend code ($_resendCooldown s)'
+                              : 'Resend code',
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      TextButton(
+                        onPressed: isRegistering ? null : _resetSignup,
+                        child: const Text('Start over'),
                       ),
                     ],
                     const SizedBox(height: 32),

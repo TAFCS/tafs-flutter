@@ -133,10 +133,23 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, void>> sendSignupOtp(String cnic, String email) async {
+    try {
+      await remoteDataSource.sendSignupOtp(cnic, email);
+      return const Right(null);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (e) {
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
+    }
+  }
+
+  @override
   Future<Either<Failure, Parent>> registerParent(
     String cnic,
     String email,
     String password, {
+    required String otp,
     String? fcmToken,
     String? deviceType,
   }) async {
@@ -145,10 +158,39 @@ class AuthRepositoryImpl implements AuthRepository {
         cnic,
         email,
         password,
+        otp: otp,
         fcmToken: fcmToken,
         deviceType: deviceType,
       );
       return Right(parentDto);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (e) {
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> forgotPassword(String email) async {
+    try {
+      await remoteDataSource.forgotPassword(email);
+      return const Right(null);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (e) {
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> resetPassword(
+    String email,
+    String otp,
+    String newPassword,
+  ) async {
+    try {
+      await remoteDataSource.resetPassword(email, otp, newPassword);
+      return const Right(null);
     } on Failure catch (failure) {
       return Left(failure);
     } catch (e) {

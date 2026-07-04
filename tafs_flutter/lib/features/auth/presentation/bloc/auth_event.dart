@@ -83,11 +83,29 @@ class AuthVerifyCnicRequested extends AuthEvent {
   List<Object?> get props => [cnic];
 }
 
+class AuthSendSignupOtpRequested extends AuthEvent {
+  final String cnic;
+  final String email;
+  final String password;
+  final String guardianName;
+
+  const AuthSendSignupOtpRequested({
+    required this.cnic,
+    required this.email,
+    required this.password,
+    required this.guardianName,
+  });
+
+  @override
+  List<Object?> get props => [cnic, email, password, guardianName];
+}
+
 class AuthRegisterRequested extends AuthEvent {
   final String cnic;
   final String email;
   final String password;
   final String guardianName;
+  final String otp;
   final String? fcmToken;
   final String? deviceType;
 
@@ -96,13 +114,38 @@ class AuthRegisterRequested extends AuthEvent {
     required this.email,
     required this.password,
     required this.guardianName,
+    required this.otp,
     this.fcmToken,
     this.deviceType,
   });
 
   @override
   List<Object?> get props =>
-      [cnic, email, password, guardianName, fcmToken, deviceType];
+      [cnic, email, password, guardianName, otp, fcmToken, deviceType];
+}
+
+class AuthForgotPasswordRequested extends AuthEvent {
+  final String email;
+
+  const AuthForgotPasswordRequested({required this.email});
+
+  @override
+  List<Object?> get props => [email];
+}
+
+class AuthResetPasswordRequested extends AuthEvent {
+  final String email;
+  final String otp;
+  final String newPassword;
+
+  const AuthResetPasswordRequested({
+    required this.email,
+    required this.otp,
+    required this.newPassword,
+  });
+
+  @override
+  List<Object?> get props => [email, otp, newPassword];
 }
 
 /// Return to signup step 1 (verify CNIC) without leaving the signup screen.

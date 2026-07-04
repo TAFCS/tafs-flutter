@@ -116,3 +116,67 @@ class SignupSuccess extends AuthState {
   @override
   List<Object> get props => [parent];
 }
+
+// ─── Signup OTP States ─────────────────────────────────────────────────────
+
+class SignupOtpSending extends AuthState {}
+
+class SignupOtpSent extends AuthState {
+  final String cnic;
+  final String email;
+  final String password;
+  final String guardianName;
+
+  const SignupOtpSent({
+    required this.cnic,
+    required this.email,
+    required this.password,
+    required this.guardianName,
+  });
+
+  @override
+  List<Object> get props => [cnic, email, password, guardianName];
+}
+
+class SignupOtpFailed extends AuthState {
+  final String message;
+  final String cnic;
+  final String guardianName;
+
+  const SignupOtpFailed({
+    required this.message,
+    required this.cnic,
+    required this.guardianName,
+  });
+
+  @override
+  List<Object> get props => [message, cnic, guardianName];
+}
+
+// ─── Forgot / Reset Password States ────────────────────────────────────────
+
+class ForgotPasswordSending extends AuthState {}
+
+class ForgotPasswordSent extends AuthState {}
+
+class ForgotPasswordFailed extends AuthState {
+  final String message;
+
+  const ForgotPasswordFailed(this.message);
+
+  @override
+  List<Object> get props => [message];
+}
+
+class ResetPasswordSubmitting extends AuthState {}
+
+class ResetPasswordSuccess extends AuthState {}
+
+class ResetPasswordFailed extends AuthState {
+  final String message;
+
+  const ResetPasswordFailed(this.message);
+
+  @override
+  List<Object> get props => [message];
+}

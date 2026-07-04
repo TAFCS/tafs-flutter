@@ -31,9 +31,12 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
       _onAccountDeletionRequestedAcknowledged,
     );
     on<AuthVerifyCnicRequested>(_onVerifyCnicRequested);
+    on<AuthSendSignupOtpRequested>(_onSendSignupOtpRequested);
     on<AuthRegisterRequested>(_onRegisterRequested);
     on<AuthSignupResetRequested>(_onSignupResetRequested);
     on<AuthSignupExitToLoginRequested>(_onSignupExitToLoginRequested);
+    on<AuthForgotPasswordRequested>(_onForgotPasswordRequested);
+    on<AuthResetPasswordRequested>(_onResetPasswordRequested);
     on<AuthRefreshRequested>(_onAuthRefreshRequested);
     on<AuthProfileRefreshFailureAcknowledged>(_onProfileRefreshFailureAcknowledged);
     on<AuthTokenRefreshed>(_onAuthTokenRefreshed);
@@ -252,6 +255,27 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     );
   }
 
+  Future<void> _onSendSignupOtpRequested(
+    AuthSendSignupOtpRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(SignupOtpSending());
+    final result = await repository.sendSignupOtp(event.cnic, event.email);
+    result.fold(
+      (failure) => emit(SignupOtpFailed(
+        message: ApiErrorMapper.userMessage(failure),
+        cnic: event.cnic,
+        guardianName: event.guardianName,
+      )),
+      (_) => emit(SignupOtpSent(
+        cnic: event.cnic,
+        email: event.email,
+        password: event.password,
+        guardianName: event.guardianName,
+      )),
+    );
+  }
+
   Future<void> _onRegisterRequested(
     AuthRegisterRequested event,
     Emitter<AuthState> emit,
@@ -261,6 +285,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
       event.cnic,
       event.email,
       event.password,
+      otp: event.otp,
       fcmToken: event.fcmToken,
       deviceType: event.deviceType,
     );
@@ -286,5 +311,33 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthUnauthenticated());
+  }
+
+  Future<void> _onForgotPasswordRequested(
+    AuthForgotPasswordRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(ForgotPasswordSending());
+    final result = await repository.forgotPassword(event.email);
+    result.fold(
+      (failure) => emit(ForgotPasswordFailed(ApiErrorMapper.userMessage(failure))),
+      (_) => emit(ForgotPasswordSent()),
+    );
+  }
+
+  Future<void> _onResetPasswordRequested(
+    AuthResetPasswordRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(ResetPasswordSubmitting());
+    final result = await repository.resetPassword(
+      event.email,
+      event.otp,
+      event.newPassword,
+    );
+    result.fold(
+      (failure) => emit(ResetPasswordFailed(ApiErrorMapper.userMessage(failure))),
+      (_) => emit(ResetPasswordSuccess()),
+    );
   }
 }
