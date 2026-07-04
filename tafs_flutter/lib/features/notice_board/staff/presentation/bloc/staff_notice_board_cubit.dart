@@ -113,12 +113,21 @@ class StaffNoticeBoardCubit extends Cubit<StaffNoticeBoardState> {
     }
   }
 
+  Future<List<Map<String, dynamic>>> searchStudents(String query) async {
+    try {
+      return await repository.searchStudents(query);
+    } catch (_) {
+      return [];
+    }
+  }
+
   Future<StaffNoticePost?> createPost({
     String? title,
     required String body,
     required List<int> campusIds,
     required List<int> classIds,
     required List<int> sectionIds,
+    List<int> studentCcs = const [],
     required List<String> mediaUrls,
     required List<String> mediaTypes,
     required bool isPinned,
@@ -132,6 +141,7 @@ class StaffNoticeBoardCubit extends Cubit<StaffNoticeBoardState> {
         campusIds: campusIds,
         classIds: classIds,
         sectionIds: sectionIds,
+        studentCcs: studentCcs,
         mediaUrls: mediaUrls,
         mediaTypes: mediaTypes,
         isPinned: isPinned,

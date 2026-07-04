@@ -105,6 +105,13 @@ class StaffNoticeBoardRemoteDataSource {
     };
   }
 
+  Future<List<Map<String, dynamic>>> searchStudents(String query) async {
+    final response = await dio.get('/students/search-simple', queryParameters: {'q': query});
+    final data = response.data;
+    final list = data is List ? data : (data['data'] as List? ?? []);
+    return list.cast<Map<String, dynamic>>();
+  }
+
   Future<List<CampusScopeDto>> getCampuses() async {
     final response = await dio.get('/campuses');
     final data = response.data;

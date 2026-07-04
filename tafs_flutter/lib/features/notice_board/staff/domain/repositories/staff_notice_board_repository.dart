@@ -10,11 +10,13 @@ abstract class StaffNoticeBoardRepository {
     required List<int> campusIds,
     required List<int> classIds,
     required List<int> sectionIds,
+    List<int> studentCcs = const [],
     required List<String> mediaUrls,
     required List<String> mediaTypes,
     required bool isPinned,
     DateTime? expiresAt,
   });
+  Future<List<Map<String, dynamic>>> searchStudents(String query);
   Future<StaffNoticePost> togglePin(int postId, bool isPinned);
   Future<void> deletePost(int postId);
   Future<UploadedNoticeMedia> uploadMedia(XFile file, String displayName);

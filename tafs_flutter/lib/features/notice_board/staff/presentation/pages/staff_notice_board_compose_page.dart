@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -18,6 +19,8 @@ class _StaffNoticeBoardComposePageState
     extends State<StaffNoticeBoardComposePage> {
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
+  final _studentSearchController = TextEditingController();
+  final _ccPasteController = TextEditingController();
   final List<int> _campusIds = [];
   final List<int> _classIds = [];
   final List<int> _sectionIds = [];
@@ -26,6 +29,11 @@ class _StaffNoticeBoardComposePageState
   DateTime? _expiresAt;
 
   bool _bodyEmpty = true;
+  bool _studentTargetOpen = false;
+  bool _searchingStudents = false;
+  List<Map<String, dynamic>> _studentSearchResults = [];
+  final List<Map<String, dynamic>> _selectedStudents = [];
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -40,6 +48,9 @@ class _StaffNoticeBoardComposePageState
   void dispose() {
     _titleController.dispose();
     _bodyController.dispose();
+    _studentSearchController.dispose();
+    _ccPasteController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -94,6 +105,68 @@ class _StaffNoticeBoardComposePageState
       if (names.isNotEmpty) parts.add(names.join(', '));
     }
     return 'Families in: ${parts.isNotEmpty ? parts.join(' · ') : 'selected scope'}';
+  }
+
+  void _onStudentSearch(String query) {
+    _searchDebounce?.cancel();
+    if (query.length < 2) {
+      setState(() => _studentSearchResults = []);
+      return;
+    }
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
+      setState(() => _searchingStudents = true);
+      final cubit = context.read<StaffNoticeBoardCubit>();
+      final results = await cubit.searchStudents(query);
+      if (mounted) {
+        setState(() {
+          _studentSearchResults = results;
+          _searchingStudents = false;
+        });
+      }
+    });
+  }
+
+  void _addStudent(Map<String, dynamic> student) {
+    final cc = student['cc'] as int;
+    if (_selectedStudents.any((s) => s['cc'] == cc)) return;
+    setState(() {
+      _selectedStudents.add(student);
+      _studentSearchController.clear();
+      _studentSearchResults = [];
+    });
+  }
+
+  void _removeStudent(int cc) {
+    setState(() {
+      _selectedStudents.removeWhere((s) => s['cc'] == cc);
+    });
+  }
+
+  Future<void> _parseCcPaste() async {
+    final raw = _ccPasteController.text
+        .split(RegExp(r'[,\n\r]+'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    final ccs = raw
+        .map((s) => int.tryParse(s))
+        .where((n) => n != null && n > 0)
+        .cast<int>()
+        .where((cc) => !_selectedStudents.any((s) => s['cc'] == cc))
+        .toList();
+    if (ccs.isEmpty) return;
+    final cubit = context.read<StaffNoticeBoardCubit>();
+    for (final cc in ccs) {
+      final results = await cubit.searchStudents(cc.toString());
+      final match = results.firstWhere(
+        (s) => s['cc'] == cc,
+        orElse: () => {'cc': cc, 'full_name': 'CC $cc', 'gr_number': ''},
+      );
+      if (mounted) {
+        setState(() => _selectedStudents.add(match));
+      }
+    }
+    if (mounted) _ccPasteController.clear();
   }
 
   Future<void> _pickFiles() async {
@@ -196,6 +269,7 @@ class _StaffNoticeBoardComposePageState
       campusIds: List.from(_campusIds),
       classIds: List.from(_classIds),
       sectionIds: List.from(_sectionIds),
+      studentCcs: _selectedStudents.map((s) => s['cc'] as int).toList(),
       mediaUrls: _uploadedMedia.map((m) => m.url).toList(),
       mediaTypes: _uploadedMedia.map((m) => m.type).toList(),
       isPinned: _isPinned,
@@ -331,6 +405,152 @@ class _StaffNoticeBoardComposePageState
                         ),
                       ),
                     ),
+                    const SizedBox(height: 20),
+                    InkWell(
+                      onTap: () => setState(() => _studentTargetOpen = !_studentTargetOpen),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.person_add_alt_1, size: 16, color: AppTheme.blue300),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'TARGET SPECIFIC STUDENTS',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.blue300,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          if (_selectedStudents.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppTheme.navy.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${_selectedStudents.length}',
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                              ),
+                            ),
+                          ],
+                          const Spacer(),
+                          Icon(
+                            _studentTargetOpen ? Icons.expand_less : Icons.expand_more,
+                            size: 20,
+                            color: AppTheme.blue300,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_studentTargetOpen) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _studentSearchController,
+                        onChanged: _onStudentSearch,
+                        decoration: InputDecoration(
+                          hintText: 'Search by name or GR number…',
+                          prefixIcon: const Icon(Icons.search, size: 20),
+                          suffixIcon: _searchingStudents
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                              : null,
+                          filled: true,
+                          fillColor: AppTheme.white,
+                          isDense: true,
+                        ),
+                      ),
+                      if (_studentSearchResults.isNotEmpty)
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: _studentSearchResults.length,
+                            itemBuilder: (context, index) {
+                              final s = _studentSearchResults[index];
+                              final cc = s['cc'] as int;
+                              final alreadyAdded = _selectedStudents.any((x) => x['cc'] == cc);
+                              return ListTile(
+                                dense: true,
+                                title: Text(
+                                  s['full_name']?.toString() ?? 'Unknown',
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                ),
+                                subtitle: Text(
+                                  s['gr_number']?.toString().isNotEmpty == true ? 'GR ${s['gr_number']}' : 'CC $cc',
+                                  style: const TextStyle(fontSize: 11),
+                                ),
+                                trailing: alreadyAdded
+                                    ? const Icon(Icons.check, color: Colors.green, size: 18)
+                                    : null,
+                                onTap: alreadyAdded ? null : () => _addStudent(s),
+                              );
+                            },
+                          ),
+                        ),
+                      if (_selectedStudents.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: _selectedStudents.map((s) {
+                            final cc = s['cc'] as int;
+                            final name = s['full_name']?.toString() ?? 'CC $cc';
+                            final gr = s['gr_number']?.toString() ?? '';
+                            return Chip(
+                              label: Text(
+                                gr.isNotEmpty ? '$name ($gr)' : name,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              onDeleted: () => _removeStudent(cc),
+                              deleteIconColor: Colors.red.shade300,
+                              backgroundColor: AppTheme.navy.withValues(alpha: 0.08),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _ccPasteController,
+                              decoration: const InputDecoration(
+                                hintText: 'Paste comma-separated CCs',
+                                filled: true,
+                                fillColor: AppTheme.white,
+                                isDense: true,
+                              ),
+                              maxLines: 2,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton(
+                            onPressed: _parseCcPaste,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppTheme.navy,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            ),
+                            child: const Text('Parse', style: TextStyle(fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     _sectionLabel('Options'),
                     SwitchListTile(

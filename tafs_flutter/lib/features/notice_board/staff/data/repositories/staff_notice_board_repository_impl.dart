@@ -25,6 +25,7 @@ class StaffNoticeBoardRepositoryImpl implements StaffNoticeBoardRepository {
     required List<int> campusIds,
     required List<int> classIds,
     required List<int> sectionIds,
+    List<int> studentCcs = const [],
     required List<String> mediaUrls,
     required List<String> mediaTypes,
     required bool isPinned,
@@ -36,11 +37,17 @@ class StaffNoticeBoardRepositoryImpl implements StaffNoticeBoardRepository {
       'campus_ids': campusIds,
       'class_ids': classIds,
       'section_ids': sectionIds,
+      if (studentCcs.isNotEmpty) 'student_ccs': studentCcs,
       'media_urls': mediaUrls,
       'media_types': mediaTypes,
       'is_pinned': isPinned,
       if (expiresAt != null) 'expires_at': expiresAt.toUtc().toIso8601String(),
     });
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> searchStudents(String query) {
+    return remoteDataSource.searchStudents(query);
   }
 
   @override
