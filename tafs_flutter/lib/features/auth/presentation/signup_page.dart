@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -29,9 +30,11 @@ class _SignupPageState extends State<SignupPage> {
   bool _isSubmitting = false;
   bool _successDialogShown = false;
   int _resendCooldown = 0;
+  Timer? _cooldownTimer;
 
   @override
   void dispose() {
+    _cooldownTimer?.cancel();
     _cnicController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -80,12 +83,15 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   void _startResendCooldown() {
+    _cooldownTimer?.cancel();
     setState(() => _resendCooldown = 60);
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(seconds: 1));
-      if (!mounted) return false;
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
       setState(() => _resendCooldown--);
-      return _resendCooldown > 0;
+      if (_resendCooldown <= 0) timer.cancel();
     });
   }
 
@@ -132,6 +138,7 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   void _resetSignup() {
+    _cooldownTimer?.cancel();
     context.read<AuthBloc>().add(const AuthSignupResetRequested());
     _cnicController.clear();
     _emailController.clear();
@@ -194,6 +201,7 @@ class _SignupPageState extends State<SignupPage> {
             ),
           );
         } else if (state is SignupOtpFailed) {
+          _otpController.clear();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),

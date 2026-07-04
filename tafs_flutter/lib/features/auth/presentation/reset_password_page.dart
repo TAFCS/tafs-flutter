@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,13 +22,48 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  int _resendCooldown = 60;
+  Timer? _cooldownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startResendCooldown();
+  }
 
   @override
   void dispose() {
+    _cooldownTimer?.cancel();
     _otpController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _startResendCooldown() {
+    _cooldownTimer?.cancel();
+    setState(() => _resendCooldown = 60);
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() => _resendCooldown--);
+      if (_resendCooldown <= 0) timer.cancel();
+    });
+  }
+
+  void _resendCode() {
+    context.read<AuthBloc>().add(
+      AuthForgotPasswordRequested(email: widget.email),
+    );
+    _startResendCooldown();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('A new code has been sent to your email'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   void _submit() {
@@ -161,6 +197,17 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                           text: isLoading ? 'Resetting...' : 'Reset Password',
                           isLoading: isLoading,
                           onPressed: isLoading ? null : _submit,
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: _resendCooldown > 0 || isLoading
+                              ? null
+                              : _resendCode,
+                          child: Text(
+                            _resendCooldown > 0
+                                ? 'Resend code ($_resendCooldown s)'
+                                : 'Resend code',
+                          ),
                         ),
                       ],
                     ),
