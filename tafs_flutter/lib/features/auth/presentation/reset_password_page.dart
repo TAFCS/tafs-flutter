@@ -57,13 +57,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     context.read<AuthBloc>().add(
       AuthForgotPasswordRequested(email: widget.email),
     );
-    _startResendCooldown();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('A new code has been sent to your email'),
-        backgroundColor: Colors.green,
-      ),
-    );
   }
 
   void _submit() {
@@ -93,7 +86,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     return BlocListener<AuthBloc, AuthState>(
       listenWhen: (previous, current) =>
           current is ResetPasswordSuccess ||
-          current is ResetPasswordFailed,
+          current is ResetPasswordFailed ||
+          current is ForgotPasswordSent ||
+          current is ForgotPasswordFailed,
       listener: (context, state) {
         if (state is ResetPasswordSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -102,9 +97,23 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               backgroundColor: Colors.green,
             ),
           );
-          context.read<AuthBloc>().add(const AuthSignupExitToLoginRequested());
           Navigator.of(context).popUntil((route) => route.isFirst);
         } else if (state is ResetPasswordFailed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        } else if (state is ForgotPasswordSent) {
+          _startResendCooldown();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('A new code has been sent to your email'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else if (state is ForgotPasswordFailed) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
@@ -116,6 +125,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           final isLoading = state is ResetPasswordSubmitting;
+          final isResending = state is ForgotPasswordSending;
 
           return PopScope(
             onPopInvokedWithResult: (didPop, _) {
@@ -208,13 +218,15 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         ),
                         const SizedBox(height: 12),
                         TextButton(
-                          onPressed: _resendCooldown > 0 || isLoading
+                          onPressed: _resendCooldown > 0 || isLoading || isResending
                               ? null
                               : _resendCode,
                           child: Text(
-                            _resendCooldown > 0
-                                ? 'Resend code ($_resendCooldown s)'
-                                : 'Resend code',
+                            isResending
+                                ? 'Sending...'
+                                : _resendCooldown > 0
+                                    ? 'Resend code ($_resendCooldown s)'
+                                    : 'Resend code',
                           ),
                         ),
                       ],

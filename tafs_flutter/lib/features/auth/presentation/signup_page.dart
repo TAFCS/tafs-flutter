@@ -119,22 +119,26 @@ class _SignupPageState extends State<SignupPage> {
 
     setState(() => _isSubmitting = true);
 
-    final fcmToken = await FcmRegistrationService.instance.getToken();
-    final deviceType = await FcmRegistrationService.instance.getDeviceType();
+    try {
+      final fcmToken = await FcmRegistrationService.instance.getToken();
+      final deviceType = await FcmRegistrationService.instance.getDeviceType();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    context.read<AuthBloc>().add(
-      AuthRegisterRequested(
-        cnic: _verifiedCnic!,
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        guardianName: _guardianName ?? 'Guardian',
-        otp: _otpController.text.trim(),
-        fcmToken: fcmToken,
-        deviceType: deviceType,
-      ),
-    );
+      context.read<AuthBloc>().add(
+        AuthRegisterRequested(
+          cnic: _verifiedCnic!,
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          guardianName: _guardianName ?? 'Guardian',
+          otp: _otpController.text.trim(),
+          fcmToken: fcmToken,
+          deviceType: deviceType,
+        ),
+      );
+    } catch (_) {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   void _resetSignup() {
@@ -181,9 +185,6 @@ class _SignupPageState extends State<SignupPage> {
                   FilledButton(
                     onPressed: () {
                       Navigator.of(dialogContext).pop();
-                      context.read<AuthBloc>().add(
-                        const AuthSignupExitToLoginRequested(),
-                      );
                       Navigator.pop(context, email);
                     },
                     child: const Text('Go to Login'),
@@ -457,12 +458,7 @@ class _SignupPageState extends State<SignupPage> {
                       children: [
                         const Text('Already have an account? '),
                         TextButton(
-                          onPressed: () {
-                            context.read<AuthBloc>().add(
-                              const AuthSignupExitToLoginRequested(),
-                            );
-                            Navigator.pop(context);
-                          },
+                          onPressed: () => Navigator.pop(context),
                           child: const Text('Login'),
                         ),
                       ],

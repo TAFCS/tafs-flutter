@@ -167,40 +167,28 @@ class _AuthGateState extends State<AuthGate> {
             );
           }
 
-          if (authState is AuthUnauthenticated ||
-              authState is AuthError ||
-              authState is AuthLoading ||
-              authState is SignupInitial ||
-              authState is SignupCnicVerifying ||
-              authState is SignupCnicValid ||
-              authState is SignupCnicInvalid ||
-              authState is SignupRegistering ||
-              authState is SignupRegisterFailed ||
-              authState is SignupSuccess) {
-            return const LoginPage();
-          }
-
-          return Scaffold(
-            body: Container(
-              width: double.infinity,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                gradient: AppTheme.navyGradient,
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(height: 24),
-                    CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppTheme.white,
-                    ),
-                  ],
+          // Splash only while cold-start session check is in flight.
+          // All other unauthenticated flows keep LoginPage as the home route
+          // so pops never reveal a loading screen behind pushed routes.
+          if (authState is AuthInitial) {
+            return Scaffold(
+              body: Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: AppTheme.navyGradient,
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppTheme.white,
+                  ),
                 ),
               ),
-            ),
-          );
+            );
+          }
+
+          return const LoginPage();
         },
       ),
     );

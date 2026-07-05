@@ -84,6 +84,8 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AuthBloc, AuthState>(
+      listenWhen: (_, current) =>
+          current is AuthError || current is AuthLoading,
       listener: (context, state) {
         if (state is AuthError) {
           setState(() => _loginError = state.message);
