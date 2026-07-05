@@ -49,6 +49,9 @@ import 'features/profile/data/datasources/profile_remote_data_source.dart';
 import 'features/profile/data/repositories/profile_repository_impl.dart';
 import 'features/profile/presentation/bloc/profile_bloc.dart';
 import 'core/config/app_config.dart';
+import 'core/services/biometric_enable_prompt_service.dart';
+import 'core/services/biometric_auth_service.dart';
+import 'core/services/saved_credentials_service.dart';
 
 // Attendance History
 import 'features/attendance_history/data/repositories/attendance_history_repository_impl.dart';
@@ -80,6 +83,9 @@ class InjectionContainer {
   static late final ProfileBloc profileBloc;
   static late final AttendanceHistoryBloc attendanceHistoryBloc;
   static late final LeaveRequestsRepository leaveRequestsRepository;
+  static late final BiometricAuthService biometricAuthService;
+  static late final SavedCredentialsService savedCredentialsService;
+  static late final BiometricEnablePromptService biometricEnablePromptService;
 
   static bool _initialized = false;
 
@@ -93,6 +99,13 @@ class InjectionContainer {
       baseUrl: AppConfig.apiBaseUrl,
     ));
     const secureStorage = FlutterSecureStorage();
+
+    biometricAuthService = BiometricAuthService();
+    savedCredentialsService = SavedCredentialsService(secureStorage);
+    biometricEnablePromptService = BiometricEnablePromptService(
+      biometricAuth: biometricAuthService,
+      savedCredentials: savedCredentialsService,
+    );
 
     final localDataSource = AuthLocalDataSourceImpl(secureStorage);
     final remoteDataSource = AuthRemoteDataSourceImpl(dio);

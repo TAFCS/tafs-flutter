@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
+import '../../../injection_container.dart';
 import 'bloc/auth_bloc.dart';
 import 'bloc/auth_event.dart';
 import 'bloc/auth_state.dart';
@@ -89,8 +90,10 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           current is ResetPasswordFailed ||
           current is ForgotPasswordSent ||
           current is ForgotPasswordFailed,
-      listener: (context, state) {
+      listener: (context, state) async {
         if (state is ResetPasswordSuccess) {
+          await InjectionContainer.savedCredentialsService.clear(isStaff: false);
+          if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Password reset successful. Please log in.'),

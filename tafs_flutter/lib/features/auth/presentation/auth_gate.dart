@@ -7,6 +7,7 @@ import '../../../core/services/fcm_registration_service.dart';
 import '../../../core/session/authenticated_session.dart';
 import '../../../core/session/session_reset.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../injection_container.dart';
 import '../../auth/domain/entities/parent.dart';
 import '../../auth/domain/entities/student.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
@@ -113,7 +114,22 @@ class _AuthGateState extends State<AuthGate> {
                 students: state.parent.students,
               );
               unawaited(_showNotificationPermissionHintIfNeeded(context));
+              unawaited(
+                InjectionContainer.biometricEnablePromptService
+                    .handleLoginSuccess(context),
+              );
             }
+          },
+        ),
+        BlocListener<AuthBloc, AuthState>(
+          listenWhen: (previous, current) =>
+              current is AuthAuthenticatedStaff &&
+              previous is AuthLoading,
+          listener: (context, state) {
+            unawaited(
+              InjectionContainer.biometricEnablePromptService
+                  .handleLoginSuccess(context),
+            );
           },
         ),
         BlocListener<AuthBloc, AuthState>(
