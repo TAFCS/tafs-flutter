@@ -349,7 +349,15 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ],
                             SizedBox(height: sectionGap),
+                            CustomButton(
+                              text: 'Sign in',
+                              isLoading: isLoading,
+                              onPressed: isLoading || _biometricLoading
+                                  ? null
+                                  : _login,
+                            ),
                             if (showBiometricButton) ...[
+                              SizedBox(height: sectionGap),
                               Center(
                                 child: BiometricSignInButton(
                                   label: _biometricLabel,
@@ -359,15 +367,7 @@ class _LoginPageState extends State<LoginPage> {
                                       : _biometricLogin,
                                 ),
                               ),
-                              SizedBox(height: sectionGap),
                             ],
-                            CustomButton(
-                              text: 'Sign in',
-                              isLoading: isLoading,
-                              onPressed: isLoading || _biometricLoading
-                                  ? null
-                                  : _login,
-                            ),
                             if (!isStaff) ...[
                               const SizedBox(height: AppTheme.space4),
                               Row(

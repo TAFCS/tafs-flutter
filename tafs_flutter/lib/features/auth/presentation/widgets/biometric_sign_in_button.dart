@@ -67,8 +67,8 @@ class _BiometricIcon extends StatelessWidget {
 
     return Image.asset(
       asset,
-        width: 56,
-        height: 56,
+        width:36,
+        height: 36,
       fit: BoxFit.contain,
     );
   }
