@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_dialog_actions.dart';
 import '../../../../injection_container.dart';
 import '../../../chat/domain/entities/chat_message.dart';
 import '../../../chat/presentation/widgets/chat_bubble.dart';
@@ -78,7 +79,7 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
         listenWhen: (prev, curr) => curr.messages.length != prev.messages.length,
         listener: (_, __) => _scrollToBottom(),
         child: Scaffold(
-          backgroundColor: Colors.grey[100],
+          backgroundColor: AppTheme.surface2,
           appBar: AppBar(
             title: const Text('TAFS Support'),
             backgroundColor: AppTheme.white,
@@ -101,13 +102,14 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
                             'You will not be able to send more messages on this ticket.',
                           ),
                           actions: [
-                            TextButton(
+                            AppDialogActions.cancel(
+                              ctx,
                               onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Cancel'),
                             ),
-                            TextButton(
+                            AppDialogActions.primary(
+                              ctx,
+                              label: 'Close',
                               onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Close'),
                             ),
                           ],
                         ),

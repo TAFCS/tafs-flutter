@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
+import '../../../core/widgets/app_snackbar.dart';
 import '../../../injection_container.dart';
 import 'bloc/auth_bloc.dart';
 import 'bloc/auth_event.dart';
@@ -64,12 +65,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Passwords do not match'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      showAppSnackBar(context, 'Passwords do not match', type: AppSnackBarType.error);
       return;
     }
 
@@ -94,35 +90,23 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         if (state is ResetPasswordSuccess) {
           await InjectionContainer.savedCredentialsService.clear(isStaff: false);
           if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Password reset successful. Please log in.'),
-              backgroundColor: Colors.green,
-            ),
+          showAppSnackBar(
+            context,
+            'Password reset successful. Please log in.',
+            type: AppSnackBarType.success,
           );
           Navigator.of(context).popUntil((route) => route.isFirst);
         } else if (state is ResetPasswordFailed) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+          showAppSnackBar(context, state.message, type: AppSnackBarType.error);
         } else if (state is ForgotPasswordSent) {
           _startResendCooldown();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('A new code has been sent to your email'),
-              backgroundColor: Colors.green,
-            ),
+          showAppSnackBar(
+            context,
+            'A new code has been sent to your email',
+            type: AppSnackBarType.success,
           );
         } else if (state is ForgotPasswordFailed) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+          showAppSnackBar(context, state.message, type: AppSnackBarType.error);
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(

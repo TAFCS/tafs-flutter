@@ -219,6 +219,40 @@ class AppTheme {
           fontWeight: FontWeight.w600,
         ),
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: white,
+        surfaceTintColor: white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusLg),
+        ),
+        titleTextStyle: GoogleFonts.readexPro(
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+          color: navy,
+        ),
+        contentTextStyle: GoogleFonts.readexPro(
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
+          color: navy,
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(space4, 0, space4, space4),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: surface2,
+        surfaceTintColor: surface2,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(radiusXl)),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: navy,
+          textStyle: GoogleFonts.readexPro(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/services/fcm_registration_service.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
+import '../../../core/widgets/app_dialog_actions.dart';
+import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/theme/app_theme.dart';
 import 'bloc/auth_bloc.dart';
 import 'bloc/auth_event.dart';
@@ -45,12 +47,7 @@ class _SignupPageState extends State<SignupPage> {
 
   void _verifyCnic() {
     if (_cnicController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a CNIC'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      showAppSnackBar(context, 'Please enter a CNIC', type: AppSnackBarType.error);
       return;
     }
 
@@ -63,12 +60,7 @@ class _SignupPageState extends State<SignupPage> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Passwords do not match'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      showAppSnackBar(context, 'Passwords do not match', type: AppSnackBarType.error);
       return;
     }
 
@@ -108,11 +100,10 @@ class _SignupPageState extends State<SignupPage> {
 
   Future<void> _verifyOtpAndRegister() async {
     if (_otpController.text.trim().length != 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter the 4-digit code'),
-          backgroundColor: Colors.redAccent,
-        ),
+      showAppSnackBar(
+        context,
+        'Please enter the 4-digit code',
+        type: AppSnackBarType.error,
       );
       return;
     }
@@ -182,12 +173,13 @@ class _SignupPageState extends State<SignupPage> {
                   'Your account has been created successfully. Please log in with your email and password.',
                 ),
                 actions: [
-                  FilledButton(
+                  AppDialogActions.primary(
+                    dialogContext,
+                    label: 'Go to Login',
                     onPressed: () {
                       Navigator.of(dialogContext).pop();
                       Navigator.pop(context, email);
                     },
-                    child: const Text('Go to Login'),
                   ),
                 ],
               );
@@ -195,35 +187,19 @@ class _SignupPageState extends State<SignupPage> {
           );
         } else if (state is SignupOtpSent) {
           _startResendCooldown();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Verification code sent to your email'),
-              backgroundColor: Colors.green,
-            ),
+          showAppSnackBar(
+            context,
+            'Verification code sent to your email',
+            type: AppSnackBarType.success,
           );
         } else if (state is SignupOtpFailed) {
           _otpController.clear();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+          showAppSnackBar(context, state.message, type: AppSnackBarType.error);
         } else if (state is SignupRegisterFailed) {
           setState(() => _isSubmitting = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+          showAppSnackBar(context, state.message, type: AppSnackBarType.error);
         } else if (state is SignupCnicInvalid) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+          showAppSnackBar(context, state.message, type: AppSnackBarType.error);
         }
       },
       builder: (context, state) {

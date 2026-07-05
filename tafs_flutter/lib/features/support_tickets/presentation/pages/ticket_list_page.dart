@@ -35,7 +35,7 @@ class _TicketListPageState extends State<TicketListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppTheme.surface2,
       appBar: AppBar(
         title: const Text('My Queries'),
         backgroundColor: AppTheme.white,
@@ -445,7 +445,7 @@ class _TicketOriginationPageState extends State<TicketOriginationPage> {
         if (!didPop) _goBack();
       },
       child: Scaffold(
-        backgroundColor: Colors.grey[100],
+        backgroundColor: AppTheme.surface2,
         appBar: _buildAppBar(),
         body: ListView(
         children: [

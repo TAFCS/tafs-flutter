@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_dialog_actions.dart';
 import '../../../../core/widgets/student_profile_card.dart';
 import '../../domain/entities/fee_month_status.dart';
 import '../../domain/entities/voucher.dart';
@@ -638,9 +639,10 @@ class _ActiveVoucherCard extends StatelessWidget {
           'This voucher is expired.\n\nReprinting fee: Rs. 100\n\nFor now, please contact the school admin to regenerate this voucher.',
         ),
         actions: [
-          TextButton(
+          AppDialogActions.primary(
+            ctx,
+            label: 'OK',
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK'),
           ),
         ],
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/widgets/app_dialog_actions.dart';
 import '../../domain/entities/staff_notice_post.dart';
 import '../bloc/staff_notice_board_cubit.dart';
 
@@ -55,13 +56,14 @@ class _StaffNoticeBoardDetailPageState extends State<StaffNoticeBoardDetailPage>
         title: const Text('Delete post?'),
         content: Text('Delete "$title"?'),
         actions: [
-          TextButton(
+          AppDialogActions.cancel(
+            ctx,
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
           ),
-          TextButton(
+          AppDialogActions.destructive(
+            ctx,
+            label: 'Delete',
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -77,7 +79,7 @@ class _StaffNoticeBoardDetailPageState extends State<StaffNoticeBoardDetailPage>
     return BlocBuilder<StaffNoticeBoardCubit, StaffNoticeBoardState>(
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: Colors.grey[100],
+          backgroundColor: AppTheme.surface2,
           appBar: AppBar(
             title: const Text('Post Analytics'),
             backgroundColor: AppTheme.white,

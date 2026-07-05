@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_dialog_actions.dart';
+import '../../../core/widgets/app_snackbar.dart';
 import '../../auth/domain/entities/parent.dart';
 import '../../auth/domain/entities/student.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
@@ -45,12 +47,7 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
       listenWhen: (_, current) => current is AuthProfileRefreshFailed,
       listener: (context, state) {
         if (state is AuthProfileRefreshFailed) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+          showAppSnackBar(context, state.message, type: AppSnackBarType.error);
           context.read<AuthBloc>().add(
             AuthProfileRefreshFailureAcknowledged(state.parent),
           );
@@ -264,15 +261,17 @@ Future<String?> _showDeleteAccountDialog(BuildContext context) async {
               ],
             ),
             actions: [
-              TextButton(
+              AppDialogActions.cancel(
+                dialogContext,
                 onPressed: () => Navigator.of(dialogContext).pop(null),
-                child: const Text('Cancel'),
               ),
-              FilledButton(
+              AppDialogActions.primary(
+                dialogContext,
+                label: 'Submit request',
                 onPressed: (reasonFilled && deleteTyped)
-                    ? () => Navigator.of(dialogContext).pop(reasonController.text.trim())
+                    ? () => Navigator.of(dialogContext)
+                        .pop(reasonController.text.trim())
                     : null,
-                child: const Text('Submit request'),
               ),
             ],
           );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
+import '../widgets/app_dialog_actions.dart';
+import '../widgets/app_snackbar.dart';
 import 'biometric_auth_service.dart';
 import 'saved_credentials_service.dart';
 
@@ -79,19 +80,15 @@ class BiometricEnablePromptService {
           'Sign in faster next time using $label instead of typing your password.',
         ),
         actions: [
-          TextButton(
+          AppDialogActions.secondary(
+            dialogContext,
+            label: 'Not now',
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Not now'),
           ),
-          TextButton(
+          AppDialogActions.primary(
+            dialogContext,
+            label: 'Enable $label',
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(
-              'Enable $label',
-              style: const TextStyle(
-                color: AppTheme.navy,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ),
         ],
       ),
@@ -109,12 +106,12 @@ class BiometricEnablePromptService {
           password: password,
         );
         if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$label sign-in enabled')),
-        );
+        showAppSnackBar(context, '$label sign-in enabled', type: AppSnackBarType.success);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$label setup was not completed')),
+        showAppSnackBar(
+          context,
+          '$label setup was not completed',
+          type: AppSnackBarType.error,
         );
       }
       return;

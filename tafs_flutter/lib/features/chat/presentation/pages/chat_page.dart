@@ -11,6 +11,7 @@ import '../widgets/full_screen_image_viewer.dart';
 import '../widgets/swipe_to_reply.dart';
 import '../../domain/repositories/chat_repository.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/chat_message.dart';
 
 class ChatPage extends StatefulWidget {
@@ -104,7 +105,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppTheme.surface2,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -119,7 +120,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: Colors.grey[100],
+              backgroundColor: AppTheme.surface2,
               backgroundImage: const AssetImage('assets/logo.png'),
             ),
             const SizedBox(width: 12),

@@ -279,7 +279,7 @@ class _StaffSupportTicketsShellState extends State<StaffSupportTicketsShell> {
     if (widget.embedded) return body;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: AppTheme.surface2,
       appBar: AppBar(
         title: const Text('Support Tickets'),
         backgroundColor: AppTheme.white,

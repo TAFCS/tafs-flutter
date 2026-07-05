@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/services/fcm_registration_service.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
+import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../injection_container.dart';
 import 'bloc/auth_bloc.dart';
@@ -131,10 +132,9 @@ class _LoginPageState extends State<LoginPage> {
     if (!authenticated) {
       if (mounted) {
         setState(() => _biometricLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$_biometricLabel authentication cancelled'),
-          ),
+        showAppSnackBar(
+          context,
+          '$_biometricLabel authentication cancelled',
         );
       }
       return;
@@ -149,12 +149,10 @@ class _LoginPageState extends State<LoginPage> {
           _biometricLoading = false;
           _hasSavedCredentials = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Saved credentials not found. Please sign in with your password.',
-            ),
-          ),
+        showAppSnackBar(
+          context,
+          'Saved credentials not found. Please sign in with your password.',
+          type: AppSnackBarType.error,
         );
       }
       return;
@@ -395,13 +393,10 @@ class _LoginPageState extends State<LoginPage> {
                                       if (!context.mounted) return;
                                       if (email != null) {
                                         _usernameController.text = email;
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Account created. Please log in.',
-                                            ),
-                                          ),
+                                        showAppSnackBar(
+                                          context,
+                                          'Account created. Please log in.',
+                                          type: AppSnackBarType.success,
                                         );
                                       }
                                     },

@@ -285,7 +285,7 @@ class _StaffNoticeBoardComposePageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppTheme.surface2,
       appBar: AppBar(
         title: const Text('New Post'),
         backgroundColor: AppTheme.white,
@@ -496,7 +496,7 @@ class _StaffNoticeBoardComposePageState
                                   style: const TextStyle(fontSize: 11),
                                 ),
                                 trailing: alreadyAdded
-                                    ? const Icon(Icons.check, color: Colors.green, size: 18)
+                                    ? const Icon(Icons.check, color: AppTheme.success, size: 18)
                                     : null,
                                 onTap: alreadyAdded ? null : () => _addStudent(s),
                               );

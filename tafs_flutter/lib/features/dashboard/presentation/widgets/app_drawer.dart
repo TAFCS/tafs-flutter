@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_dialog_actions.dart';
 import '../../../auth/domain/entities/student.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
@@ -289,15 +290,17 @@ class AppDrawer extends StatelessWidget {
                 ],
               ),
               actions: [
-                TextButton(
+                AppDialogActions.cancel(
+                  dialogContext,
                   onPressed: () => Navigator.of(dialogContext).pop(null),
-                  child: const Text('Cancel'),
                 ),
-                FilledButton(
+                AppDialogActions.primary(
+                  dialogContext,
+                  label: 'Submit request',
                   onPressed: (reasonFilled && deleteTyped)
-                      ? () => Navigator.of(dialogContext).pop(reasonController.text.trim())
+                      ? () => Navigator.of(dialogContext)
+                          .pop(reasonController.text.trim())
                       : null,
-                  child: const Text('Submit request'),
                 ),
               ],
             );

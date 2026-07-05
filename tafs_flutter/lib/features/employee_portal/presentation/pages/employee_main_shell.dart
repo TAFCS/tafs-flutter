@@ -294,7 +294,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
   Widget build(BuildContext context) {
     if (_currentTabs.isEmpty) {
       return Scaffold(
-        backgroundColor: Colors.grey[100],
+        backgroundColor: AppTheme.surface2,
         appBar: AppBar(
           title: const Text('Staff'),
           backgroundColor: AppTheme.white,
@@ -329,7 +329,7 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
     final activeIndex = _currentTabs.indexOf(activeTab);
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppTheme.surface2,
       appBar: AppBar(
         title: Text(_title),
         backgroundColor: AppTheme.white,

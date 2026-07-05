@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_dialog_actions.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../domain/entities/leave_request.dart';
 import '../../domain/repositories/leave_requests_repository.dart';
 import '../cubit/leave_requests_cubit.dart';
@@ -66,10 +68,15 @@ class LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
         title: const Text('Cancel leave request?'),
         content: const Text('This will remove your pending leave request.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
-          TextButton(
+          AppDialogActions.cancel(
+            ctx,
+            label: 'Keep',
+            onPressed: () => Navigator.pop(ctx, false),
+          ),
+          AppDialogActions.destructive(
+            ctx,
+            label: 'Cancel request',
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Cancel request', style: TextStyle(color: AppTheme.danger)),
           ),
         ],
       ),
@@ -79,9 +86,7 @@ class LeaveRequestsListPageState extends State<LeaveRequestsListPage> {
     final error = await _cubit.cancel(item.id);
     if (!mounted) return;
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error), backgroundColor: AppTheme.danger),
-      );
+      showAppSnackBar(context, error, type: AppSnackBarType.error);
     }
   }
 

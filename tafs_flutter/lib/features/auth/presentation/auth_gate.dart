@@ -6,6 +6,7 @@ import 'dart:async';
 import '../../../core/services/fcm_registration_service.dart';
 import '../../../core/session/authenticated_session.dart';
 import '../../../core/session/session_reset.dart';
+import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../injection_container.dart';
 import '../../auth/domain/entities/parent.dart';
@@ -32,13 +33,9 @@ Future<void> _showNotificationPermissionHintIfNeeded(BuildContext context) async
       await FcmRegistrationService.instance.isNotificationPermissionGranted();
   if (granted || !context.mounted) return;
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text(
-        'Enable notifications in Settings to receive school alerts.',
-      ),
-      duration: Duration(seconds: 5),
-    ),
+  showAppSnackBar(
+    context,
+    'Enable notifications in Settings to receive school alerts.',
   );
 }
 
@@ -90,12 +87,10 @@ class _AuthGateState extends State<AuthGate> {
               current is AuthAccountDeletionRequested,
           listener: (context, state) {
             if (state is! AuthAccountDeletionRequested) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Account deletion request submitted. An admin will review it shortly.',
-                ),
-              ),
+            showAppSnackBar(
+              context,
+              'Account deletion request submitted. An admin will review it shortly.',
+              type: AppSnackBarType.success,
             );
             context.read<AuthBloc>().add(
                   AuthAccountDeletionRequestedAcknowledged(state.parent),

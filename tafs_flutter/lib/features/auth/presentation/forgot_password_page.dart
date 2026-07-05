@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
+import '../../../core/widgets/app_snackbar.dart';
 import 'bloc/auth_bloc.dart';
 import 'bloc/auth_event.dart';
 import 'bloc/auth_state.dart';
@@ -48,12 +49,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             ),
           );
         } else if (state is ForgotPasswordFailed) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+          showAppSnackBar(context, state.message, type: AppSnackBarType.error);
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(

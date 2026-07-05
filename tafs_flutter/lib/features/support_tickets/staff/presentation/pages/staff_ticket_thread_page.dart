@@ -6,6 +6,7 @@ import '../../../../chat/presentation/widgets/chat_bubble.dart';
 import '../../../../chat/presentation/widgets/full_screen_image_viewer.dart';
 import '../../../../chat/presentation/widgets/message_input.dart';
 import '../../../../../core/theme/app_theme.dart';
+import '../../../../../core/widgets/app_dialog_actions.dart';
 import '../../../../../injection_container.dart';
 import '../../../domain/entities/ticket_message.dart';
 import '../../../presentation/utils/ticket_message_mapper.dart';
@@ -97,7 +98,7 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
         listenWhen: (p, c) => c.messages.length != p.messages.length,
         listener: (_, __) => _scrollToBottom(),
         child: Scaffold(
-          backgroundColor: Colors.grey[100],
+          backgroundColor: AppTheme.surface2,
           appBar: AppBar(
             title: const Text('Support Ticket'),
             backgroundColor: AppTheme.white,
@@ -560,13 +561,11 @@ class _CloseTicketDialogState extends State<_CloseTicketDialog> {
         maxLines: 2,
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
+        AppDialogActions.cancel(context),
+        AppDialogActions.primary(
+          context,
+          label: 'Close',
           onPressed: () => Navigator.pop(context, _noteController.text.trim()),
-          child: const Text('Close'),
         ),
       ],
     );
@@ -612,17 +611,15 @@ class _RejectReplyDialogState extends State<_RejectReplyDialog> {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
+        AppDialogActions.cancel(context),
+        AppDialogActions.destructive(
+          context,
+          label: 'Reject',
           onPressed: () {
             if (_formKey.currentState?.validate() ?? false) {
               Navigator.pop(context, _controller.text.trim());
             }
           },
-          child: const Text('Reject'),
         ),
       ],
     );
