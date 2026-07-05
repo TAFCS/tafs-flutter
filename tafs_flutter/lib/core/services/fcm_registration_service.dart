@@ -72,6 +72,20 @@ class FcmRegistrationService {
     }
   }
 
+  /// Invalidates the local FCM token so Firebase stops delivering to this device.
+  /// A fresh token is issued automatically on the next [getToken] call (e.g. login).
+  Future<void> unregisterLocally() async {
+    if (kIsWeb) return;
+
+    try {
+      await ensureReady();
+      await FirebaseMessaging.instance.deleteToken();
+      debugPrint('[FcmRegistration] local token deleted');
+    } catch (e) {
+      debugPrint('[FcmRegistration] unregisterLocally failed: $e');
+    }
+  }
+
   /// Registers the current device token with the backend (requires auth interceptor on [dio]).
   /// Returns true when the server acknowledged registration.
   Future<bool> registerWithBackend(Dio dio, {String? tokenOverride, bool staff = false}) async {
@@ -119,12 +133,15 @@ class FcmRegistrationService {
 
   void listenForTokenRefresh(
     Dio dio, {
+    bool Function()? sessionIsAuthenticated,
     bool Function()? sessionIsStaff,
   }) {
     if (kIsWeb || _tokenRefreshListenerAttached) return;
 
     try {
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+        if (sessionIsAuthenticated?.call() == false) return;
+
         final isStaff = sessionIsStaff?.call() ?? false;
         registerWithBackend(
           dio,
@@ -142,6 +159,13 @@ class FcmRegistrationService {
   void listenForTokenRefreshWithAuth(Dio dio, AuthBloc authBloc) {
     listenForTokenRefresh(
       dio,
+      sessionIsAuthenticated: () {
+        final state = authBloc.state;
+        return state is AuthAuthenticated ||
+            state is AuthAuthenticatedStaff ||
+            state is AuthProfileRefreshFailed ||
+            state is AuthAccountDeletionRequested;
+      },
       sessionIsStaff: () => authBloc.state is AuthAuthenticatedStaff,
     );
   }

@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import '../../../../core/error/api_error_mapper.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/services/fcm_registration_service.dart';
@@ -62,7 +63,11 @@ class AuthRepositoryImpl implements AuthRepository {
             );
           }
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[AuthRepository] remote logout failed: $e');
+      }
+
+      await FcmRegistrationService.instance.unregisterLocally();
       await localDataSource.clearCache();
       return const Right(null);
     } catch (e) {

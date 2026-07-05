@@ -151,6 +151,7 @@ class NotificationService {
   }
 
   void _onLocalNotificationTap(fln.NotificationResponse details) {
+    if (!_sessionAcceptsNotifications()) return;
     if (details.payload == null || details.payload!.isEmpty) return;
     try {
       final data = jsonDecode(details.payload!) as Map<String, dynamic>;
@@ -174,6 +175,8 @@ class NotificationService {
   }
 
   void _handleNotificationRouting(Map<String, dynamic> data) {
+    if (!_sessionAcceptsNotifications()) return;
+
     final type = data['type'] as String?;
     
     if (type == 'SUPPORT_TICKET_MESSAGE') {
