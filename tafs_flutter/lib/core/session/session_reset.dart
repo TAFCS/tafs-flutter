@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -18,6 +20,7 @@ import '../../features/fee_ledger/presentation/bloc/student_ledger_bloc.dart';
 import '../../features/fee_ledger/presentation/bloc/student_ledger_event.dart';
 import '../../features/notice_board/presentation/bloc/notice_board_bloc.dart';
 import '../services/voucher_alert_realtime_service.dart';
+import '../services/notification_service.dart';
 import '../../features/notice_board/presentation/bloc/notice_board_event.dart';
 import '../../features/profile/presentation/bloc/profile_bloc.dart';
 import '../../features/profile/presentation/bloc/profile_event.dart';
@@ -25,6 +28,7 @@ import '../../features/profile/presentation/bloc/profile_event.dart';
 /// Clears session-scoped UI state when the parent logs out.
 void resetSessionState(BuildContext context) {
   VoucherAlertRealtimeService.instance.stop();
+  unawaited(NotificationService().clearDeliveredNotifications());
   context.read<SelectedStudentCubit>().clear();
   context.read<FeeLedgerBloc>().add(const FeeLedgerResetRequested());
   context.read<FeeSummaryBloc>().add(const FeeSummaryResetRequested());
@@ -37,6 +41,7 @@ void resetSessionState(BuildContext context) {
 
 /// Clears staff support-ticket state on staff logout.
 void resetStaffSessionState(BuildContext context) {
+  unawaited(NotificationService().clearDeliveredNotifications());
   context.read<StaffTicketQueueBloc>().add(StaffQueueReset());
   context.read<StaffPendingApprovalsCubit>().reset();
   context.read<StaffNoticeBoardCubit>().reset();

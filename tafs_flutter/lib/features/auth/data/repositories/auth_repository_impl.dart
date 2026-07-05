@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/api_error_mapper.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/services/fcm_registration_service.dart';
 import '../../domain/entities/cnic_verification_result.dart';
 import '../../domain/entities/parent.dart';
 import '../../domain/entities/staff_user.dart';
@@ -44,14 +45,21 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, void>> logout() async {
     try {
+      final fcmToken = await FcmRegistrationService.instance.getToken();
       try {
         final staff = await localDataSource.getCachedStaff();
         if (staff != null) {
-          await remoteDataSource.staffLogout(staff.accessToken);
+          await remoteDataSource.staffLogout(
+            staff.accessToken,
+            fcmToken: fcmToken,
+          );
         } else {
           final cached = await localDataSource.getCachedParent();
           if (cached != null) {
-            await remoteDataSource.logout(cached.accessToken);
+            await remoteDataSource.logout(
+              cached.accessToken,
+              fcmToken: fcmToken,
+            );
           }
         }
       } catch (_) {}

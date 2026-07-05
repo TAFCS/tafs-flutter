@@ -163,7 +163,7 @@ class TokenInterceptor extends Interceptor {
   }
 
   Future<void> _clearAndLogout() async {
-    await localDataSource.clearCache();
+    // Let AuthBloc handle remote logout (incl. FCM unregister) and local cache wipe.
     onLogout();
   }
 }

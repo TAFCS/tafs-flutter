@@ -12,7 +12,7 @@ abstract class AuthRemoteDataSource {
     String? fcmToken,
     String? deviceType,
   });
-  Future<void> logout(String accessToken);
+  Future<void> logout(String accessToken, {String? fcmToken});
   Future<void> requestAccountDeletion(String accessToken, String reason);
   Future<Map<String, dynamic>> verifyCnic(String cnic);
   Future<void> sendSignupOtp(String cnic, String email);
@@ -29,7 +29,7 @@ abstract class AuthRemoteDataSource {
   Future<ParentDto> getProfile(String accessToken);
   Future<StaffUserDto> staffLogin(String username, String password);
   Future<StaffUserDto> staffRefresh(String refreshToken);
-  Future<void> staffLogout(String accessToken);
+  Future<void> staffLogout(String accessToken, {String? fcmToken});
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -90,11 +90,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> logout(String accessToken) async {
+  Future<void> logout(String accessToken, {String? fcmToken}) async {
     final String baseUrl = AppConfig.apiBaseUrl;
     try {
       await dio.post(
         '$baseUrl/auth/parent/logout',
+        data: {
+          if (fcmToken != null) 'fcmToken': fcmToken,
+        },
         options: Options(
           headers: {
             'Content-Type': 'application/json',
@@ -401,11 +404,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> staffLogout(String accessToken) async {
+  Future<void> staffLogout(String accessToken, {String? fcmToken}) async {
     final String baseUrl = AppConfig.apiBaseUrl;
     try {
       await dio.post(
         '$baseUrl/auth/staff/mobile/logout',
+        data: {
+          if (fcmToken != null) 'fcmToken': fcmToken,
+        },
         options: Options(
           headers: {
             'Content-Type': 'application/json',

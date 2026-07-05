@@ -30,6 +30,13 @@ class NotificationService {
     } catch (_) {}
   }
 
+  Future<void> clearDeliveredNotifications() async {
+    try {
+      await _localNotifications.cancelAll();
+      await clearBadge();
+    } catch (_) {}
+  }
+
   final fln.FlutterLocalNotificationsPlugin _localNotifications =
       fln.FlutterLocalNotificationsPlugin();
 
@@ -79,7 +86,13 @@ class NotificationService {
     });
   }
 
+  bool _sessionAcceptsNotifications() {
+    final state = InjectionContainer.authBloc.state;
+    return state is AuthAuthenticated || state is AuthAuthenticatedStaff;
+  }
+
   void _deliverForegroundMessage(RemoteMessage message) {
+    if (!_sessionAcceptsNotifications()) return;
     _showLocalNotification(message);
 
     void deliver() {
@@ -146,6 +159,7 @@ class NotificationService {
   }
 
   void _handleRemoteMessage(RemoteMessage message) {
+    if (!_sessionAcceptsNotifications()) return;
     _handleNotificationRouting(message.data);
   }
 
