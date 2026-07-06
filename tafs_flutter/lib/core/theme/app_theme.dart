@@ -121,6 +121,7 @@ class AppTheme {
         primary: navy,
         secondary: blue200,
         surface: white,
+        surfaceTint: navy,
         onPrimary: white,
         onSurface: navy,
         error: unpaid,
@@ -242,6 +243,29 @@ class AppTheme {
         surfaceTintColor: surface2,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(radiusXl)),
+        ),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: white,
+        surfaceTintColor: white,
+        textStyle: GoogleFonts.readexPro(
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
+          color: navy,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusMd),
+        ),
+      ),
+      dropdownMenuTheme: DropdownMenuThemeData(
+        menuStyle: MenuStyle(
+          backgroundColor: WidgetStateProperty.all(white),
+          surfaceTintColor: WidgetStateProperty.all(white),
+          shape: WidgetStateProperty.all(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(radiusMd),
+            ),
+          ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(

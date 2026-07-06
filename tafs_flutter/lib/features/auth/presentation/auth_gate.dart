@@ -7,6 +7,7 @@ import '../../../core/services/fcm_registration_service.dart';
 import '../../../core/session/authenticated_session.dart';
 import '../../../core/session/session_reset.dart';
 import '../../../core/widgets/app_snackbar.dart';
+import '../../../core/widgets/notification_permission_banner.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../injection_container.dart';
 import '../../auth/domain/entities/parent.dart';
@@ -33,10 +34,7 @@ Future<void> _showNotificationPermissionHintIfNeeded(BuildContext context) async
       await FcmRegistrationService.instance.isNotificationPermissionGranted();
   if (granted || !context.mounted) return;
 
-  showAppSnackBar(
-    context,
-    'Enable notifications in Settings to receive school alerts.',
-  );
+  showNotificationPermissionBanner(context);
 }
 
 class _AuthGateState extends State<AuthGate> {
@@ -59,6 +57,7 @@ class _AuthGateState extends State<AuthGate> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         context.read<AuthBloc>().add(const AuthStaffRefreshRequested());
+        unawaited(_showNotificationPermissionHintIfNeeded(context));
       });
     }
   }
@@ -121,6 +120,7 @@ class _AuthGateState extends State<AuthGate> {
               current is AuthAuthenticatedStaff &&
               previous is AuthLoading,
           listener: (context, state) {
+            unawaited(_showNotificationPermissionHintIfNeeded(context));
             unawaited(
               InjectionContainer.biometricEnablePromptService
                   .handleLoginSuccess(context),

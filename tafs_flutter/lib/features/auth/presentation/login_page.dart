@@ -216,10 +216,12 @@ class _LoginPageState extends State<LoginPage> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final h = constraints.maxHeight;
-                final vertPad = (h * 0.06).clamp(16.0, 40.0);
-                final sectionGap = (h * 0.05).clamp(16.0, 40.0);
-                final fieldGap = (h * 0.035).clamp(12.0, 24.0);
-                final logoHeight = (h * 0.12).clamp(56.0, 88.0);
+                final vertPad = (h * 0.05).clamp(12.0, 32.0);
+                final sectionGap = (h * (showBiometricButton ? 0.035 : 0.05))
+                    .clamp(12.0, showBiometricButton ? 28.0 : 40.0);
+                final fieldGap = (h * 0.03).clamp(10.0, 20.0);
+                final logoHeight = (h * (showBiometricButton ? 0.09 : 0.12))
+                    .clamp(48.0, showBiometricButton ? 72.0 : 88.0);
 
                 return SingleChildScrollView(
                   padding: EdgeInsets.symmetric(
@@ -355,7 +357,7 @@ class _LoginPageState extends State<LoginPage> {
                                   : _login,
                             ),
                             if (showBiometricButton) ...[
-                              SizedBox(height: sectionGap),
+                              SizedBox(height: AppTheme.space3),
                               Center(
                                 child: BiometricSignInButton(
                                   label: _biometricLabel,

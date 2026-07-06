@@ -73,15 +73,21 @@ class MyApp extends StatelessWidget {
         home: const AuthGate(),
         debugShowCheckedModeBanner: false,
         builder: (context, child) {
-          return GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-            child: Container(
-              color: AppTheme.white,
-              child: SafeArea(
-                top: false,
-                bottom: true,
-                child: child ?? const SizedBox.shrink(),
+          final mediaQuery = MediaQuery.of(context);
+          return MediaQuery(
+            data: mediaQuery.copyWith(
+              textScaler: mediaQuery.textScaler.clamp(maxScaleFactor: 1.3),
+            ),
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+              child: Container(
+                color: AppTheme.white,
+                child: SafeArea(
+                  top: false,
+                  bottom: true,
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
           );

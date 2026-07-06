@@ -23,7 +23,7 @@ class CustomButton extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      height: 52,
+      constraints: const BoxConstraints(minHeight: 52),
       decoration: effectiveGradient != null && onPressed != null && !isLoading
           ? BoxDecoration(
               gradient: effectiveGradient,
@@ -50,7 +50,14 @@ class CustomButton extends StatelessWidget {
                         valueColor: AlwaysStoppedAnimation<Color>(AppTheme.white),
                       ),
                     )
-                  : Text(text.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        text.toUpperCase(),
+                        maxLines: 1,
+                        style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1),
+                      ),
+                    ),
             )
           : OutlinedButton(
               onPressed: isLoading ? null : onPressed,
@@ -68,7 +75,14 @@ class CustomButton extends StatelessWidget {
                         valueColor: AlwaysStoppedAnimation<Color>(AppTheme.navy),
                       ),
                     )
-                  : Text(text.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        text.toUpperCase(),
+                        maxLines: 1,
+                        style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1),
+                      ),
+                    ),
             ),
     );
   }

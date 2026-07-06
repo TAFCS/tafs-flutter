@@ -25,17 +25,17 @@ class BiometricSignInButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.space4,
-              vertical: AppTheme.space2,
+              horizontal: AppTheme.space3,
+              vertical: AppTheme.space1,
             ),
             child: isLoading
                 ? const SizedBox(
-                    width: 72,
-                    height: 72,
+                    width: 56,
+                    height: 56,
                     child: Center(
                       child: SizedBox(
-                        width: 28,
-                        height: 28,
+                        width: 24,
+                        height: 24,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           color: AppTheme.navy,
@@ -46,14 +46,18 @@ class BiometricSignInButton extends StatelessWidget {
                 : _BiometricIcon(),
           ),
         ),
-        const SizedBox(height: AppTheme.space2),
-        Text(
-          'Sign in with $label',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.navy,
-                fontWeight: FontWeight.w600,
-              ),
-          textAlign: TextAlign.center,
+        const SizedBox(height: AppTheme.space1),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Sign in with $label',
+            maxLines: 1,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.navy,
+                  fontWeight: FontWeight.w600,
+                ),
+            textAlign: TextAlign.center,
+          ),
         ),
       ],
     );
@@ -67,8 +71,8 @@ class _BiometricIcon extends StatelessWidget {
 
     return Image.asset(
       asset,
-        width:36,
-        height: 36,
+      width: 28,
+      height: 28,
       fit: BoxFit.contain,
     );
   }
