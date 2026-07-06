@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../widgets/app_dialog_actions.dart';
@@ -97,9 +99,15 @@ class BiometricEnablePromptService {
     if (!context.mounted) return;
 
     if (enable == true) {
-      final authenticated = await _biometricAuth.authenticate();
+      // Let the enable dialog finish closing before showing the system biometric UI.
+      if (Platform.isAndroid) {
+        await Future<void>.delayed(const Duration(milliseconds: 350));
+      }
       if (!context.mounted) return;
-      if (authenticated) {
+
+      final authResult = await _biometricAuth.authenticateDetailed();
+      if (!context.mounted) return;
+      if (authResult.success) {
         await _savedCredentials.save(
           isStaff: isStaff,
           username: username,
@@ -110,7 +118,10 @@ class BiometricEnablePromptService {
       } else {
         showAppSnackBar(
           context,
-          '$label setup was not completed',
+          _biometricAuth.failureMessage(
+            label: label,
+            failure: authResult.failure ?? BiometricAuthFailure.unknown,
+          ),
           type: AppSnackBarType.error,
         );
       }

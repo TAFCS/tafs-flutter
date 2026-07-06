@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/services/biometric_auth_service.dart';
 import '../../../core/services/fcm_registration_service.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
@@ -127,14 +128,17 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _biometricLoading = true);
     InjectionContainer.biometricEnablePromptService.skipNextPrompt();
 
-    final authenticated =
-        await InjectionContainer.biometricAuthService.authenticate();
-    if (!authenticated) {
+    final authResult =
+        await InjectionContainer.biometricAuthService.authenticateDetailed();
+    if (!authResult.success) {
       if (mounted) {
         setState(() => _biometricLoading = false);
         showAppSnackBar(
           context,
-          '$_biometricLabel authentication cancelled',
+          InjectionContainer.biometricAuthService.failureMessage(
+            label: _biometricLabel,
+            failure: authResult.failure ?? BiometricAuthFailure.unknown,
+          ),
         );
       }
       return;
