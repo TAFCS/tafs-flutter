@@ -55,6 +55,8 @@ class StudentProfileCard extends StatelessWidget {
                   children: [
                     Text(
                       student.fullName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: AppTheme.navy,

@@ -233,9 +233,14 @@ class _TargetedStudentChip extends StatelessWidget {
                 : null,
           ),
           const SizedBox(width: 6),
-          Text(
-            subtitle.isNotEmpty ? '${student.fullName} · $subtitle' : student.fullName,
-            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.navy),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 130),
+            child: Text(
+              subtitle.isNotEmpty ? '${student.fullName} · $subtitle' : student.fullName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.navy),
+            ),
           ),
         ],
       ),
