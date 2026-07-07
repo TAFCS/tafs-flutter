@@ -218,6 +218,7 @@ class _TargetedStudentChip extends StatelessWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
             radius: 10,
@@ -237,8 +238,9 @@ class _TargetedStudentChip extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 130),
             child: Text(
               subtitle.isNotEmpty ? '${student.fullName} · $subtitle' : student.fullName,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
+              softWrap: true,
               style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppTheme.navy),
             ),
           ),
