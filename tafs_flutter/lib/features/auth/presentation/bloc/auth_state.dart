@@ -181,7 +181,7 @@ class ResetPasswordFailed extends AuthState {
   List<Object> get props => [message];
 }
 
-class ChangePasswordSubmitting extends AuthState {}
+// ─── Change Password States (logged in) ─────────────────────────────────────
 
 class ChangePasswordSuccess extends AuthState {
   const ChangePasswordSuccess();

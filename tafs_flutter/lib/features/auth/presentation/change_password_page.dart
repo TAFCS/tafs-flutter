@@ -113,7 +113,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
+                  const Text(
                     'Enter your current password, then choose a new one.',
                     style: TextStyle(
                       color: AppTheme.blue300,

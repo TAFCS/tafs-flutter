@@ -7,10 +7,10 @@ import '../../../core/widgets/app_dialog_actions.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../auth/domain/entities/parent.dart';
 import '../../auth/domain/entities/student.dart';
+import '../../auth/presentation/change_password_page.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
 import '../../auth/presentation/bloc/auth_state.dart';
 import '../../auth/presentation/bloc/auth_event.dart';
-import '../../auth/presentation/change_password_page.dart';
 import '../../auth/presentation/bloc/selected_student_cubit.dart';
 import 'widgets/student_profile_loader.dart';
 import 'edit_guardian_page.dart';
@@ -155,7 +155,36 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                       const SizedBox(height: AppTheme.space10),
                       const Divider(color: AppTheme.blue100),
                       const SizedBox(height: AppTheme.space4),
-                      if (!widget.showAppBar) ...[
+                      if (widget.showAppBar)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ChangePasswordPage(
+                                    isStaff: false,
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.lock_outline_rounded,
+                              size: 14,
+                              color: AppTheme.blue300,
+                            ),
+                            label: const Text(
+                              'Change password',
+                              style: TextStyle(
+                                color: AppTheme.blue300,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ),
+                        )
+                      else ...[
                         SizedBox(
                           width: double.infinity,
                           height: 48,
