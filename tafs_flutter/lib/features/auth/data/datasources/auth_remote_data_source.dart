@@ -26,6 +26,12 @@ abstract class AuthRemoteDataSource {
   });
   Future<void> forgotPassword(String email);
   Future<void> resetPassword(String email, String otp, String newPassword);
+  Future<void> changePassword(
+    String accessToken, {
+    required String currentPassword,
+    required String newPassword,
+    required bool staff,
+  });
   Future<ParentDto> getProfile(String accessToken);
   Future<StaffUserDto> staffLogin(String username, String password);
   Future<StaffUserDto> staffRefresh(String refreshToken);
@@ -420,6 +426,51 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         ),
       );
     } catch (_) {}
+  }
+
+  @override
+  Future<void> changePassword(
+    String accessToken, {
+    required String currentPassword,
+    required String newPassword,
+    required bool staff,
+  }) async {
+    final String baseUrl = AppConfig.apiBaseUrl;
+    final path = staff
+        ? '$baseUrl/auth/staff/mobile/change-password'
+        : '$baseUrl/auth/parent/change-password';
+
+    try {
+      await dio.post(
+        path,
+        data: {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        },
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+        ),
+      );
+    } on DioException catch (e) {
+      throw ServerFailure(
+        ApiErrorMapper.fromDioException(
+          e,
+          fallback: 'Unable to change your password right now. Please try again.',
+        ),
+      );
+    } on Failure {
+      rethrow;
+    } catch (e) {
+      throw ServerFailure(
+        ApiErrorMapper.fromObject(
+          e,
+          fallback: 'Unable to change your password right now. Please try again.',
+        ),
+      );
+    }
   }
 
   @override

@@ -6,6 +6,7 @@ import '../../../../injection_container.dart';
 import '../../data/models/parent_dto.dart';
 import '../../data/models/staff_user_dto.dart';
 import '../../domain/entities/parent.dart';
+import '../../domain/entities/staff_user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/parent_login_usecase.dart';
 import '../../domain/usecases/staff_login_usecase.dart';
@@ -37,6 +38,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     on<AuthSignupExitToLoginRequested>(_onSignupExitToLoginRequested);
     on<AuthForgotPasswordRequested>(_onForgotPasswordRequested);
     on<AuthResetPasswordRequested>(_onResetPasswordRequested);
+    on<AuthChangePasswordRequested>(_onChangePasswordRequested);
     on<AuthRefreshRequested>(_onAuthRefreshRequested);
     on<AuthProfileRefreshFailureAcknowledged>(_onProfileRefreshFailureAcknowledged);
     on<AuthTokenRefreshed>(_onAuthTokenRefreshed);
@@ -339,5 +341,49 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
       (failure) => emit(ResetPasswordFailed(ApiErrorMapper.userMessage(failure))),
       (_) => emit(ResetPasswordSuccess()),
     );
+  }
+
+  Future<void> _onChangePasswordRequested(
+    AuthChangePasswordRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final Parent? parent = switch (state) {
+      AuthAuthenticated(:final parent) => parent,
+      AuthProfileRefreshFailed(:final parent) => parent,
+      AuthAccountDeletionRequested(:final parent) => parent,
+      _ => null,
+    };
+    final StaffUser? staff =
+        state is AuthAuthenticatedStaff ? (state as AuthAuthenticatedStaff).staff : null;
+
+    if (parent == null && staff == null) return;
+
+    final result = await repository.changePassword(
+      currentPassword: event.currentPassword,
+      newPassword: event.newPassword,
+      isStaff: event.isStaff,
+    );
+    result.fold(
+      (failure) {
+        emit(ChangePasswordFailed(ApiErrorMapper.userMessage(failure)));
+        _restoreSessionAfterChangePassword(emit, parent, staff);
+      },
+      (_) {
+        emit(const ChangePasswordSuccess());
+        _restoreSessionAfterChangePassword(emit, parent, staff);
+      },
+    );
+  }
+
+  void _restoreSessionAfterChangePassword(
+    Emitter<AuthState> emit,
+    Parent? parent,
+    StaffUser? staff,
+  ) {
+    if (parent != null) {
+      emit(AuthAuthenticated(parent));
+    } else if (staff != null) {
+      emit(AuthAuthenticatedStaff(staff));
+    }
   }
 }

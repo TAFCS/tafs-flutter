@@ -5,6 +5,7 @@ import '../../../../core/session/session_reset.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
+import '../../../auth/presentation/change_password_page.dart';
 import '../../data/employee_profile_repository.dart';
 import '../../domain/entities/employee_profile.dart';
 
@@ -164,6 +165,32 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
             ]),
             if (widget.embedded) ...[
               const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChangePasswordPage(isStaff: true),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.lock_outline_rounded, size: 18),
+                label: const Text(
+                  'Change password',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.navy,
+                  side: const BorderSide(color: AppTheme.navy),
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () => _logout(context),
                 icon: const Icon(Icons.logout),

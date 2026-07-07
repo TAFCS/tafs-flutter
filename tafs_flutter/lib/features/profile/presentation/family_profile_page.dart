@@ -10,6 +10,7 @@ import '../../auth/domain/entities/student.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
 import '../../auth/presentation/bloc/auth_state.dart';
 import '../../auth/presentation/bloc/auth_event.dart';
+import '../../auth/presentation/change_password_page.dart';
 import '../../auth/presentation/bloc/selected_student_cubit.dart';
 import 'widgets/student_profile_loader.dart';
 import 'edit_guardian_page.dart';
@@ -155,6 +156,37 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                       const Divider(color: AppTheme.blue100),
                       const SizedBox(height: AppTheme.space4),
                       if (!widget.showAppBar) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ChangePasswordPage(
+                                    isStaff: false,
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.lock_outline_rounded, size: 18),
+                            label: const Text(
+                              'Change password',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.navy,
+                              side: const BorderSide(color: AppTheme.navy),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.space3),
                         SizedBox(
                           width: double.infinity,
                           height: 48,

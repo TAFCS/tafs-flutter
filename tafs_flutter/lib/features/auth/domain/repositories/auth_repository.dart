@@ -32,6 +32,11 @@ abstract class AuthRepository {
   // Forgot / reset password
   Future<Either<Failure, void>> forgotPassword(String email);
   Future<Either<Failure, void>> resetPassword(String email, String otp, String newPassword);
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required bool isStaff,
+  });
 
   Future<Either<Failure, Parent>> refreshProfile();
   Future<Either<Failure, StaffUser>> refreshStaffSession();

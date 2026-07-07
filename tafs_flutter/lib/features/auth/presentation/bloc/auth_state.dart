@@ -180,3 +180,18 @@ class ResetPasswordFailed extends AuthState {
   @override
   List<Object> get props => [message];
 }
+
+class ChangePasswordSubmitting extends AuthState {}
+
+class ChangePasswordSuccess extends AuthState {
+  const ChangePasswordSuccess();
+}
+
+class ChangePasswordFailed extends AuthState {
+  final String message;
+
+  const ChangePasswordFailed(this.message);
+
+  @override
+  List<Object> get props => [message];
+}

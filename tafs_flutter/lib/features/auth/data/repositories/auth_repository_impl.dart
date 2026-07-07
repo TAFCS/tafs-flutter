@@ -212,6 +212,44 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required bool isStaff,
+  }) async {
+    try {
+      if (isStaff) {
+        final staff = await localDataSource.getCachedStaff();
+        if (staff == null) {
+          return Left(CacheFailure('No cached staff session found.'));
+        }
+        await remoteDataSource.changePassword(
+          staff.accessToken,
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+          staff: true,
+        );
+      } else {
+        final cached = await localDataSource.getCachedParent();
+        if (cached == null) {
+          return Left(CacheFailure('No cached user found. Please login again.'));
+        }
+        await remoteDataSource.changePassword(
+          cached.accessToken,
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+          staff: false,
+        );
+      }
+      return const Right(null);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (e) {
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
+    }
+  }
+
+  @override
   Future<Either<Failure, Parent>> refreshProfile() async {
     try {
       final cached = await localDataSource.getCachedParent();

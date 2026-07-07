@@ -148,6 +148,21 @@ class AuthResetPasswordRequested extends AuthEvent {
   List<Object?> get props => [email, otp, newPassword];
 }
 
+class AuthChangePasswordRequested extends AuthEvent {
+  final String currentPassword;
+  final String newPassword;
+  final bool isStaff;
+
+  const AuthChangePasswordRequested({
+    required this.currentPassword,
+    required this.newPassword,
+    required this.isStaff,
+  });
+
+  @override
+  List<Object?> get props => [currentPassword, newPassword, isStaff];
+}
+
 /// Return to signup step 1 (verify CNIC) without leaving the signup screen.
 class AuthSignupResetRequested extends AuthEvent {
   const AuthSignupResetRequested();
