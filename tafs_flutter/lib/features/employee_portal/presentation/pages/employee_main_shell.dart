@@ -24,8 +24,9 @@ import '../../../../injection_container.dart';
 import '../../data/employee_profile_repository.dart';
 import '../../employee_portal_access.dart';
 import 'employee_profile_page.dart';
+import '../../../../features/quick_admission/presentation/pages/quick_admission_form_page.dart';
 
-enum _EmployeeTab { attendance, payroll, tickets, noticeBoard, employeeNoticeBoard, profile }
+enum _EmployeeTab { attendance, payroll, tickets, noticeBoard, employeeNoticeBoard, profile, admissions }
 
 class EmployeeMainShell extends StatefulWidget {
   final StaffUser staff;
@@ -140,6 +141,11 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
       if (_showNoticeBoard) tabs.add(_EmployeeTab.noticeBoard);
     }
 
+    // Admissions always second rightmost (before profile).
+    if (widget.staff.role.toUpperCase().replaceAll('_', '').replaceAll(' ', '') == 'SUPERADMIN') {
+      tabs.add(_EmployeeTab.admissions);
+    }
+
     // Profile always rightmost.
     if (_showProfile) tabs.add(_EmployeeTab.profile);
 
@@ -205,6 +211,13 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
             ),
           );
           break;
+        case _EmployeeTab.admissions:
+          bodies.add(
+            const QuickAdmissionFormPage(
+              key: ValueKey('employee_admissions_tab'),
+            ),
+          );
+          break;
       }
     }
     return bodies;
@@ -225,6 +238,8 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         return 'Home';
       case _EmployeeTab.profile:
         return 'My Profile';
+      case _EmployeeTab.admissions:
+        return 'Admissions';
     }
   }
 
@@ -286,6 +301,12 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
           icon: Icon(Icons.person_outline, size: 20),
           selectedIcon: Icon(Icons.person, size: 20),
           label: 'Profile',
+        );
+      case _EmployeeTab.admissions:
+        return const NavigationDestination(
+          icon: Icon(Icons.person_add_alt_1_outlined, size: 20),
+          selectedIcon: Icon(Icons.person_add_alt_1, size: 20),
+          label: 'Admissions',
         );
     }
   }
