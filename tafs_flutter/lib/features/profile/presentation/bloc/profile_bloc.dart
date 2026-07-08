@@ -9,6 +9,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
 
   ProfileBloc({required this.repository}) : super(ProfileInitial()) {
     on<GuardianChangeSubmitted>(_onGuardianChangeSubmitted);
+    on<StudentChangeSubmitted>(_onStudentChangeSubmitted);
     on<ProfileResetRequested>(_onReset);
   }
 
@@ -17,11 +18,75 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     Emitter<ProfileState> emit,
   ) async {
     emit(ProfileLoading());
+
+    final finalChanges = Map<String, String>.from(event.changes);
+
+    if (event.localPhotoPath != null) {
+      final uploadResult = await repository.uploadGuardianPhoto(
+        guardianId: event.guardianId,
+        filePath: event.localPhotoPath!,
+      );
+
+      bool hasError = false;
+      uploadResult.fold(
+        (failure) {
+          emit(ProfileError(ApiErrorMapper.userMessage(failure)));
+          hasError = true;
+        },
+        (url) {
+          finalChanges['photo_url'] = url;
+        },
+      );
+
+      if (hasError) return;
+    }
+
     final result = await repository.submitGuardianChangeRequest(
       guardianId: event.guardianId,
       familyId: event.familyId,
-      changes: event.changes,
+      changes: finalChanges,
     );
+    result.fold(
+      (failure) => emit(ProfileError(ApiErrorMapper.userMessage(failure))),
+      (_) => emit(ProfileSuccess()),
+    );
+  }
+
+  Future<void> _onStudentChangeSubmitted(
+    StudentChangeSubmitted event,
+    Emitter<ProfileState> emit,
+  ) async {
+    emit(ProfileLoading());
+
+    final finalChanges = Map<String, dynamic>.from(event.changes);
+
+    if (event.localPhotoPath != null) {
+      final uploadResult = await repository.uploadStudentPhoto(
+        studentCc: event.studentCc,
+        filePath: event.localPhotoPath!,
+      );
+
+      bool hasError = false;
+      uploadResult.fold(
+        (failure) {
+          emit(ProfileError(ApiErrorMapper.userMessage(failure)));
+          hasError = true;
+        },
+        (url) {
+          finalChanges['photograph_url'] = url;
+        },
+      );
+
+      if (hasError) return;
+    }
+
+    final result = await repository.submitStudentChangeRequest(
+      guardianId: event.guardianId,
+      familyId: event.familyId,
+      studentCc: event.studentCc,
+      changes: finalChanges,
+    );
+
     result.fold(
       (failure) => emit(ProfileError(ApiErrorMapper.userMessage(failure))),
       (_) => emit(ProfileSuccess()),

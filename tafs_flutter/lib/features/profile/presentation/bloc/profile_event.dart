@@ -11,15 +11,36 @@ class GuardianChangeSubmitted extends ProfileEvent {
   final int guardianId;
   final int familyId;
   final Map<String, String> changes;
+  final String? localPhotoPath;
 
   const GuardianChangeSubmitted({
     required this.guardianId,
     required this.familyId,
     required this.changes,
+    this.localPhotoPath,
   });
 
   @override
-  List<Object?> get props => [guardianId, familyId, changes];
+  List<Object?> get props => [guardianId, familyId, changes, localPhotoPath];
+}
+
+class StudentChangeSubmitted extends ProfileEvent {
+  final int guardianId;
+  final int familyId;
+  final int studentCc;
+  final Map<String, dynamic> changes;
+  final String? localPhotoPath;
+
+  const StudentChangeSubmitted({
+    required this.guardianId,
+    required this.familyId,
+    required this.studentCc,
+    required this.changes,
+    this.localPhotoPath,
+  });
+
+  @override
+  List<Object?> get props => [guardianId, familyId, studentCc, changes, localPhotoPath];
 }
 
 class ProfileResetRequested extends ProfileEvent {

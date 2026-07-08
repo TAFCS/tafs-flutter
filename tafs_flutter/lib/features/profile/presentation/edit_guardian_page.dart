@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../auth/domain/entities/parent.dart';
@@ -31,6 +33,27 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
   late TextEditingController _organizationController;
   late TextEditingController _educationController;
   late TextEditingController _addressController;
+  File? _pickedImageFile;
+  final ImagePicker _imagePicker = ImagePicker();
+
+  Future<void> _pickImage() async {
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 500,
+      );
+      if (pickedFile != null) {
+        setState(() {
+          _pickedImageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to pick image.')),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -90,7 +113,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
     addIfChanged('education_level', widget.guardian.education, _educationController.text);
     addIfChanged('mailing_address', widget.guardian.address, _addressController.text);
 
-    if (changes.isEmpty) {
+    if (changes.isEmpty && _pickedImageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No changes detected.')),
       );
@@ -101,6 +124,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
       guardianId: widget.guardian.id,
       familyId: authState.parent.id,
       changes: changes,
+      localPhotoPath: _pickedImageFile?.path,
     ));
   }
 
@@ -144,42 +168,53 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(AppTheme.space5),
-                      decoration: BoxDecoration(
-                        color: AppTheme.navy.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                        border: Border.all(color: AppTheme.blue100),
-                      ),
-                      child: Row(
+                    Center(
+                      child: Stack(
                         children: [
-                          const CircleAvatar(
-                            backgroundColor: AppTheme.navy,
-                            child: Icon(Icons.person_outline, color: AppTheme.white),
+                          GestureDetector(
+                            onTap: _pickImage,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: AppTheme.blue100, width: 3),
+                              ),
+                              child: CircleAvatar(
+                                radius: 60,
+                                backgroundColor: AppTheme.blue100.withValues(alpha: 0.3),
+                                backgroundImage: _pickedImageFile != null
+                                    ? FileImage(_pickedImageFile!) as ImageProvider
+                                    : (widget.guardian.photographUrl != null
+                                        ? NetworkImage(widget.guardian.photographUrl!) as ImageProvider
+                                        : null),
+                                child: _pickedImageFile == null && widget.guardian.photographUrl == null
+                                    ? const Icon(Icons.person, size: 60, color: AppTheme.navy)
+                                    : null,
+                              ),
+                            ),
                           ),
-                          const SizedBox(width: AppTheme.space4),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.guardian.name,
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.navy,
-                                      ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _pickImage,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: const BoxDecoration(
+                                  color: AppTheme.navy,
+                                  shape: BoxShape.circle,
                                 ),
-                                Text(
-                                  'Profile Update Request',
-                                  style: TextStyle(color: AppTheme.blue300, fontSize: 13),
+                                child: const Icon(
+                                  Icons.camera_alt_rounded,
+                                  color: AppTheme.white,
+                                  size: 20,
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: AppTheme.space6),
+                    const SizedBox(height: AppTheme.space8),
                     Text(
                       'BASIC INFORMATION',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(

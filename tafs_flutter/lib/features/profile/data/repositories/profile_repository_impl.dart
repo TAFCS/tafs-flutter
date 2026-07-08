@@ -28,4 +28,62 @@ class ProfileRepositoryImpl implements ProfileRepository {
       return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> submitStudentChangeRequest({
+    required int guardianId,
+    required int familyId,
+    required int studentCc,
+    required Map<String, dynamic> changes,
+  }) async {
+    try {
+      await remoteDataSource.submitStudentChangeRequest(
+        guardianId: guardianId,
+        familyId: familyId,
+        studentCc: studentCc,
+        changes: changes,
+      );
+      return const Right(null);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (e) {
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadStudentPhoto({
+    required int studentCc,
+    required String filePath,
+  }) async {
+    try {
+      final url = await remoteDataSource.uploadStudentPhoto(
+        studentCc: studentCc,
+        filePath: filePath,
+      );
+      return Right(url);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (e) {
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadGuardianPhoto({
+    required int guardianId,
+    required String filePath,
+  }) async {
+    try {
+      final url = await remoteDataSource.uploadGuardianPhoto(
+        guardianId: guardianId,
+        filePath: filePath,
+      );
+      return Right(url);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (e) {
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
+    }
+  }
 }

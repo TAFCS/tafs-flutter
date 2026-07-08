@@ -4,6 +4,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../auth/domain/entities/student.dart';
 import '../../../attendance_history/presentation/pages/attendance_calendar_page.dart';
 import '../../domain/entities/ledger.dart';
+import '../../../profile/presentation/edit_student_page.dart';
 
 class StudentProfilePage extends StatelessWidget {
   final StudentProfile student;
@@ -19,6 +20,19 @@ class StudentProfilePage extends StatelessWidget {
         backgroundColor: AppTheme.white,
         foregroundColor: AppTheme.navy,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, color: AppTheme.navy),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditStudentPage(student: student),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppTheme.space5),
@@ -36,7 +50,6 @@ class StudentProfilePage extends StatelessWidget {
                 _InfoRow(label: 'House', value: student.house ?? 'N/A'),
                 _InfoRow(label: 'CC', value: student.cc.toString()),
                 _InfoRow(label: 'GR Number', value: student.grNumber ?? 'N/A'),
-                const Divider(height: AppTheme.space4, color: AppTheme.blue100),
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
