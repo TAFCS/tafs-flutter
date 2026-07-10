@@ -8,6 +8,7 @@ import '../../../core/widgets/app_snackbar.dart';
 import '../../auth/domain/entities/parent.dart';
 import '../../auth/domain/entities/student.dart';
 import '../../auth/presentation/change_password_page.dart';
+import '../../auth/presentation/forgot_password_page.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
 import '../../auth/presentation/bloc/auth_state.dart';
 import '../../auth/presentation/bloc/auth_event.dart';
@@ -155,7 +156,40 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                       const SizedBox(height: AppTheme.space10),
                       const Divider(color: AppTheme.blue100),
                       const SizedBox(height: AppTheme.space4),
-                      if (widget.showAppBar)
+                      if (widget.showAppBar) ...[
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: () {
+                              final email = parent.username.trim();
+                              if (email.isEmpty) return;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ForgotPasswordPage(
+                                    isStaff: false,
+                                    initialEmail: email,
+                                    fromLoggedInSession: true,
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.mail_outline_rounded,
+                              size: 14,
+                              color: AppTheme.blue300,
+                            ),
+                            label: const Text(
+                              'Reset password',
+                              style: TextStyle(
+                                color: AppTheme.blue300,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.space1),
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton.icon(
@@ -183,8 +217,43 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                               ),
                             ),
                           ),
-                        )
-                      else ...[
+                        ),
+                      ] else ...[
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              final email = parent.username.trim();
+                              if (email.isEmpty) return;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ForgotPasswordPage(
+                                    isStaff: false,
+                                    initialEmail: email,
+                                    fromLoggedInSession: true,
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.mail_outline_rounded, size: 18),
+                            label: const Text(
+                              'Reset password',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.navy,
+                              side: const BorderSide(color: AppTheme.navy),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.space3),
                         SizedBox(
                           width: double.infinity,
                           height: 48,

@@ -24,8 +24,13 @@ abstract class AuthRemoteDataSource {
     String? fcmToken,
     String? deviceType,
   });
-  Future<void> forgotPassword(String email);
-  Future<void> resetPassword(String email, String otp, String newPassword);
+  Future<void> forgotPassword(String email, {required bool isStaff});
+  Future<void> resetPassword(
+    String email,
+    String otp,
+    String newPassword, {
+    required bool isStaff,
+  });
   Future<void> changePassword(
     String accessToken, {
     required String currentPassword,
@@ -289,13 +294,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> forgotPassword(String email) async {
+  Future<void> forgotPassword(String email, {required bool isStaff}) async {
     final String baseUrl = AppConfig.apiBaseUrl;
+    final path = isStaff
+        ? '$baseUrl/auth/staff/forgot-password'
+        : '$baseUrl/auth/parent/forgot-password';
 
     try {
       await dio.post(
-        '$baseUrl/auth/parent/forgot-password',
-        data: {"email": email},
+        path,
+        data: {'email': email},
         options: Options(
           headers: {'Content-Type': 'application/json', 'accept': '*/*'},
         ),
@@ -320,13 +328,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> resetPassword(String email, String otp, String newPassword) async {
+  Future<void> resetPassword(
+    String email,
+    String otp,
+    String newPassword, {
+    required bool isStaff,
+  }) async {
     final String baseUrl = AppConfig.apiBaseUrl;
+    final path = isStaff
+        ? '$baseUrl/auth/staff/reset-password'
+        : '$baseUrl/auth/parent/reset-password';
 
     try {
       await dio.post(
-        '$baseUrl/auth/parent/reset-password',
-        data: {"email": email, "code": otp, "newPassword": newPassword},
+        path,
+        data: {'email': email, 'code': otp, 'newPassword': newPassword},
         options: Options(
           headers: {'Content-Type': 'application/json', 'accept': '*/*'},
         ),

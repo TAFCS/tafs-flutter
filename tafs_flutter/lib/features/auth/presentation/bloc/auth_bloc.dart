@@ -320,7 +320,10 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(ForgotPasswordSending());
-    final result = await repository.forgotPassword(event.email);
+    final result = await repository.forgotPassword(
+      event.email,
+      isStaff: event.isStaff,
+    );
     result.fold(
       (failure) => emit(ForgotPasswordFailed(ApiErrorMapper.userMessage(failure))),
       (_) => emit(ForgotPasswordSent()),
@@ -336,6 +339,7 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
       event.email,
       event.otp,
       event.newPassword,
+      isStaff: event.isStaff,
     );
     result.fold(
       (failure) => emit(ResetPasswordFailed(ApiErrorMapper.userMessage(failure))),

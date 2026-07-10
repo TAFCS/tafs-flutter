@@ -184,9 +184,12 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, void>> forgotPassword(String email) async {
+  Future<Either<Failure, void>> forgotPassword(
+    String email, {
+    required bool isStaff,
+  }) async {
     try {
-      await remoteDataSource.forgotPassword(email);
+      await remoteDataSource.forgotPassword(email, isStaff: isStaff);
       return const Right(null);
     } on Failure catch (failure) {
       return Left(failure);
@@ -199,10 +202,16 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, void>> resetPassword(
     String email,
     String otp,
-    String newPassword,
-  ) async {
+    String newPassword, {
+    required bool isStaff,
+  }) async {
     try {
-      await remoteDataSource.resetPassword(email, otp, newPassword);
+      await remoteDataSource.resetPassword(
+        email,
+        otp,
+        newPassword,
+        isStaff: isStaff,
+      );
       return const Right(null);
     } on Failure catch (failure) {
       return Left(failure);

@@ -4,8 +4,10 @@ import 'package:intl/intl.dart';
 import '../../../../core/session/session_reset.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/change_password_page.dart';
+import '../../../auth/presentation/forgot_password_page.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../data/employee_profile_repository.dart';
 import '../../domain/entities/employee_profile.dart';
 
@@ -165,43 +167,88 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
             ]),
             if (widget.embedded) ...[
               const SizedBox(height: 24),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ChangePasswordPage(isStaff: true),
-                    ),
+              Builder(
+                builder: (context) {
+                  final staffState = context.watch<AuthBloc>().state;
+                  final email = staffState is AuthAuthenticatedStaff
+                      ? staffState.staff.username.trim()
+                      : '';
+
+                  return Column(
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: email.isEmpty
+                            ? null
+                            : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ForgotPasswordPage(
+                                      isStaff: true,
+                                      initialEmail: email,
+                                      fromLoggedInSession: true,
+                                    ),
+                                  ),
+                                );
+                              },
+                        icon: const Icon(Icons.mail_outline_rounded, size: 18),
+                        label: const Text(
+                          'Reset password',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.navy,
+                          side: const BorderSide(color: AppTheme.navy),
+                          minimumSize: const Size(double.infinity, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ChangePasswordPage(isStaff: true),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.lock_outline_rounded, size: 18),
+                        label: const Text(
+                          'Change password',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.navy,
+                          side: const BorderSide(color: AppTheme.navy),
+                          minimumSize: const Size(double.infinity, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () => _logout(context),
+                        icon: const Icon(Icons.logout),
+                        label: const Text('Log out', maxLines: 1, overflow: TextOverflow.ellipsis),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.danger,
+                          side: const BorderSide(color: AppTheme.danger),
+                          minimumSize: const Size(double.infinity, 48),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   );
                 },
-                icon: const Icon(Icons.lock_outline_rounded, size: 18),
-                label: const Text(
-                  'Change password',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.navy,
-                  side: const BorderSide(color: AppTheme.navy),
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-                  ),
-                ),
               ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => _logout(context),
-                icon: const Icon(Icons.logout),
-                label: const Text('Log out', maxLines: 1, overflow: TextOverflow.ellipsis),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.danger,
-                  side: const BorderSide(color: AppTheme.danger),
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-              ),
-              const SizedBox(height: 16),
             ],
           ],
         ),
