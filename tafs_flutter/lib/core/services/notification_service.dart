@@ -1,5 +1,4 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart' as fln;
 import 'dart:convert';
 import 'dart:io';
@@ -22,13 +21,7 @@ class NotificationService {
 
   static const String _androidNotificationIcon = 'ic_notification';
 
-  static Future<void> clearBadge() async {
-    try {
-      if (await FlutterAppBadger.isAppBadgeSupported()) {
-        FlutterAppBadger.removeBadge();
-      }
-    } catch (_) {}
-  }
+  static Future<void> clearBadge() async {}
 
   Future<void> clearDeliveredNotifications() async {
     try {
