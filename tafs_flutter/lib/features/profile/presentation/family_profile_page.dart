@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/session/logout_lock.dart';
 import '../../../core/widgets/app_dialog_actions.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../auth/domain/entities/parent.dart';
 import '../../auth/domain/entities/student.dart';
-import '../../auth/presentation/change_password_page.dart';
 import '../../auth/presentation/forgot_password_page.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
 import '../../auth/presentation/bloc/auth_state.dart';
@@ -190,31 +190,15 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                           ),
                         ),
                         const SizedBox(height: AppTheme.space1),
-                        Align(
+                        const Align(
                           alignment: Alignment.centerRight,
-                          child: TextButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ChangePasswordPage(
-                                    isStaff: false,
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(
-                              Icons.lock_outline_rounded,
-                              size: 14,
+                          child: Text(
+                            'Need your email changed? Contact the school admins.',
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
                               color: AppTheme.blue300,
-                            ),
-                            label: const Text(
-                              'Change password',
-                              style: TextStyle(
-                                color: AppTheme.blue300,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w400,
-                              ),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ),
@@ -254,34 +238,13 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                           ),
                         ),
                         const SizedBox(height: AppTheme.space3),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ChangePasswordPage(
-                                    isStaff: false,
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.lock_outline_rounded, size: 18),
-                            label: const Text(
-                              'Change password',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.navy,
-                              side: const BorderSide(color: AppTheme.navy),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-                              ),
-                            ),
+                        const Text(
+                          'Need your email changed? Contact the school admins.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppTheme.blue300,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                         const SizedBox(height: AppTheme.space3),
@@ -289,8 +252,11 @@ class _FamilyProfilePageState extends State<FamilyProfilePage> {
                           width: double.infinity,
                           height: 48,
                           child: OutlinedButton.icon(
-                            onPressed: () =>
-                                context.read<AuthBloc>().add(AuthLogoutRequested()),
+                            onPressed: () {
+                              if (isLoggingOutNotifier.value) return;
+                              isLoggingOutNotifier.value = true;
+                              context.read<AuthBloc>().add(AuthLogoutRequested());
+                            },
                             icon: const Icon(Icons.logout_rounded, size: 18),
                             label: const Text(
                               'Log out',

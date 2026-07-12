@@ -5,8 +5,10 @@ import 'dart:async';
 
 import '../../../core/services/fcm_registration_service.dart';
 import '../../../core/session/authenticated_session.dart';
+import '../../../core/session/logout_lock.dart';
 import '../../../core/session/session_reset.dart';
 import '../../../core/widgets/app_snackbar.dart';
+import '../../../core/widgets/full_screen_loader.dart';
 import '../../../core/widgets/notification_permission_banner.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../injection_container.dart';
@@ -64,7 +66,17 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocListener(
+    return ValueListenableBuilder<bool>(
+      valueListenable: isLoggingOutNotifier,
+      builder: (context, loggingOut, child) {
+        return Stack(
+          children: [
+            child!,
+            if (loggingOut) const FullScreenLoader(message: 'Logging out...'),
+          ],
+        );
+      },
+      child: MultiBlocListener(
       listeners: [
         BlocListener<AuthBloc, AuthState>(
           listenWhen: (previous, current) {
@@ -79,6 +91,7 @@ class _AuthGateState extends State<AuthGate> {
             Navigator.popUntil(context, (route) => route.isFirst);
             resetSessionState(context);
             resetStaffSessionState(context);
+            isLoggingOutNotifier.value = false;
           },
         ),
         BlocListener<AuthBloc, AuthState>(
@@ -201,6 +214,7 @@ class _AuthGateState extends State<AuthGate> {
 
           return const LoginPage();
         },
+      ),
       ),
     );
   }

@@ -28,6 +28,10 @@ class ResetPasswordPage extends StatefulWidget {
 
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final _otpController = TextEditingController();
+  final List<TextEditingController> _otpDigitControllers =
+      List.generate(4, (_) => TextEditingController());
+  final List<FocusNode> _otpDigitFocusNodes =
+      List.generate(4, (_) => FocusNode());
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -44,9 +48,24 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   void dispose() {
     _cooldownTimer?.cancel();
     _otpController.dispose();
+    for (final controller in _otpDigitControllers) {
+      controller.dispose();
+    }
+    for (final node in _otpDigitFocusNodes) {
+      node.dispose();
+    }
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _onOtpDigitChanged(int index, String value) {
+    if (value.isNotEmpty && index < 3) {
+      _otpDigitFocusNodes[index + 1].requestFocus();
+    } else if (value.isEmpty && index > 0) {
+      _otpDigitFocusNodes[index - 1].requestFocus();
+    }
+    _otpController.text = _otpDigitControllers.map((c) => c.text).join();
   }
 
   void _startResendCooldown() {
@@ -176,21 +195,74 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                                 ),
                             textAlign: TextAlign.center,
                           ),
+                          const SizedBox(height: 12),
+                          Text(
+                            "Can't find it? Check your spam/junk folder.",
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  color: Colors.grey[800],
+                                  fontWeight: FontWeight.w700,
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
                           const SizedBox(height: 32),
-                          CustomTextField(
-                            label: 'Verification Code',
-                            hint: 'Enter 4-digit code',
-                            controller: _otpController,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                              LengthLimitingTextInputFormatter(4),
-                            ],
-                            validator: (value) {
-                              if (value == null || value.length != 4) {
+                          Text(
+                            'Verification Code',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          FormField<String>(
+                            validator: (_) {
+                              if (_otpController.text.length != 4) {
                                 return 'Please enter the 4-digit code';
                               }
                               return null;
+                            },
+                            builder: (field) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: List.generate(4, (index) {
+                                      return SizedBox(
+                                        width: 60,
+                                        height: 60,
+                                        child: TextField(
+                                          controller: _otpDigitControllers[index],
+                                          focusNode: _otpDigitFocusNodes[index],
+                                          textAlign: TextAlign.center,
+                                          keyboardType: TextInputType.number,
+                                          maxLength: 1,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .headlineSmall,
+                                          decoration: const InputDecoration(
+                                            counterText: '',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter.digitsOnly,
+                                          ],
+                                          onChanged: (value) {
+                                            _onOtpDigitChanged(index, value);
+                                            field.didChange(_otpController.text);
+                                          },
+                                        ),
+                                      );
+                                    }),
+                                  ),
+                                  if (field.hasError) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      field.errorText!,
+                                      style: const TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              );
                             },
                           ),
                           const SizedBox(height: 16),

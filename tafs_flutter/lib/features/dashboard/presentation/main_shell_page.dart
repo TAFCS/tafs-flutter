@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/in_app_notification_service.dart';
 import '../../auth/domain/entities/student.dart';
@@ -42,10 +43,13 @@ class MainShellPage extends StatefulWidget {
 }
 
 class _MainShellPageState extends State<MainShellPage> with WidgetsBindingObserver {
+  static const _feesTabTipPrefsKey = 'seen_fees_tab_switcher_tip';
+
   int _selectedIndex = 0;
   StreamSubscription? _ticketMessageSub;
   final Set<int> _seenVoucherAlertIds = {};
   bool _noticeBoardPrimed = false;
+  bool _showFeesTabTip = false;
 
   @override
   void initState() {
@@ -131,6 +135,7 @@ class _MainShellPageState extends State<MainShellPage> with WidgetsBindingObserv
         setState(() => _selectedIndex = 1);
       }
       _reloadFees();
+      unawaited(_maybeShowFeesTabTip());
       return;
     }
 
@@ -142,7 +147,21 @@ class _MainShellPageState extends State<MainShellPage> with WidgetsBindingObserv
     setState(() => _selectedIndex = index);
     if (index == 1) {
       _reloadFees();
+      unawaited(_maybeShowFeesTabTip());
     }
+  }
+
+  Future<void> _maybeShowFeesTabTip() async {
+    final prefs = await SharedPreferences.getInstance();
+    final alreadySeen = prefs.getBool(_feesTabTipPrefsKey) ?? false;
+    if (alreadySeen) return;
+    await prefs.setBool(_feesTabTipPrefsKey, true);
+    if (mounted) setState(() => _showFeesTabTip = true);
+  }
+
+  void _dismissFeesTabTip() {
+    if (!_showFeesTabTip) return;
+    setState(() => _showFeesTabTip = false);
   }
 
   void _reloadFees() {
@@ -241,16 +260,22 @@ class _MainShellPageState extends State<MainShellPage> with WidgetsBindingObserv
                     : const FamilyAppBar(
                         actions: [_ChatAppBarAction()],
                       ),
-            body: IndexedStack(
-              index: _selectedIndex,
+            body: Stack(
               children: [
-                const HomeTabBody(),
-                FeeLedgerPage(
-                  studentCc: student.cc,
-                  studentName: student.fullName,
-                  showAppBar: false,
+                IndexedStack(
+                  index: _selectedIndex,
+                  children: [
+                    const HomeTabBody(),
+                    FeeLedgerPage(
+                      studentCc: student.cc,
+                      studentName: student.fullName,
+                      showAppBar: false,
+                    ),
+                    const FamilyProfilePage(showAppBar: false),
+                  ],
                 ),
-                const FamilyProfilePage(showAppBar: false),
+                if (_selectedIndex == 1 && _showFeesTabTip)
+                  _FeesTabSwitcherTip(onDismiss: _dismissFeesTabTip),
               ],
             ),
             bottomNavigationBar: _BottomNavBar(
@@ -259,6 +284,59 @@ class _MainShellPageState extends State<MainShellPage> with WidgetsBindingObserv
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _FeesTabSwitcherTip extends StatelessWidget {
+  final VoidCallback onDismiss;
+
+  const _FeesTabSwitcherTip({required this.onDismiss});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: AppTheme.space2,
+      left: AppTheme.space4,
+      right: AppTheme.space4,
+      child: GestureDetector(
+        onTap: onDismiss,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppTheme.space4,
+            vertical: AppTheme.space3,
+          ),
+          decoration: BoxDecoration(
+            color: AppTheme.navy,
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            boxShadow: AppTheme.shadowMd,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.arrow_upward_rounded, color: AppTheme.white, size: 16),
+                  const SizedBox(width: AppTheme.space2),
+                  const Expanded(
+                    child: Text(
+                      "Got more than one child here? Tap your child's name up top to switch between them.",
+                      style: TextStyle(
+                        color: AppTheme.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.space2),
+                  const Icon(Icons.close_rounded, color: AppTheme.white, size: 16),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -203,6 +203,42 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
 
     return Column(
       children: [
+        // Notice: attendance isn't live yet
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppTheme.space5,
+            AppTheme.space3,
+            AppTheme.space5,
+            0,
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(AppTheme.space3),
+            decoration: BoxDecoration(
+              color: AppTheme.warningBg,
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              border: Border.all(color: AppTheme.warning.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline_rounded, color: AppTheme.warning, size: 18),
+                const SizedBox(width: AppTheme.space2),
+                Expanded(
+                  child: Text(
+                    'Attendance will start being tracked here once biometric devices are '
+                    'installed and all students are enrolled with their biometric records.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.navy.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
         // Month Selector
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.space5, vertical: AppTheme.space2),

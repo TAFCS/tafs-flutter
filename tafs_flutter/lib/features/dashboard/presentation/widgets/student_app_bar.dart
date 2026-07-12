@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/domain/entities/student.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/selected_student_cubit.dart';
 import 'student_switcher_sheet.dart';
 
 class StudentAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -25,7 +28,13 @@ class StudentAppBar extends StatelessWidget implements PreferredSizeWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const StudentSwitcherSheet(),
+      builder: (sheetCtx) => BlocProvider.value(
+        value: BlocProvider.of<SelectedStudentCubit>(context),
+        child: BlocProvider.value(
+          value: BlocProvider.of<AuthBloc>(context),
+          child: const StudentSwitcherSheet(),
+        ),
+      ),
     );
   }
 
@@ -52,30 +61,43 @@ class StudentAppBar extends StatelessWidget implements PreferredSizeWidget {
         if (actions != null) ...actions!,
       ],
       bottom: bottom,
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                student!.fullName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+      title: GestureDetector(
+        onTap: () => _showStudentSwitcher(context),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      student!.fullName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(
+                      Icons.arrow_drop_down,
+                      color: AppTheme.blue300,
+                    ),
+                  ],
                 ),
-              ),
-              Text(
-                '${student!.grNumber ?? 'GR-XXXX'} • ${student!.campus ?? 'Main Campus'}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.blue300,
+                Text(
+                  '${student!.grNumber ?? 'GR-XXXX'} • ${student!.campus ?? 'Main Campus'}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.blue300,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

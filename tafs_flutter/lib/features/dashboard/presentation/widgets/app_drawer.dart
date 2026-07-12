@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/session/logout_lock.dart';
 import '../../../../core/widgets/app_dialog_actions.dart';
 import '../../../auth/domain/entities/student.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -228,6 +229,9 @@ class AppDrawer extends StatelessWidget {
             icon: Icons.logout_rounded,
             text: 'Logout',
             onTap: () {
+              if (isLoggingOutNotifier.value) return;
+              Navigator.pop(context);
+              isLoggingOutNotifier.value = true;
               context.read<AuthBloc>().add(AuthLogoutRequested());
             },
           ),
