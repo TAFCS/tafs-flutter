@@ -373,13 +373,16 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
       bottomNavigationBar: _currentTabs.length > 1
           ? NavigationBar(
               selectedIndex: activeIndex,
-              labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              labelTextStyle: WidgetStateProperty.all(
+                const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, height: 1.1),
+              ),
               indicatorColor: Colors.transparent,
               backgroundColor: AppTheme.white,
               surfaceTintColor: Colors.transparent,
               shadowColor: Colors.transparent,
               elevation: 0,
-              height: 64,
+              height: _currentTabs.length > 5 ? 72 : 64,
               onDestinationSelected: (index) {
                 setState(() => _activeTab = _currentTabs[index]);
                 if (_activeTab == _EmployeeTab.noticeBoard) {

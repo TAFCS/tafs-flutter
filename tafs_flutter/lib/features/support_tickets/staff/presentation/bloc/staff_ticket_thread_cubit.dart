@@ -57,7 +57,15 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
   StreamSubscription<Map<String, dynamic>>? _reviewedSub;
   StreamSubscription<void>? _connectSub;
   StreamSubscription<void>? _disconnectSub;
+  Timer? _disconnectDebounce;
   String? _activeTicketId;
+
+  // Reconnects on app-resume are forced by the socket layer even when the
+  // connection was never actually lost (guarding against zombie TCP after
+  // backgrounding), so a disconnect event is only trusted as a real outage
+  // if it's still disconnected after this grace period — otherwise the
+  // near-instant reconnect would flash "OFFLINE" for no real reason.
+  static const _disconnectGracePeriod = Duration(milliseconds: 800);
 
   StaffTicketThreadCubit({required this.repository})
       : super(const StaffTicketThreadState());
@@ -76,10 +84,14 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
       isSocketConnected: repository.isSocketConnected,
     ));
     _connectSub = repository.onSocketConnect.listen((_) {
+      _disconnectDebounce?.cancel();
       emit(state.copyWith(isSocketConnected: true));
     });
     _disconnectSub = repository.onSocketDisconnect.listen((_) {
-      emit(state.copyWith(isSocketConnected: false));
+      _disconnectDebounce?.cancel();
+      _disconnectDebounce = Timer(_disconnectGracePeriod, () {
+        if (!isClosed) emit(state.copyWith(isSocketConnected: false));
+      });
     });
     try {
       await repository.enterTicket(ticketId);
@@ -150,6 +162,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
   Future<void> leave() async {
     final id = _activeTicketId;
     if (id != null) await repository.leaveTicket(id);
+    _disconnectDebounce?.cancel();
     await _sub?.cancel();
     await _pendingSub?.cancel();
     await _reviewedSub?.cancel();

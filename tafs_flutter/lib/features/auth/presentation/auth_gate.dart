@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import 'dart:async';
 
@@ -40,6 +41,8 @@ Future<void> _showNotificationPermissionHintIfNeeded(BuildContext context) async
 }
 
 class _AuthGateState extends State<AuthGate> {
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +65,37 @@ class _AuthGateState extends State<AuthGate> {
         unawaited(_showNotificationPermissionHintIfNeeded(context));
       });
     }
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen((results) {
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      if (results.every((r) => r == ConnectivityResult.none)) {
+        messenger.showMaterialBanner(
+          MaterialBanner(
+            backgroundColor: Colors.red.shade50,
+            leading: Icon(Icons.wifi_off_rounded, color: Colors.red.shade700),
+            content: Text(
+              'No internet connection',
+              style: TextStyle(color: Colors.red.shade800, fontSize: 13),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => messenger.hideCurrentMaterialBanner(),
+                child: const Text('Dismiss'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        messenger.hideCurrentMaterialBanner();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -69,11 +103,19 @@ class _AuthGateState extends State<AuthGate> {
     return ValueListenableBuilder<bool>(
       valueListenable: isLoggingOutNotifier,
       builder: (context, loggingOut, child) {
-        return Stack(
-          children: [
-            child!,
-            if (loggingOut) const FullScreenLoader(message: 'Logging out...'),
-          ],
+        return BlocBuilder<AuthBloc, AuthState>(
+          buildWhen: (previous, current) =>
+              (current is AuthLoading) != (previous is AuthLoading),
+          builder: (context, authState) {
+            final signingIn = !loggingOut && authState is AuthLoading;
+            return Stack(
+              children: [
+                child!,
+                if (loggingOut) const FullScreenLoader(message: 'Logging out...'),
+                if (signingIn) const FullScreenLoader(message: 'Signing in...'),
+              ],
+            );
+          },
         );
       },
       child: MultiBlocListener(

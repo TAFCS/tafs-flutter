@@ -413,57 +413,33 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                           ),
                   ),
                   if (canCompose)
-                    Stack(
-                      children: [
-                        AbsorbPointer(
-                          absorbing: !state.isSocketConnected,
-                          child: MessageInput(
-                            isSending: state.sending,
-                            replyingTo: null,
-                            onCancelReply: () {},
-                            students: const [],
-                            onSend: (content, type, file, replyTo, batchId) async {
-                              final cubit = context.read<StaffTicketThreadCubit>();
-                              if (file != null) {
-                                final media = await InjectionContainer
-                                    .staffSupportTicketRepository
-                                    .uploadMedia(file);
-                                final mediaUrl = media['url'] as String?;
-                                final messageType = type == ChatMessageType.voice
-                                    ? 'VOICE'
-                                    : type == ChatMessageType.image
-                                        ? 'IMAGE'
-                                        : 'DOCUMENT';
-                                await cubit.sendMedia(
-                                  messageType: messageType,
-                                  content: mediaUrl ?? content,
-                                  mediaMetadata: media,
-                                );
-                              } else {
-                                await cubit.sendMessage(content);
-                              }
-                              _scrollToBottom();
-                            },
-                          ),
-                          ),
-                        if (!state.isSocketConnected)
-                          Positioned.fill(
-                            child: ColoredBox(
-                              color: Colors.white.withValues(alpha: 0.6),
-                              child: Center(
-                                child: Text(
-                                  'OFFLINE — RECONNECTING',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red.shade700,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
+                    MessageInput(
+                      isSending: state.sending,
+                      replyingTo: null,
+                      onCancelReply: () {},
+                      students: const [],
+                      onSend: (content, type, file, replyTo, batchId) async {
+                        final cubit = context.read<StaffTicketThreadCubit>();
+                        if (file != null) {
+                          final media = await InjectionContainer
+                              .staffSupportTicketRepository
+                              .uploadMedia(file);
+                          final mediaUrl = media['url'] as String?;
+                          final messageType = type == ChatMessageType.voice
+                              ? 'VOICE'
+                              : type == ChatMessageType.image
+                                  ? 'IMAGE'
+                                  : 'DOCUMENT';
+                          await cubit.sendMedia(
+                            messageType: messageType,
+                            content: mediaUrl ?? content,
+                            mediaMetadata: media,
+                          );
+                        } else {
+                          await cubit.sendMessage(content);
+                        }
+                        _scrollToBottom();
+                      },
                     ),
                 ],
               );

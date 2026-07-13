@@ -14,26 +14,47 @@ class FullScreenLoader extends StatelessWidget {
     return Positioned.fill(
       child: AbsorbPointer(
         child: Container(
-          color: AppTheme.navy.withValues(alpha: 0.55),
+          color: AppTheme.navy.withValues(alpha: 0.75),
           child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppTheme.white,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 180),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.space5,
+                  vertical: AppTheme.space4,
                 ),
-                if (message != null) ...[
-                  const SizedBox(height: AppTheme.space4),
-                  Text(
-                    message!,
-                    style: const TextStyle(
-                      color: AppTheme.white,
-                      fontWeight: FontWeight.w600,
+                decoration: BoxDecoration(
+                  color: AppTheme.navy,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                  boxShadow: AppTheme.shadowLg,
+                  border: Border.all(color: AppTheme.white.withValues(alpha: 0.15)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: AppTheme.white,
+                      ),
                     ),
-                  ),
-                ],
-              ],
+                    if (message != null) ...[
+                      const SizedBox(height: AppTheme.space3),
+                      Text(
+                        message!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppTheme.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
         ),

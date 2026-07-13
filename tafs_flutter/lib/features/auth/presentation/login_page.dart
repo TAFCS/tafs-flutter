@@ -5,7 +5,6 @@ import '../../../core/services/fcm_registration_service.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
 import '../../../core/widgets/app_snackbar.dart';
-import '../../../core/widgets/full_screen_loader.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../injection_container.dart';
 import 'bloc/auth_bloc.dart';
@@ -217,9 +216,7 @@ class _LoginPageState extends State<LoginPage> {
             _biometricsAvailable && _hasSavedCredentials;
 
         return Scaffold(
-          body: Stack(
-            children: [
-              SafeArea(
+          body: SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final h = constraints.maxHeight;
@@ -267,6 +264,7 @@ class _LoginPageState extends State<LoginPage> {
                               keyboardType: isStaff
                                   ? TextInputType.text
                                   : TextInputType.emailAddress,
+                              textCapitalization: TextCapitalization.none,
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
                                   return isStaff
@@ -449,10 +447,6 @@ class _LoginPageState extends State<LoginPage> {
                 );
               },
             ),
-              ),
-              if (isLoading || _biometricLoading)
-                const FullScreenLoader(message: 'Signing in...'),
-            ],
           ),
         );
       },

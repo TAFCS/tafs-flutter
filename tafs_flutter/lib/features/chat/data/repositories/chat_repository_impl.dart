@@ -161,7 +161,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
     final socketUrl = baseUrl.replaceAll('/api/v1', '');
 
     if (_socket != null) {
-      _socket!.io.options?['auth'] = {'token': token};
+      _socket!.auth = {'token': token};
       if (!_socket!.connected) {
         _socket!.connect();
       }
@@ -255,7 +255,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
           }
 
           if (newAccessToken != null && _socket != null) {
-            _socket!.io.options?['auth'] = {'token': newAccessToken};
+            _socket!.auth = {'token': newAccessToken};
             _socket!.io.options?['reconnectionAttempts'] = 99999;
             _socket!.connect();
           } else {
@@ -289,7 +289,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
         // Network / other error — just update the token for the next attempt
         final latest = await localDataSource.getActiveAccessToken();
         if (latest != null && _socket != null) {
-          _socket!.io.options?['auth'] = {'token': latest};
+          _socket!.auth = {'token': latest};
         }
       }
     });
@@ -297,7 +297,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
     _socket!.on('reconnect_attempt', (_) async {
       final latest = await localDataSource.getActiveAccessToken();
       if (latest != null && _socket != null) {
-        _socket!.io.options?['auth'] = {'token': latest};
+        _socket!.auth = {'token': latest};
       }
     });
 
@@ -305,6 +305,14 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
     // trigger connect_error where the actual token refresh happens.
     _socket!.on('tokenExpired', (_) {
       print('[ChatRepo] Server signalled token expired; awaiting auto-reconnect');
+    });
+
+    _socket!.on('reconnect_error', (err) {
+      print('[ChatRepo] Reconnect attempt failed: $err');
+    });
+
+    _socket!.on('reconnect_failed', (_) {
+      print('[ChatRepo] Reconnection exhausted/gave up.');
     });
 
     _socket!.onConnect((_) async {
