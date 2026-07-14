@@ -38,6 +38,10 @@ abstract class ChatRepository {
   Stream<Map<String, dynamic>> get onReplyReviewedPayload;
   void enterTicket(String ticketId);
   void leaveTicket(String ticketId);
+  void emitTicketTyping({required String ticketId, required bool isTyping});
+  Stream<Map<String, dynamic>> get onTicketTyping;
+  /// Ticket currently being viewed (if any). Rejoined automatically after reconnect.
+  String? get activeTicketId;
 
   Future<List<ChatMessage>> getAdminAnnouncementHistory({
     int take = 50,

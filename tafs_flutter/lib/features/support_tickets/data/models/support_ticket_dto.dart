@@ -35,23 +35,78 @@ class SupportTicketDto {
 
 class TicketMessageDto {
   static TicketMessage fromJson(Map<String, dynamic> json) {
+    final ticketId = _asString(json['ticket_id']) ??
+        _asString(json['ticketId']) ??
+        '';
+    final id = _asString(json['id']);
+    if (id == null || id.isEmpty) {
+      throw FormatException('Ticket message missing id');
+    }
     return TicketMessage(
-      id: json['id'] as String,
-      ticketId: json['ticket_id'] as String,
-      senderType: (json['sender_type'] as String) == 'STAFF'
+      id: id,
+      ticketId: ticketId,
+      senderType: (_asString(json['sender_type']) ?? '') == 'STAFF'
           ? TicketMessageSenderType.staff
           : TicketMessageSenderType.guardian,
-      messageType: _type(json['message_type'] as String),
-      content: json['content'] as String,
-      reviewStatus: _review(json['status'] as String? ?? 'APPROVED'),
-      createdAt: DateTime.parse(json['created_at'] as String),
-      senderName: json['sender_user']?['full_name'] as String? ??
-          json['sender_guardian']?['full_name'] as String?,
-      senderRole: json['sender_user']?['role'] as String?,
-      senderUserId: json['sender_user']?['id'] as String?,
-      mediaMetadata: json['media_metadata'] as Map<String, dynamic>?,
-      reviewComment: json['review_comment'] as String?,
+      messageType: _type(_asString(json['message_type']) ?? 'TEXT'),
+      content: _asString(json['content']) ?? '',
+      reviewStatus: _review(_asString(json['status']) ?? 'APPROVED'),
+      createdAt: _parseDate(json['created_at'] ?? json['createdAt']),
+      senderName: _asString(json['sender_user'] is Map
+              ? (json['sender_user'] as Map)['full_name']
+              : null) ??
+          _asString(json['sender_guardian'] is Map
+              ? (json['sender_guardian'] as Map)['full_name']
+              : null),
+      senderRole: json['sender_user'] is Map
+          ? _asString((json['sender_user'] as Map)['role'])
+          : null,
+      senderUserId: json['sender_user'] is Map
+          ? _asString((json['sender_user'] as Map)['id'])
+          : null,
+      mediaMetadata: json['media_metadata'] is Map
+          ? Map<String, dynamic>.from(json['media_metadata'] as Map)
+          : null,
+      reviewComment: _asString(json['review_comment']),
     );
+  }
+
+  static TicketMessage? tryFromPayload(Map<String, dynamic> payload) {
+    try {
+      final rawMessage = payload['message'];
+      if (rawMessage is! Map) return null;
+      final message = Map<String, dynamic>.from(rawMessage);
+      final ticket = payload['ticket'];
+      if ((message['ticket_id'] == null || message['ticket_id'] == '') &&
+          ticket is Map &&
+          ticket['id'] != null) {
+        message['ticket_id'] = ticket['id'].toString();
+      }
+      final parsed = fromJson(message);
+      if (parsed.ticketId.isEmpty) return null;
+      return parsed;
+    } catch (e) {
+      print('Error parsing ticket message payload: $e');
+      return null;
+    }
+  }
+
+  static String? _asString(dynamic value) {
+    if (value == null) return null;
+    if (value is String) return value;
+    return value.toString();
+  }
+
+  static DateTime _parseDate(dynamic value) {
+    if (value is DateTime) return value;
+    if (value is String && value.isNotEmpty) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
+    if (value is int) {
+      final ms = value > 9999999999 ? value : value * 1000;
+      return DateTime.fromMillisecondsSinceEpoch(ms);
+    }
+    return DateTime.now();
   }
 
   static TicketMessageType _type(String raw) {

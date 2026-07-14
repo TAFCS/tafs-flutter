@@ -12,6 +12,7 @@ class TicketThreadState {
   final List<TicketMessage> messages;
   final bool loading;
   final bool sending;
+  final bool staffTyping;
   final String? error;
 
   const TicketThreadState({
@@ -19,6 +20,7 @@ class TicketThreadState {
     this.messages = const [],
     this.loading = false,
     this.sending = false,
+    this.staffTyping = false,
     this.error,
   });
 
@@ -27,6 +29,7 @@ class TicketThreadState {
     List<TicketMessage>? messages,
     bool? loading,
     bool? sending,
+    bool? staffTyping,
     String? error,
     bool clearError = false,
   }) =>
@@ -35,6 +38,7 @@ class TicketThreadState {
         messages: messages ?? this.messages,
         loading: loading ?? this.loading,
         sending: sending ?? this.sending,
+        staffTyping: staffTyping ?? this.staffTyping,
         error: clearError ? null : (error ?? this.error),
       );
 }
@@ -42,7 +46,12 @@ class TicketThreadState {
 class TicketThreadCubit extends Cubit<TicketThreadState> {
   final SupportTicketRepository repository;
   StreamSubscription<TicketMessage>? _sub;
+  StreamSubscription<Map<String, dynamic>>? _typingSub;
+  StreamSubscription<void>? _connectSub;
+  Timer? _typingClearTimer;
+  Timer? _typingIdleTimer;
   String? _activeTicketId;
+  bool _resyncing = false;
 
   TicketThreadCubit({required this.repository}) : super(const TicketThreadState());
 
@@ -59,8 +68,43 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
   }
 
   void _appendMessage(TicketMessage msg) {
+    if (isClosed) return;
     if (state.messages.any((m) => m.id == msg.id)) return;
-    emit(state.copyWith(messages: [...state.messages, msg], clearError: true));
+    emit(state.copyWith(
+      messages: [...state.messages, msg],
+      staffTyping: false,
+      clearError: true,
+    ));
+  }
+
+  Future<void> _resyncAfterReconnect(String ticketId) async {
+    if (_resyncing || isClosed || _activeTicketId != ticketId) return;
+    _resyncing = true;
+    try {
+      await repository.enterTicket(ticketId);
+      final detail = await repository.getTicketDetail(ticketId);
+      if (isClosed || _activeTicketId != ticketId) return;
+
+      final byId = <String, TicketMessage>{
+        for (final m in state.messages) m.id: m,
+      };
+      for (final m in detail.messages) {
+        byId[m.id] = m;
+      }
+      final merged = byId.values.toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+      emit(state.copyWith(
+        ticket: detail.ticket,
+        messages: merged,
+        clearError: true,
+      ));
+      await repository.markRead(ticketId);
+    } catch (_) {
+      // Soft resync — keep current UI.
+    } finally {
+      _resyncing = false;
+    }
   }
 
   Map<String, dynamic> _replyMetadata(ChatMessage? replyTo) {
@@ -80,28 +124,97 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
     _activeTicketId = ticketId;
     TicketThreadPresence.activeTicketId = ticketId;
     await _sub?.cancel();
-    emit(state.copyWith(loading: true, clearError: true));
+    await _typingSub?.cancel();
+    await _connectSub?.cancel();
+    _typingClearTimer?.cancel();
+    emit(state.copyWith(loading: true, staffTyping: false, clearError: true));
+
+    // Bind listeners first so socket events during REST load aren't dropped.
+    _sub = repository.onTicketMessage.listen(
+      (msg) {
+        if (_activeTicketId != ticketId) return;
+        if (msg.ticketId != ticketId) return;
+        _appendMessage(msg);
+      },
+      onError: (Object e, StackTrace st) {
+        print('TicketThreadCubit message stream error: $e');
+      },
+      cancelOnError: false,
+    );
+    _typingSub = repository.onTicketTyping.listen(
+      (payload) {
+        if (_activeTicketId != ticketId) return;
+        final payloadTicketId =
+            payload['ticketId']?.toString() ?? payload['ticket_id']?.toString();
+        if (payloadTicketId != null &&
+            payloadTicketId.isNotEmpty &&
+            payloadTicketId != ticketId) {
+          return;
+        }
+        final userType = payload['userType']?.toString().toUpperCase();
+        if (userType != 'STAFF') return;
+        final isTyping =
+            payload['isTyping'] == true || payload['is_typing'] == true;
+        if (isClosed) return;
+        emit(state.copyWith(staffTyping: isTyping));
+        _typingClearTimer?.cancel();
+        if (isTyping) {
+          _typingClearTimer = Timer(const Duration(seconds: 3), () {
+            if (!isClosed) emit(state.copyWith(staffTyping: false));
+          });
+        }
+      },
+      onError: (_) {},
+      cancelOnError: false,
+    );
+    _connectSub = repository.onSocketConnect.listen((_) {
+      unawaited(_resyncAfterReconnect(ticketId));
+    });
+
     try {
+      await repository.connectSocket();
       await repository.enterTicket(ticketId);
       await repository.markRead(ticketId);
       final detail = await repository.getTicketDetail(ticketId);
+      if (isClosed || _activeTicketId != ticketId) return;
+
+      final byId = <String, TicketMessage>{
+        for (final m in state.messages)
+          if (m.ticketId == ticketId) m.id: m,
+      };
+      for (final m in detail.messages) {
+        byId[m.id] = m;
+      }
+      final merged = byId.values.toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
       emit(TicketThreadState(
         ticket: detail.ticket,
-        messages: detail.messages.reversed.toList(),
+        messages: merged,
         loading: false,
       ));
-      _sub = repository.onTicketMessage.listen((msg) {
-        if (msg.ticketId != ticketId) return;
-        _appendMessage(msg);
-      });
     } catch (e) {
       emit(state.copyWith(loading: false, error: _friendlyError(e)));
     }
   }
 
+  void onComposerChanged(String text) {
+    final ticket = state.ticket;
+    if (ticket == null) return;
+    final trimmed = text.trim();
+    if (trimmed.isNotEmpty) {
+      repository.emitTicketTyping(ticketId: ticket.id, isTyping: true);
+    }
+    _typingIdleTimer?.cancel();
+    _typingIdleTimer = Timer(const Duration(milliseconds: 1800), () {
+      repository.emitTicketTyping(ticketId: ticket.id, isTyping: false);
+    });
+  }
+
   Future<void> sendText(String content, {ChatMessage? replyTo}) async {
     final ticket = state.ticket;
     if (ticket == null || content.trim().isEmpty) return;
+    repository.emitTicketTyping(ticketId: ticket.id, isTyping: false);
     emit(state.copyWith(sending: true, clearError: true));
     try {
       final replyMeta = _replyMetadata(replyTo);
@@ -126,6 +239,7 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
   }) async {
     final ticket = state.ticket;
     if (ticket == null) return;
+    repository.emitTicketTyping(ticketId: ticket.id, isTyping: false);
     emit(state.copyWith(sending: true, clearError: true));
     try {
       final mergedMetadata = {
@@ -159,11 +273,18 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
   @override
   Future<void> close() async {
     final id = _activeTicketId;
-    if (id != null) await repository.leaveTicket(id);
+    if (id != null) {
+      repository.emitTicketTyping(ticketId: id, isTyping: false);
+      await repository.leaveTicket(id);
+    }
     if (TicketThreadPresence.activeTicketId == id) {
       TicketThreadPresence.activeTicketId = null;
     }
+    _typingClearTimer?.cancel();
+    _typingIdleTimer?.cancel();
     await _sub?.cancel();
+    await _typingSub?.cancel();
+    await _connectSub?.cancel();
     return super.close();
   }
 }

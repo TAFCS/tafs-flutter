@@ -413,11 +413,29 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                           ),
                   ),
                   if (canCompose)
-                    MessageInput(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (state.parentTyping)
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(16, 0, 16, 6),
+                            child: Text(
+                              'Parent is typing…',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.blue300,
+                              ),
+                            ),
+                          ),
+                        MessageInput(
                       isSending: state.sending,
                       replyingTo: null,
                       onCancelReply: () {},
                       students: const [],
+                      onTypingChanged: (text) {
+                        context.read<StaffTicketThreadCubit>().onComposerChanged(text);
+                      },
                       onSend: (content, type, file, replyTo, batchId) async {
                         final cubit = context.read<StaffTicketThreadCubit>();
                         if (file != null) {
@@ -440,6 +458,8 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                         }
                         _scrollToBottom();
                       },
+                    ),
+                      ],
                     ),
                 ],
               );

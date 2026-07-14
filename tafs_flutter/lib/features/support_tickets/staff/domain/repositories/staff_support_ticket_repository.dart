@@ -8,6 +8,7 @@ abstract class StaffSupportTicketRepository {
   Stream<void> get onReplyPendingApproval;
   Stream<Map<String, dynamic>> get onReplyPendingApprovalPayload;
   Stream<Map<String, dynamic>> get onReplyReviewedPayload;
+  Stream<Map<String, dynamic>> get onTicketTyping;
   bool get isSocketConnected;
   Stream<void> get onSocketConnect;
   Stream<void> get onSocketDisconnect;
@@ -16,6 +17,7 @@ abstract class StaffSupportTicketRepository {
   Future<void> disconnectSocket();
   Future<void> enterTicket(String ticketId);
   Future<void> leaveTicket(String ticketId);
+  void emitTicketTyping({required String ticketId, required bool isTyping});
 
   Future<List<StaffSupportTicket>> fetchMyQueue();
   Future<List<StaffSupportTicket>> fetchFinanceQueue();

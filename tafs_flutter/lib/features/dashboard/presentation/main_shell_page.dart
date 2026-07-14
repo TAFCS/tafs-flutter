@@ -63,24 +63,28 @@ class _MainShellPageState extends State<MainShellPage> with WidgetsBindingObserv
 
     mainShellTabRequest.addListener(_onTabRequest);
 
-    _ticketMessageSub = InjectionContainer.supportTicketRepository.onTicketMessage.listen((msg) {
-      if (!mounted) return;
-      if (TicketThreadPresence.isViewing(msg.ticketId)) return;
-      InAppNotificationService.show(
-        context: context,
-        title: 'New reply on your query',
-        message: msg.content.length > 80 ? '${msg.content.substring(0, 80)}…' : msg.content,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TicketThreadPage(ticketId: msg.ticketId),
-            ),
-          );
-        },
-      );
-      context.read<SupportTicketListBloc>().add(const SupportTicketListLoadRequested());
-    });
+    _ticketMessageSub = InjectionContainer.supportTicketRepository.onTicketMessage.listen(
+      (msg) {
+        if (!mounted) return;
+        if (TicketThreadPresence.isViewing(msg.ticketId)) return;
+        InAppNotificationService.show(
+          context: context,
+          title: 'New reply on your query',
+          message: msg.content.length > 80 ? '${msg.content.substring(0, 80)}…' : msg.content,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => TicketThreadPage(ticketId: msg.ticketId),
+              ),
+            );
+          },
+        );
+        context.read<SupportTicketListBloc>().add(const SupportTicketListLoadRequested());
+      },
+      onError: (_) {},
+      cancelOnError: false,
+    );
   }
 
   @override

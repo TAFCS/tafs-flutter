@@ -44,6 +44,7 @@ class MessageInput extends StatefulWidget {
   final ChatMessage? replyingTo;
   final VoidCallback onCancelReply;
   final Function(String content, ChatMessageType type, XFile? file, ChatMessage? replyTo, String? batchId) onSend;
+  final ValueChanged<String>? onTypingChanged;
 
   const MessageInput({
     super.key, 
@@ -52,6 +53,7 @@ class MessageInput extends StatefulWidget {
     required this.onCancelReply,
     this.students = const [],
     this.isSending = false,
+    this.onTypingChanged,
   });
 
   final List<ChatStudent> students;
@@ -98,6 +100,7 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
         _isTextEmpty = _controller.text.trim().isEmpty;
       });
       _checkMentions();
+      widget.onTypingChanged?.call(_controller.text);
     });
   }
 

@@ -28,9 +28,13 @@ class SupportTicketListBloc
     emit(SupportTicketListLoading());
     try {
       await repository.connectSocket();
-      _ticketSub ??= repository.onTicketMessage.listen((_) {
-        add(const SupportTicketListSocketRefreshRequested());
-      });
+      _ticketSub ??= repository.onTicketMessage.listen(
+        (_) {
+          add(const SupportTicketListSocketRefreshRequested());
+        },
+        onError: (_) {},
+        cancelOnError: false,
+      );
       final open = await repository.listTickets(open: true);
       final closed = await repository.listTickets(open: false);
       emit(SupportTicketListLoaded(

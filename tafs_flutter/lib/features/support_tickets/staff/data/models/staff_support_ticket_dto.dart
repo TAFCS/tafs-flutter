@@ -1,5 +1,6 @@
 import '../../../domain/entities/support_ticket.dart';
 import '../../../domain/entities/ticket_message.dart';
+import '../../../data/models/support_ticket_dto.dart';
 import '../../domain/entities/staff_support_ticket.dart';
 
 class StaffSupportTicketDto {
@@ -74,46 +75,10 @@ class StaffOptionDto {
 
 class StaffTicketMessageDto {
   static TicketMessage fromJson(Map<String, dynamic> json) {
-    return TicketMessage(
-      id: json['id'] as String,
-      ticketId: json['ticket_id'] as String,
-      senderType: (json['sender_type'] as String) == 'STAFF'
-          ? TicketMessageSenderType.staff
-          : TicketMessageSenderType.guardian,
-      messageType: _type(json['message_type'] as String),
-      content: json['content'] as String,
-      reviewStatus: _review(json['status'] as String? ?? 'APPROVED'),
-      createdAt: DateTime.parse(json['created_at'] as String),
-      senderName: json['sender_user']?['full_name'] as String? ??
-          json['sender_guardian']?['full_name'] as String?,
-      senderRole: json['sender_user']?['role'] as String?,
-      senderUserId: json['sender_user']?['id'] as String?,
-      mediaMetadata: json['media_metadata'] as Map<String, dynamic>?,
-      reviewComment: json['review_comment'] as String?,
-    );
+    return TicketMessageDto.fromJson(json);
   }
 
-  static TicketMessageType _type(String raw) {
-    switch (raw) {
-      case 'IMAGE':
-        return TicketMessageType.image;
-      case 'VOICE':
-        return TicketMessageType.voice;
-      case 'DOCUMENT':
-        return TicketMessageType.document;
-      default:
-        return TicketMessageType.text;
-    }
-  }
-
-  static TicketMessageReviewStatus _review(String raw) {
-    switch (raw) {
-      case 'PENDING':
-        return TicketMessageReviewStatus.pending;
-      case 'REJECTED':
-        return TicketMessageReviewStatus.rejected;
-      default:
-        return TicketMessageReviewStatus.approved;
-    }
+  static TicketMessage? tryFromPayload(Map<String, dynamic> payload) {
+    return TicketMessageDto.tryFromPayload(payload);
   }
 }

@@ -39,12 +39,18 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   final _replyReviewedController =
       StreamController<Map<String, dynamic>>.broadcast();
   final _announcementController = StreamController<ChatMessage>.broadcast();
+  final _ticketTypingController =
+      StreamController<Map<String, dynamic>>.broadcast();
   bool _isRefreshingToken = false;
   bool _isDrainingOutbox = false;
+  String? _activeTicketId;
 
   /// Fires when the refresh token is also expired — the app should redirect to login.
   @override
   Stream<void> get onSessionExpired => _sessionExpiredController.stream;
+
+  @override
+  String? get activeTicketId => _activeTicketId;
 
   ChatRepositoryImpl({
     required this.dio,
@@ -88,13 +94,77 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
   @override
   void enterTicket(String ticketId) {
-    _socket?.emit('enterTicket', {'ticketId': ticketId});
+    _activeTicketId = ticketId;
+    _emitEnterTicket(ticketId);
   }
 
   @override
   void leaveTicket(String ticketId) {
+    if (_activeTicketId == ticketId) {
+      _activeTicketId = null;
+    }
     _socket?.emit('leaveTicket', {'ticketId': ticketId});
   }
+
+  void _emitEnterTicket(String ticketId) {
+    final socket = _socket;
+    if (socket == null) return;
+    socket.emit('enterTicket', {'ticketId': ticketId});
+  }
+
+  void _bindTicketRealtimeHandlers(io.Socket socket) {
+    socket.off('ticketMessageReceived');
+    socket.off('ticketTyping');
+    socket.off('replyReviewed');
+    socket.off('replyPendingApproval');
+
+    socket.on('ticketMessageReceived', (data) {
+      try {
+        if (data is Map) {
+          _ticketMessageController.add(Map<String, dynamic>.from(data));
+        }
+        _emitTicketQueueChanged();
+      } catch (e) {
+        print('Error parsing ticketMessageReceived: $e');
+      }
+    });
+
+    socket.on('ticketTyping', (data) {
+      try {
+        if (data is Map && !_ticketTypingController.isClosed) {
+          _ticketTypingController.add(Map<String, dynamic>.from(data));
+        }
+      } catch (e) {
+        print('Error parsing ticketTyping: $e');
+      }
+    });
+
+    socket.on('replyReviewed', (data) {
+      _emitTicketQueueChanged();
+      if (data is Map && !_replyReviewedController.isClosed) {
+        _replyReviewedController.add(Map<String, dynamic>.from(data));
+      }
+    });
+
+    socket.on('replyPendingApproval', (data) {
+      _emitTicketQueueChanged();
+      if (data is Map && !_replyPendingApprovalController.isClosed) {
+        _replyPendingApprovalController.add(Map<String, dynamic>.from(data));
+      }
+    });
+  }
+
+  @override
+  void emitTicketTyping({required String ticketId, required bool isTyping}) {
+    _socket?.emit('ticketTyping', {
+      'ticketId': ticketId,
+      'isTyping': isTyping,
+    });
+  }
+
+  @override
+  Stream<Map<String, dynamic>> get onTicketTyping =>
+      _ticketTypingController.stream;
 
   @override
   Future<List<ChatMessage>> getChatHistory({int take = 50, int skip = 0}) async {
@@ -162,8 +232,16 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
     if (_socket != null) {
       _socket!.auth = {'token': token};
+      // Rebind handlers that may have been added after this socket instance
+      // was first created (hot restart / code upgrade without full process restart).
+      _bindTicketRealtimeHandlers(_socket!);
       if (!_socket!.connected) {
         _socket!.connect();
+      } else {
+        final activeTicket = _activeTicketId;
+        if (activeTicket != null) {
+          _emitEnterTicket(activeTicket);
+        }
       }
       return;
     }
@@ -318,6 +396,13 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
     _socket!.onConnect((_) async {
       _connectController.add(null);
 
+      // Socket.IO drops room membership on reconnect. Re-enter the ticket room
+      // so in-thread realtime (and FCM suppression) keep working while viewing.
+      final activeTicket = _activeTicketId;
+      if (activeTicket != null) {
+        _emitEnterTicket(activeTicket);
+      }
+
       // Backup socket registration; REST registration is primary (see FcmRegistrationService).
       if (!kIsWeb) {
         try {
@@ -363,16 +448,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       _deleteController.add(messageId);
     });
 
-    _socket!.on('ticketMessageReceived', (data) {
-      try {
-        if (data is Map) {
-          _ticketMessageController.add(Map<String, dynamic>.from(data));
-        }
-        _emitTicketQueueChanged();
-      } catch (e) {
-        print('Error parsing ticketMessageReceived: $e');
-      }
-    });
+    _bindTicketRealtimeHandlers(_socket!);
 
     _socket!.on('voucherAlertReceived', (data) {
       try {
@@ -394,20 +470,6 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       _socket!.on(event, (_) => _emitTicketQueueChanged());
     }
 
-    _socket!.on('replyReviewed', (data) {
-      _emitTicketQueueChanged();
-      if (data is Map && !_replyReviewedController.isClosed) {
-        _replyReviewedController.add(Map<String, dynamic>.from(data));
-      }
-    });
-
-    _socket!.on('replyPendingApproval', (data) {
-      _emitTicketQueueChanged();
-      if (data is Map && !_replyPendingApprovalController.isClosed) {
-        _replyPendingApprovalController.add(Map<String, dynamic>.from(data));
-      }
-    });
-
     _socket!.onDisconnect((reason) {
       print('[ChatRepo] Disconnected from socket. Reason: $reason');
       _disconnectController.add(null);
@@ -422,6 +484,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   @override
   void disconnect() {
     WidgetsBinding.instance.removeObserver(this);
+    _activeTicketId = null;
     _socket?.disconnect();
     _socket = null;
   }

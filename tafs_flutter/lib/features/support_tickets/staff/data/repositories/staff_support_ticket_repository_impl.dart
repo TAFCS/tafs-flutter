@@ -26,10 +26,10 @@ class StaffSupportTicketRepositoryImpl implements StaffSupportTicketRepository {
 
   @override
   Stream<TicketMessage> get onTicketMessage =>
-      chatRepository.onTicketMessagePayload.map((payload) {
-        final message = payload['message'] as Map<String, dynamic>;
-        return StaffTicketMessageDto.fromJson(message);
-      });
+      chatRepository.onTicketMessagePayload
+          .map(StaffTicketMessageDto.tryFromPayload)
+          .where((msg) => msg != null)
+          .cast<TicketMessage>();
 
   @override
   Stream<void> get onTicketQueueChanged =>
@@ -46,6 +46,10 @@ class StaffSupportTicketRepositoryImpl implements StaffSupportTicketRepository {
   @override
   Stream<Map<String, dynamic>> get onReplyReviewedPayload =>
       chatRepository.onReplyReviewedPayload;
+
+  @override
+  Stream<Map<String, dynamic>> get onTicketTyping =>
+      chatRepository.onTicketTyping;
 
   @override
   bool get isSocketConnected => chatRepository.isConnected;
@@ -68,12 +72,23 @@ class StaffSupportTicketRepositoryImpl implements StaffSupportTicketRepository {
 
   @override
   Future<void> enterTicket(String ticketId) async {
+    chatRepository.connect();
+    if (!chatRepository.isConnected) {
+      for (var i = 0; i < 20 && !chatRepository.isConnected; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
+    }
     chatRepository.enterTicket(ticketId);
   }
 
   @override
   Future<void> leaveTicket(String ticketId) async {
     chatRepository.leaveTicket(ticketId);
+  }
+
+  @override
+  void emitTicketTyping({required String ticketId, required bool isTyping}) {
+    chatRepository.emitTicketTyping(ticketId: ticketId, isTyping: isTyping);
   }
 
   @override

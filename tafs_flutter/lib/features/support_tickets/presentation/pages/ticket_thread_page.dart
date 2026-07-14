@@ -256,6 +256,21 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
                             },
                           ),
                   ),
+                  if (state.staffTyping)
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 0, 16, 6),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Support is typing…',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.blue300,
+                          ),
+                        ),
+                      ),
+                    ),
                   if (ticket.status.name != 'closed')
                     Stack(
                       children: [
@@ -264,6 +279,9 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
                             replyingTo: _replyingTo,
                             onCancelReply: () => setState(() => _replyingTo = null),
                             students: const [],
+                            onTypingChanged: (text) {
+                              context.read<TicketThreadCubit>().onComposerChanged(text);
+                            },
                             onSend: (content, type, file, replyTo, batchId) async {
                             final cubit = context.read<TicketThreadCubit>();
                             if (file != null) {

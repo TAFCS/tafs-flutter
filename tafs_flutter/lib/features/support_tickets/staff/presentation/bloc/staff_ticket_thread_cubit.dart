@@ -11,7 +11,7 @@ class StaffTicketThreadState {
   final bool loading;
   final bool sending;
   final bool actionLoading;
-  final bool isSocketConnected;
+  final bool parentTyping;
   final String? error;
   final String? actionError;
 
@@ -21,7 +21,7 @@ class StaffTicketThreadState {
     this.loading = false,
     this.sending = false,
     this.actionLoading = false,
-    this.isSocketConnected = true,
+    this.parentTyping = false,
     this.error,
     this.actionError,
   });
@@ -32,7 +32,7 @@ class StaffTicketThreadState {
     bool? loading,
     bool? sending,
     bool? actionLoading,
-    bool? isSocketConnected,
+    bool? parentTyping,
     String? error,
     String? actionError,
     bool clearError = false,
@@ -44,7 +44,7 @@ class StaffTicketThreadState {
         loading: loading ?? this.loading,
         sending: sending ?? this.sending,
         actionLoading: actionLoading ?? this.actionLoading,
-        isSocketConnected: isSocketConnected ?? this.isSocketConnected,
+        parentTyping: parentTyping ?? this.parentTyping,
         error: clearError ? null : (error ?? this.error),
         actionError: clearActionError ? null : (actionError ?? this.actionError),
       );
@@ -55,80 +55,101 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
   StreamSubscription<TicketMessage>? _sub;
   StreamSubscription<Map<String, dynamic>>? _pendingSub;
   StreamSubscription<Map<String, dynamic>>? _reviewedSub;
+  StreamSubscription<Map<String, dynamic>>? _typingSub;
   StreamSubscription<void>? _connectSub;
-  StreamSubscription<void>? _disconnectSub;
-  Timer? _disconnectDebounce;
+  Timer? _typingIdleTimer;
+  Timer? _parentTypingClearTimer;
   String? _activeTicketId;
-
-  // Reconnects on app-resume are forced by the socket layer even when the
-  // connection was never actually lost (guarding against zombie TCP after
-  // backgrounding), so a disconnect event is only trusted as a real outage
-  // if it's still disconnected after this grace period — otherwise the
-  // near-instant reconnect would flash "OFFLINE" for no real reason.
-  static const _disconnectGracePeriod = Duration(milliseconds: 800);
+  bool _resyncing = false;
 
   StaffTicketThreadCubit({required this.repository})
       : super(const StaffTicketThreadState());
+
+  Future<void> _resyncAfterReconnect(String ticketId) async {
+    if (_resyncing || isClosed || _activeTicketId != ticketId) return;
+    _resyncing = true;
+    try {
+      await repository.enterTicket(ticketId);
+      final detail = await repository.fetchDetail(ticketId);
+      if (isClosed || _activeTicketId != ticketId) return;
+      final byId = <String, TicketMessage>{
+        for (final m in state.messages) m.id: m,
+      };
+      for (final m in detail.messages) {
+        byId[m.id] = m;
+      }
+      final merged = byId.values.toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      emit(state.copyWith(
+        ticket: detail.ticket,
+        messages: merged,
+        clearError: true,
+      ));
+      await repository.markRead(ticketId);
+    } catch (_) {
+    } finally {
+      _resyncing = false;
+    }
+  }
 
   Future<void> load(String ticketId) async {
     _activeTicketId = ticketId;
     await _sub?.cancel();
     await _pendingSub?.cancel();
     await _reviewedSub?.cancel();
+    await _typingSub?.cancel();
     await _connectSub?.cancel();
-    await _disconnectSub?.cancel();
+    _parentTypingClearTimer?.cancel();
     emit(state.copyWith(
       loading: true,
+      parentTyping: false,
       clearError: true,
       clearActionError: true,
-      isSocketConnected: repository.isSocketConnected,
     ));
-    _connectSub = repository.onSocketConnect.listen((_) {
-      _disconnectDebounce?.cancel();
-      emit(state.copyWith(isSocketConnected: true));
-    });
-    _disconnectSub = repository.onSocketDisconnect.listen((_) {
-      _disconnectDebounce?.cancel();
-      _disconnectDebounce = Timer(_disconnectGracePeriod, () {
-        if (!isClosed) emit(state.copyWith(isSocketConnected: false));
-      });
-    });
-    try {
-      await repository.enterTicket(ticketId);
-      await repository.markRead(ticketId);
-      final detail = await repository.fetchDetail(ticketId);
-      emit(StaffTicketThreadState(
-        ticket: detail.ticket,
-        messages: detail.messages.reversed.toList(),
-        loading: false,
-        isSocketConnected: repository.isSocketConnected,
-      ));
-      _sub = repository.onTicketMessage.listen((msg) {
+
+    _sub = repository.onTicketMessage.listen(
+      (msg) {
+        if (_activeTicketId != ticketId) return;
         if (msg.ticketId != ticketId) return;
         if (state.messages.any((m) => m.id == msg.id)) return;
-        emit(state.copyWith(messages: [...state.messages, msg]));
-      });
-      _pendingSub = repository.onReplyPendingApprovalPayload.listen((payload) {
+        emit(state.copyWith(
+          messages: [...state.messages, msg],
+          parentTyping: false,
+        ));
+      },
+      onError: (Object e, StackTrace st) {
+        print('StaffTicketThreadCubit message stream error: $e');
+      },
+      cancelOnError: false,
+    );
+    _pendingSub = repository.onReplyPendingApprovalPayload.listen(
+      (payload) {
         final activeId = _activeTicketId;
         final payloadTicketId = payload['ticket']?['id'] as String?;
         final messageJson = payload['message'];
         if (activeId == null ||
             payloadTicketId != activeId ||
-            messageJson is! Map<String, dynamic>) {
+            messageJson is! Map) {
           return;
         }
-        final msg = StaffTicketMessageDto.fromJson(messageJson);
+        final msg = StaffTicketMessageDto.fromJson(
+          Map<String, dynamic>.from(messageJson),
+        );
         if (state.messages.any((m) => m.id == msg.id)) return;
         emit(state.copyWith(messages: [...state.messages, msg]));
-      });
-      _reviewedSub = repository.onReplyReviewedPayload.listen((payload) {
+      },
+      onError: (_) {},
+      cancelOnError: false,
+    );
+    _reviewedSub = repository.onReplyReviewedPayload.listen(
+      (payload) {
         final activeId = _activeTicketId;
         final payloadTicketId =
             (payload['ticket']?['id'] ?? payload['ticketId']) as String?;
         final rawMessage = payload['message'];
         if (activeId == null ||
             payloadTicketId != activeId ||
-            rawMessage is! Map<String, dynamic>) {
+            rawMessage is! Map) {
           return;
         }
         final messageJson = Map<String, dynamic>.from(rawMessage);
@@ -136,22 +157,83 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
             payload['reviewComment'] != null) {
           messageJson['review_comment'] = payload['reviewComment'];
         }
+        if (messageJson['ticket_id'] == null) {
+          messageJson['ticket_id'] = payloadTicketId;
+        }
         final updated = StaffTicketMessageDto.fromJson(messageJson);
         final messages = state.messages
             .map((m) => m.id == updated.id ? updated : m)
             .toList();
-        if (payload['status'] == 'APPROVED' &&
+        if ((payload['status'] == 'APPROVED' ||
+                updated.reviewStatus == TicketMessageReviewStatus.approved) &&
             !messages.any((m) => m.id == updated.id)) {
           messages.add(updated);
         }
-        emit(state.copyWith(messages: messages));
-      });
+        emit(state.copyWith(messages: messages, parentTyping: false));
+      },
+      onError: (_) {},
+      cancelOnError: false,
+    );
+    _typingSub = repository.onTicketTyping.listen(
+      (payload) {
+        if (payload['ticketId'] != ticketId) return;
+        if (payload['userType'] != 'PARENT') return;
+        final isTyping = payload['isTyping'] == true;
+        emit(state.copyWith(parentTyping: isTyping));
+        _parentTypingClearTimer?.cancel();
+        if (isTyping) {
+          _parentTypingClearTimer = Timer(const Duration(seconds: 3), () {
+            if (!isClosed) emit(state.copyWith(parentTyping: false));
+          });
+        }
+      },
+      onError: (_) {},
+      cancelOnError: false,
+    );
+    _connectSub = repository.onSocketConnect.listen((_) {
+      unawaited(_resyncAfterReconnect(ticketId));
+    });
+
+    try {
+      await repository.connectSocket();
+      await repository.enterTicket(ticketId);
+      await repository.markRead(ticketId);
+      final detail = await repository.fetchDetail(ticketId);
+      if (isClosed || _activeTicketId != ticketId) return;
+
+      final byId = <String, TicketMessage>{
+        for (final m in state.messages)
+          if (m.ticketId == ticketId) m.id: m,
+      };
+      for (final m in detail.messages) {
+        byId[m.id] = m;
+      }
+      final merged = byId.values.toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+      emit(StaffTicketThreadState(
+        ticket: detail.ticket,
+        messages: merged,
+        loading: false,
+      ));
     } catch (e) {
       emit(state.copyWith(
         loading: false,
         error: 'Failed to load ticket. Tap retry.',
       ));
     }
+  }
+
+  void onComposerChanged(String text) {
+    final ticket = state.ticket;
+    if (ticket == null) return;
+    if (text.trim().isNotEmpty) {
+      repository.emitTicketTyping(ticketId: ticket.id, isTyping: true);
+    }
+    _typingIdleTimer?.cancel();
+    _typingIdleTimer = Timer(const Duration(milliseconds: 1800), () {
+      repository.emitTicketTyping(ticketId: ticket.id, isTyping: false);
+    });
   }
 
   Future<void> reload() async {
@@ -161,16 +243,22 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
 
   Future<void> leave() async {
     final id = _activeTicketId;
-    if (id != null) await repository.leaveTicket(id);
-    _disconnectDebounce?.cancel();
+    if (id != null) {
+      repository.emitTicketTyping(ticketId: id, isTyping: false);
+      await repository.leaveTicket(id);
+    }
+    _typingIdleTimer?.cancel();
+    _parentTypingClearTimer?.cancel();
     await _sub?.cancel();
     await _pendingSub?.cancel();
     await _reviewedSub?.cancel();
+    await _typingSub?.cancel();
     await _connectSub?.cancel();
-    await _disconnectSub?.cancel();
     _sub = null;
     _pendingSub = null;
     _reviewedSub = null;
+    _typingSub = null;
+    _connectSub = null;
     _activeTicketId = null;
   }
 
@@ -181,6 +269,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
   }) async {
     final ticket = state.ticket;
     if (ticket == null) return;
+    repository.emitTicketTyping(ticketId: ticket.id, isTyping: false);
     emit(state.copyWith(sending: true, clearActionError: true));
     try {
       final msg = await repository.sendMessage(
@@ -208,6 +297,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
   Future<void> sendMessage(String content) async {
     final ticket = state.ticket;
     if (ticket == null || content.trim().isEmpty) return;
+    repository.emitTicketTyping(ticketId: ticket.id, isTyping: false);
     emit(state.copyWith(sending: true, clearActionError: true));
     try {
       final msg = await repository.sendMessage(
