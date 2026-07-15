@@ -143,6 +143,14 @@ class _MainShellPageState extends State<MainShellPage> with WidgetsBindingObserv
       return;
     }
 
+    if (index == 0) {
+      if (_selectedIndex != 0) {
+        setState(() => _selectedIndex = 0);
+      }
+      context.read<NoticeBoardBloc>().add(const NoticeBoardRefreshRequested());
+      return;
+    }
+
     _onTabTapped(index);
   }
 

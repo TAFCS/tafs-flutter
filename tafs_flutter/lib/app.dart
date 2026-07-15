@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/navigation/app_navigator.dart';
 import 'core/theme/app_theme.dart';
+import 'core/services/in_app_notification_service.dart';
 import 'features/auth/presentation/auth_gate.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/selected_student_cubit.dart';
@@ -86,7 +87,14 @@ class MyApp extends StatelessWidget {
                 child: SafeArea(
                   top: false,
                   bottom: true,
-                  child: child ?? const SizedBox.shrink(),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      child ?? const SizedBox.shrink(),
+                      // Always on top of navigator content (in-app banners).
+                      const InAppNotificationHost(),
+                    ],
+                  ),
                 ),
               ),
             ),

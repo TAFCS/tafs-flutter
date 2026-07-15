@@ -12,6 +12,8 @@ import '../../injection_container.dart';
 import '../services/fcm_registration_service.dart';
 import '../services/notification_service.dart';
 import '../services/voucher_alert_realtime_service.dart';
+import '../services/notice_board_realtime_service.dart';
+import '../services/attendance_alert_realtime_service.dart';
 import 'session_reset.dart';
 
 /// Starts chat, support tickets, and FCM registration for a logged-in parent.
@@ -33,6 +35,8 @@ void startAuthenticatedSession(
       );
 
   VoucherAlertRealtimeService.instance.start();
+  NoticeBoardRealtimeService.instance.start();
+  AttendanceAlertRealtimeService.instance.start();
 
   unawaited(NotificationService.clearBadge());
 }

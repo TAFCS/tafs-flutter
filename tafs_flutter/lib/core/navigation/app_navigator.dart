@@ -21,3 +21,7 @@ final ValueNotifier<int?> mainShellTabRequest = ValueNotifier<int?>(null);
 void switchToFeesTab() {
   mainShellTabRequest.value = 1;
 }
+
+void switchToHomeTab() {
+  mainShellTabRequest.value = 0;
+}

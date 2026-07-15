@@ -32,6 +32,8 @@ abstract class ChatRepository {
   Stream<void> get onSessionExpired;
   Stream<Map<String, dynamic>> get onTicketMessagePayload;
   Stream<Map<String, dynamic>> get onVoucherAlertPayload;
+  Stream<Map<String, dynamic>> get onNoticeBoardPayload;
+  Stream<Map<String, dynamic>> get onAttendanceAlertPayload;
   Stream<void> get onTicketQueueChanged;
   Stream<void> get onReplyPendingApproval;
   Stream<Map<String, dynamic>> get onReplyPendingApprovalPayload;

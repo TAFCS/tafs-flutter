@@ -66,7 +66,7 @@ class VoucherAlertRealtimeService {
   void _showBanner(Map<String, dynamic> data) {
     void attempt() {
       final context = appNavigatorKey.currentContext;
-      if (context == null) return;
+      if (context == null || !context.mounted) return;
 
       VoucherAlertBannerHelper.showFromRealtime(
         context,
@@ -79,10 +79,13 @@ class VoucherAlertRealtimeService {
       );
     }
 
-    attempt();
-    if (appNavigatorKey.currentContext == null) {
-      SchedulerBinding.instance.addPostFrameCallback((_) => attempt());
-    }
+    // Same race as FCM: context can be non-null while Overlay insert is unsafe.
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      attempt();
+      if (appNavigatorKey.currentContext == null) {
+        Future<void>.delayed(const Duration(milliseconds: 300), attempt);
+      }
+    });
   }
 
   void _reloadFees() {

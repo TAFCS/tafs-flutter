@@ -94,6 +94,15 @@ class _StaffNoticeBoardComposePageState
   }
 
   String _composeScopeLabel(List<CampusScope> campuses) {
+    if (_selectedStudents.isNotEmpty) {
+      if (_selectedStudents.length == 1) {
+        final s = _selectedStudents.first;
+        final name = s['full_name'] as String? ?? 'Student';
+        final cc = s['cc'];
+        return 'Only $name ($cc) — not school-wide';
+      }
+      return 'Only ${_selectedStudents.length} selected students — not school-wide';
+    }
     if (_campusIds.isEmpty && _classIds.isEmpty && _sectionIds.isEmpty) {
       return 'All families (school-wide)';
     }
@@ -132,6 +141,11 @@ class _StaffNoticeBoardComposePageState
     if (_selectedStudents.any((s) => s['cc'] == cc)) return;
     setState(() {
       _selectedStudents.add(student);
+      // Student targeting is exclusive — clear campus/class/section so the
+      // preview can't contradict "only these kids".
+      _campusIds.clear();
+      _classIds.clear();
+      _sectionIds.clear();
       _studentSearchController.clear();
       _studentSearchResults = [];
     });
@@ -167,7 +181,14 @@ class _StaffNoticeBoardComposePageState
         setState(() => _selectedStudents.add(match));
       }
     }
-    if (mounted) _ccPasteController.clear();
+    if (mounted) {
+      setState(() {
+        _campusIds.clear();
+        _classIds.clear();
+        _sectionIds.clear();
+        _ccPasteController.clear();
+      });
+    }
   }
 
   Future<void> _pickFiles() async {

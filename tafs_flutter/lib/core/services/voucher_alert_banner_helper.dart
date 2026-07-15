@@ -98,12 +98,19 @@ class VoucherAlertBannerHelper {
         ? preview
         : _fallbackBody(alertType);
 
-    InAppNotificationService.show(
+    final shown = InAppNotificationService.show(
       context: context,
       title: displayTitle,
       message: displayBody,
       onTap: () => _openFees(studentCc),
     );
+    if (!shown) {
+      // Don't mark dedupe keys if the overlay insert failed — allow retry.
+      if (voucherId != null && alertType != null) {
+        _shownFcmKeys.remove(fcmKey);
+      }
+      return false;
+    }
 
     if (parsedAlertId != null) {
       _shownAlertIds.add(parsedAlertId);

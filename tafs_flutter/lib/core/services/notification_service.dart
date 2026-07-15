@@ -8,6 +8,8 @@ import '../navigation/app_navigator.dart';
 import 'fcm_registration_service.dart';
 import 'in_app_notification_service.dart';
 import 'voucher_alert_banner_helper.dart';
+import 'notice_board_realtime_service.dart';
+import 'attendance_alert_realtime_service.dart';
 import '../../injection_container.dart';
 import '../../features/attendance_history/presentation/pages/attendance_calendar_page.dart';
 import '../../features/notice_board/presentation/bloc/notice_board_event.dart';
@@ -88,36 +90,54 @@ class NotificationService {
     if (!_sessionAcceptsNotifications()) return;
     _showLocalNotification(message);
 
+    final type = message.data['type'] as String?;
+    final title = _resolveTitle(message);
+    final body = _resolveBody(message);
+
+    // Notice-board / attendance: refresh feed immediately; banner is scheduled
+    // inside the shared realtime helpers (also used by the socket path).
+    if (type == 'notice_board') {
+      NoticeBoardRealtimeService.instance.handleIncoming(
+        title: title,
+        body: body,
+        postId: message.data['post_id'],
+      );
+      return;
+    }
+
+    if (type == 'biometric_attendance' || type == 'ATTENDANCE_ALERT') {
+      AttendanceAlertRealtimeService.instance.handleIncoming(
+        title: title,
+        body: body,
+        alertId: message.data['notification_id'] ?? message.data['id'],
+        studentCc: message.data['student_cc'] ?? message.data['studentCc'],
+        scanTime: message.data['scan_time'] ??
+            message.data['scanTime'] ??
+            message.data['date'],
+      );
+      return;
+    }
+
+    // Overlay.insert must happen after the current frame. Doing it immediately
+    // often fails mid-build/transition while navigator context is already
+    // non-null — and the old "retry only if context == null" path never ran.
     void deliver() {
       final context = appNavigatorKey.currentContext;
-      if (context == null) return;
+      if (context == null || !context.mounted) return;
 
-      final type = message.data['type'] as String?;
-      final title = _resolveTitle(message);
-      final body = _resolveBody(message);
       final ticketId = message.data['ticketId'] as String?;
 
       if (type == 'voucher_alert') {
         _applyVoucherAlertToFeed(message.data);
-
-        void deliverBanner() {
-          final context = appNavigatorKey.currentContext;
-          if (context == null) return;
-          VoucherAlertBannerHelper.showFromRealtime(
-            context,
-            title: title,
-            body: body,
-            studentCc: message.data['student_cc'],
-            alertType: message.data['alert_type'] as String?,
-            voucherId: message.data['voucher_id'],
-            alertId: message.data['notification_id'],
-          );
-        }
-
-        deliverBanner();
-        if (appNavigatorKey.currentContext == null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) => deliverBanner());
-        }
+        VoucherAlertBannerHelper.showFromRealtime(
+          context,
+          title: title,
+          body: body,
+          studentCc: message.data['student_cc'],
+          alertType: message.data['alert_type'] as String?,
+          voucherId: message.data['voucher_id'],
+          alertId: message.data['notification_id'],
+        );
         return;
       }
 
@@ -128,7 +148,7 @@ class NotificationService {
         onTap: () {
           if (type == 'SUPPORT_TICKET_MESSAGE' && ticketId != null && ticketId.isNotEmpty) {
             navigateToSupportTicketThread(ticketId);
-          } else if (type == 'ATTENDANCE_ALERT' || type == 'biometric_attendance' || type == 'calendar_alert') {
+          } else if (type == 'calendar_alert') {
             _handleNotificationRouting(message.data);
           } else if (type == 'EMPLOYEE_NOTICE') {
             InjectionContainer.employeeNoticeCubit.refresh();
@@ -137,10 +157,13 @@ class NotificationService {
       );
     }
 
-    deliver();
-    if (appNavigatorKey.currentContext == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => deliver());
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      deliver();
+      // Cold-start / auth-gate races: navigator may still be null after one frame.
+      if (appNavigatorKey.currentContext == null) {
+        Future<void>.delayed(const Duration(milliseconds: 300), deliver);
+      }
+    });
   }
 
   void _onLocalNotificationTap(fln.NotificationResponse details) {
@@ -178,10 +201,14 @@ class NotificationService {
         navigateToSupportTicketThread(ticketId);
       }
     } else if (type == 'ATTENDANCE_ALERT' || type == 'biometric_attendance' || type == 'calendar_alert') {
+      InjectionContainer.noticeBoardBloc.add(const NoticeBoardRefreshRequested());
       _handleAttendanceRouting(data);
     } else if (type == 'voucher_alert') {
       _handleVoucherAlertRouting(studentCcStr: data['student_cc']);
       _applyVoucherAlertToFeed(data);
+    } else if (type == 'notice_board') {
+      switchToHomeTab();
+      InjectionContainer.noticeBoardBloc.add(const NoticeBoardRefreshRequested());
     } else if (type == 'EMPLOYEE_NOTICE') {
       // Refresh the employee notice cubit so the Notices tab is up-to-date
       try {
