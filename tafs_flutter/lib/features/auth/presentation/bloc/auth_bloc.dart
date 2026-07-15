@@ -319,14 +319,29 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     AuthForgotPasswordRequested event,
     Emitter<AuthState> emit,
   ) async {
+    final Parent? parent = switch (state) {
+      AuthAuthenticated(:final parent) => parent,
+      AuthProfileRefreshFailed(:final parent) => parent,
+      AuthAccountDeletionRequested(:final parent) => parent,
+      _ => null,
+    };
+    final StaffUser? staff =
+        state is AuthAuthenticatedStaff ? (state as AuthAuthenticatedStaff).staff : null;
+
     emit(ForgotPasswordSending());
     final result = await repository.forgotPassword(
       event.email,
       isStaff: event.isStaff,
     );
     result.fold(
-      (failure) => emit(ForgotPasswordFailed(ApiErrorMapper.userMessage(failure))),
-      (_) => emit(ForgotPasswordSent()),
+      (failure) {
+        emit(ForgotPasswordFailed(ApiErrorMapper.userMessage(failure)));
+        _restoreSessionAfterChangePassword(emit, parent, staff);
+      },
+      (_) {
+        emit(ForgotPasswordSent());
+        _restoreSessionAfterChangePassword(emit, parent, staff);
+      },
     );
   }
 
@@ -334,6 +349,15 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
     AuthResetPasswordRequested event,
     Emitter<AuthState> emit,
   ) async {
+    final Parent? parent = switch (state) {
+      AuthAuthenticated(:final parent) => parent,
+      AuthProfileRefreshFailed(:final parent) => parent,
+      AuthAccountDeletionRequested(:final parent) => parent,
+      _ => null,
+    };
+    final StaffUser? staff =
+        state is AuthAuthenticatedStaff ? (state as AuthAuthenticatedStaff).staff : null;
+
     emit(ResetPasswordSubmitting());
     final result = await repository.resetPassword(
       event.email,
@@ -342,8 +366,14 @@ class AuthBloc extends HydratedBloc<AuthEvent, AuthState> {
       isStaff: event.isStaff,
     );
     result.fold(
-      (failure) => emit(ResetPasswordFailed(ApiErrorMapper.userMessage(failure))),
-      (_) => emit(ResetPasswordSuccess()),
+      (failure) {
+        emit(ResetPasswordFailed(ApiErrorMapper.userMessage(failure)));
+        _restoreSessionAfterChangePassword(emit, parent, staff);
+      },
+      (_) {
+        emit(ResetPasswordSuccess());
+        _restoreSessionAfterChangePassword(emit, parent, staff);
+      },
     );
   }
 
