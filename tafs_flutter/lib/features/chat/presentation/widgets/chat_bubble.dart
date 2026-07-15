@@ -4,8 +4,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/chat_message.dart';
 import 'dart:io';
-import 'package:intl/intl.dart' hide TextDirection;
 import 'package:tafs_flutter/core/theme/app_theme.dart';
+import 'package:tafs_flutter/core/utils/chat_format.dart';
 import 'package:tafs_flutter/core/utils/cdn_utils.dart';
 import 'swipe_to_reply.dart';
 
@@ -280,10 +280,10 @@ class ChatBubble extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
-          DateFormat('h:mm a').format(message.createdAt.toLocal()),
+          formatChatBubbleTimestamp(message.createdAt),
           style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
             color: isMe ? Colors.white.withOpacity(0.7) : Colors.black38,
           ),
         ),
