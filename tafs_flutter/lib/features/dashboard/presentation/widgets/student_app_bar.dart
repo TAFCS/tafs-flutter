@@ -46,7 +46,11 @@ class StudentAppBar extends StatelessWidget implements PreferredSizeWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Loading...'),
+        title: const Text(
+          'Loading...',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       );
     }
 

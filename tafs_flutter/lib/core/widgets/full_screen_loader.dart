@@ -45,6 +45,8 @@ class FullScreenLoader extends StatelessWidget {
                       Text(
                         message!,
                         textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppTheme.white,
                           fontSize: 14,
