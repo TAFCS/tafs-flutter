@@ -240,14 +240,20 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                       'Primary Phone',
                       Icons.phone_rounded,
                       keyboardType: TextInputType.phone,
-                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+]'))],
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                        PakistaniPhoneFormatter(),
+                      ],
                     ),
                     _buildTextField(
                       _whatsappController,
                       'WhatsApp Number',
                       Icons.chat_bubble_rounded,
                       keyboardType: TextInputType.phone,
-                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+]'))],
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                        PakistaniPhoneFormatter(),
+                      ],
                     ),
                     _buildTextField(_emailController, 'Email Address', Icons.email_rounded),
                     const SizedBox(height: AppTheme.space4),
@@ -279,7 +285,9 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                       'CNIC Number',
                       Icons.badge_rounded,
                       keyboardType: TextInputType.phone,
-                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9-]'))],
+                      inputFormatters: [
+                        CnicFormatter(),
+                      ],
                     ),
                     _buildTextField(_addressController, 'Home Address', Icons.location_on_rounded, maxLines: 2),
                     const SizedBox(height: AppTheme.space8),
@@ -349,6 +357,95 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
+    );
+  }
+}
+
+class PakistaniPhoneFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final text = newValue.text;
+    if (text.isEmpty) return newValue;
+
+    int maxLength = 11;
+    if (text.startsWith('+')) {
+      maxLength = 13;
+    } else if (text.startsWith('92')) {
+      maxLength = 12;
+    }
+
+    if (text.length > maxLength) {
+      return oldValue;
+    }
+    return newValue;
+  }
+}
+
+class CnicFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    // If backspacing a dash, delete the preceding character too
+    String newText = newValue.text;
+    if (oldValue.text.length - newText.length == 1) {
+      final oldSelectionEnd = oldValue.selection.end;
+      if (oldSelectionEnd > 0 && oldValue.text[oldSelectionEnd - 1] == '-') {
+        // Find position of deleted dash in newText and remove character before it
+        final deletedDashIndex = oldSelectionEnd - 2;
+        if (deletedDashIndex >= 0 && deletedDashIndex < newText.length) {
+          newText = newText.substring(0, deletedDashIndex) + newText.substring(deletedDashIndex + 1);
+        }
+      }
+    }
+
+    final raw = newText.replaceAll(RegExp(r'\D'), '');
+    
+    String digits = raw;
+    if (digits.length > 13) {
+      digits = digits.substring(0, 13);
+    }
+    
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      if (i == 5 || i == 12) {
+        buffer.write('-');
+      }
+      buffer.write(digits[i]);
+    }
+    
+    final formatted = buffer.toString();
+    
+    // Position cursor at the correct position
+    int rawCursorPos = 0;
+    for (int i = 0; i < newValue.selection.end && i < newValue.text.length; i++) {
+      if (newValue.text[i] != '-') {
+        rawCursorPos++;
+      }
+    }
+    
+    // Adjust cursor position based on backspacing dash behavior
+    if (oldValue.text.length - newValue.text.length == 1) {
+      final oldSelectionEnd = oldValue.selection.end;
+      if (oldSelectionEnd > 0 && oldValue.text[oldSelectionEnd - 1] == '-') {
+        rawCursorPos = (rawCursorPos > 0) ? rawCursorPos - 1 : 0;
+      }
+    }
+    
+    int formattedCursorPos = 0;
+    int rawCount = 0;
+    while (rawCount < rawCursorPos && formattedCursorPos < formatted.length) {
+      if (formatted[formattedCursorPos] != '-') {
+        rawCount++;
+      }
+      formattedCursorPos++;
+    }
+    
+    if (formattedCursorPos < formatted.length && formatted[formattedCursorPos] == '-') {
+      formattedCursorPos++;
+    }
+    
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formattedCursorPos),
     );
   }
 }
