@@ -348,6 +348,33 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
                           },
                         ),
                       ],
+                    )
+                  else
+                    SafeArea(
+                      top: false,
+                      child: Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'This query is closed',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Messaging is disabled. You can still review the conversation history.',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                 ],
               );
