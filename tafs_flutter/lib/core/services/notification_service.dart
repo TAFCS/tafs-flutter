@@ -146,7 +146,9 @@ class NotificationService {
         title: title,
         message: body,
         onTap: () {
-          if (type == 'SUPPORT_TICKET_MESSAGE' && ticketId != null && ticketId.isNotEmpty) {
+          if ((type == 'SUPPORT_TICKET_MESSAGE' || type == 'SUPPORT_TICKET_CLOSED') &&
+              ticketId != null &&
+              ticketId.isNotEmpty) {
             navigateToSupportTicketThread(ticketId);
           } else if (type == 'calendar_alert') {
             _handleNotificationRouting(message.data);
@@ -195,7 +197,7 @@ class NotificationService {
 
     final type = data['type'] as String?;
     
-    if (type == 'SUPPORT_TICKET_MESSAGE') {
+    if (type == 'SUPPORT_TICKET_MESSAGE' || type == 'SUPPORT_TICKET_CLOSED') {
       final ticketId = data['ticketId'] as String?;
       if (ticketId != null && ticketId.isNotEmpty) {
         navigateToSupportTicketThread(ticketId);
