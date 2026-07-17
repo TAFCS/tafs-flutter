@@ -146,7 +146,9 @@ class NotificationService {
         title: title,
         message: body,
         onTap: () {
-          if ((type == 'SUPPORT_TICKET_MESSAGE' || type == 'SUPPORT_TICKET_CLOSED') &&
+          if ((type == 'SUPPORT_TICKET_MESSAGE' ||
+                  type == 'SUPPORT_TICKET_CLOSED' ||
+                  type == 'SUPPORT_TICKET_CREATED') &&
               ticketId != null &&
               ticketId.isNotEmpty) {
             navigateToSupportTicketThread(ticketId);
@@ -197,7 +199,9 @@ class NotificationService {
 
     final type = data['type'] as String?;
     
-    if (type == 'SUPPORT_TICKET_MESSAGE' || type == 'SUPPORT_TICKET_CLOSED') {
+    if (type == 'SUPPORT_TICKET_MESSAGE' ||
+        type == 'SUPPORT_TICKET_CLOSED' ||
+        type == 'SUPPORT_TICKET_CREATED') {
       final ticketId = data['ticketId'] as String?;
       if (ticketId != null && ticketId.isNotEmpty) {
         navigateToSupportTicketThread(ticketId);
