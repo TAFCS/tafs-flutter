@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:open_filex/open_filex.dart';
@@ -917,7 +918,22 @@ class _BankField extends StatelessWidget {
             ),
           ),
           if (canCopy)
-            const Icon(Icons.copy_rounded, size: 14, color: AppTheme.blue300),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: value));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('$label copied to clipboard'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.copy_rounded, size: 14, color: AppTheme.blue300),
+              ),
+            ),
         ],
       ),
     );
