@@ -227,16 +227,22 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
-          home: Scaffold(
-            body: Container(
-              width: double.infinity,
-              height: double.infinity,
-              decoration: BoxDecoration(gradient: AppTheme.navyGradient),
-              child: const Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppTheme.white,
-                ),
+          home: const Scaffold(
+            backgroundColor: AppTheme.white,
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image(
+                    image: AssetImage('assets/logo.png'),
+                    width: 160,
+                  ),
+                  SizedBox(height: 32),
+                  CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppTheme.navy,
+                  ),
+                ],
               ),
             ),
           ),
