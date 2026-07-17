@@ -54,6 +54,25 @@ String categoryLabel(String category) {
   return category;
 }
 
+/// List/thread title: student name when set, otherwise FAMILY OF {household}.
+String ticketRequesterLabel({
+  String? studentName,
+  String? householdName,
+  int? familyId,
+}) {
+  final student = studentName?.trim();
+  if (student != null && student.isNotEmpty) return student;
+
+  final household = householdName?.trim();
+  if (household != null && household.isNotEmpty) {
+    final name = household.replaceFirst(RegExp(r'^family\s+of\s+', caseSensitive: false), '').trim();
+    if (name.isNotEmpty) return 'FAMILY OF ${name.toUpperCase()}';
+  }
+
+  if (familyId != null) return 'Family #$familyId';
+  return 'Family';
+}
+
 String statusLabel(String status) {
   switch (status.toUpperCase()) {
     case 'OPEN':

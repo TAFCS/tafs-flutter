@@ -144,7 +144,7 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                     _banner(state.actionError!, Colors.red.shade50, Colors.red.shade800),
                   if (isSuperAdmin && isReadOnly)
                     _CollapsibleInfo(
-                      body: 'Assigned to ${ticket.assigneeName ?? 'the routed role'}. Approve staff replies below, or send a direct reply to the parent.',
+                      body: 'Assigned to ${ticket.assigneeName ?? 'the routed role'}. Approve staff replies below, send a direct reply, or close the ticket.',
                     ),
                   if (!isSuperAdmin && isReadOnly)
                     _infoBanner(
@@ -158,13 +158,16 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          ticket.householdName ?? 'Family #${ticket.familyId}',
+                          ticketRequesterLabel(
+                            studentName: ticket.studentName,
+                            householdName: ticket.householdName,
+                            familyId: ticket.familyId,
+                          ),
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${categoryLabel(ticket.category.name)} · ${ticket.subtopic ?? ''}'
-                          '${ticket.studentName != null ? ' · ${ticket.studentName}' : ''}',
+                          '${categoryLabel(ticket.category.name)} · ${ticket.subtopic ?? ''}',
                           style: const TextStyle(fontSize: 13, color: AppTheme.blue300),
                         ),
                         const SizedBox(height: 8),
@@ -206,7 +209,7 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                                   onSelect: (id) => _cubit.forward(id),
                                 );
                               }),
-                            if (!isClosed && isAssignee)
+                            if (!isClosed && (isAssignee || isSuperAdmin))
                               _actionChip('Close', state.actionLoading, _showCloseDialog,
                                   danger: true),
                           ],

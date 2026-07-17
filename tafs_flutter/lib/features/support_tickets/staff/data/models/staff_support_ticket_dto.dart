@@ -57,6 +57,7 @@ class PendingApprovalDto {
       senderRole: json['sender_user']?['role'] as String?,
       ticketId: ticket?['id'] as String?,
       householdName: ticket?['families']?['household_name'] as String?,
+      studentName: ticket?['students']?['full_name'] as String?,
       subtopic: ticket?['subtopic'] as String?,
     );
   }

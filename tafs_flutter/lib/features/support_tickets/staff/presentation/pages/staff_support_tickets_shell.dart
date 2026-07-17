@@ -53,10 +53,20 @@ class _StaffSupportTicketsShellState extends State<StaffSupportTicketsShell> {
     final q = _search.trim().toLowerCase();
     if (q.isEmpty) return items;
     return items.where((t) {
+      final title = ticketRequesterLabel(
+        studentName: t.studentName,
+        householdName: t.householdName,
+        familyId: t.familyId,
+      ).toLowerCase();
+      final student = t.studentName?.toLowerCase() ?? '';
       final household = t.householdName?.toLowerCase() ?? '';
       final subtopic = t.subtopic?.toLowerCase() ?? '';
       final snippet = t.lastMessageSnippet?.toLowerCase() ?? '';
-      return household.contains(q) || subtopic.contains(q) || snippet.contains(q);
+      return title.contains(q) ||
+          student.contains(q) ||
+          household.contains(q) ||
+          subtopic.contains(q) ||
+          snippet.contains(q);
     }).toList();
   }
 
@@ -404,13 +414,17 @@ class _TicketCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Row 1: subject + time
+              // Row 1: requester + time
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Text(
-                      ticket.subtopic ?? 'Support Ticket',
+                      ticketRequesterLabel(
+                        studentName: ticket.studentName,
+                        householdName: ticket.householdName,
+                        familyId: ticket.familyId,
+                      ),
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -431,12 +445,16 @@ class _TicketCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 5),
-              // Row 2: requester · category tag
+              // Row 2: category · subtopic
               Row(
                 children: [
                   Flexible(
                     child: Text(
-                      ticket.householdName ?? 'Family #${ticket.familyId}',
+                      [
+                        categoryLabel(ticket.category.name),
+                        if (ticket.subtopic != null && ticket.subtopic!.isNotEmpty)
+                          ticket.subtopic!,
+                      ].join(' · '),
                       style: TextStyle(
                         fontSize: 12.5,
                         color: Colors.grey.shade500,

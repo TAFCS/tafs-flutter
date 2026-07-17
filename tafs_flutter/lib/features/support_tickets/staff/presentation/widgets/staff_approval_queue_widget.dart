@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../domain/entities/staff_support_ticket.dart';
+import '../../support_ticket_staff_access.dart';
 import '../bloc/staff_pending_approvals_cubit.dart';
 
 class _GroupedApproval {
   final String? ticketId;
   final String? householdName;
+  final String? studentName;
   final int count;
   final String? senderName;
   final String lastSnippet;
@@ -14,6 +16,7 @@ class _GroupedApproval {
   const _GroupedApproval({
     required this.ticketId,
     required this.householdName,
+    required this.studentName,
     required this.count,
     required this.senderName,
     required this.lastSnippet,
@@ -32,6 +35,7 @@ List<_GroupedApproval> _groupByTicket(List<PendingApproval> items) {
     return _GroupedApproval(
       ticketId: last.ticketId,
       householdName: last.householdName,
+      studentName: last.studentName,
       count: list.length,
       senderName: last.senderName,
       lastSnippet: last.content,
@@ -168,7 +172,10 @@ class _GroupedApprovalRow extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      group.householdName ?? 'Ticket',
+                      ticketRequesterLabel(
+                        studentName: group.studentName,
+                        householdName: group.householdName,
+                      ),
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 13,

@@ -57,6 +57,7 @@ class PendingApproval {
   final String? senderRole;
   final String? ticketId;
   final String? householdName;
+  final String? studentName;
   final String? subtopic;
 
   const PendingApproval({
@@ -68,6 +69,7 @@ class PendingApproval {
     this.senderRole,
     this.ticketId,
     this.householdName,
+    this.studentName,
     this.subtopic,
   });
 }
