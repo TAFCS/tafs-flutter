@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import '../../../../auth/domain/entities/staff_user.dart';
 import '../../../../chat/domain/entities/chat_message.dart';
 import '../../../../chat/presentation/widgets/chat_bubble.dart';
@@ -226,6 +227,11 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                             itemBuilder: (context, i) {
                               final msg = state.messages[i];
                               final viewerStaffId = widget.staff.id;
+                              final showDateHeader = i == 0 ||
+                                  state.messages[i].createdAt.year != state.messages[i - 1].createdAt.year ||
+                                  state.messages[i].createdAt.month != state.messages[i - 1].createdAt.month ||
+                                  state.messages[i].createdAt.day != state.messages[i - 1].createdAt.day;
+
                               final isOutgoing = isOwnStaffMessage(msg, viewerStaffId);
                               final isIncomingStaff = msg.senderType ==
                                       TicketMessageSenderType.staff &&
@@ -238,6 +244,25 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
+                                  if (showDateHeader)
+                                    Center(
+                                      child: Container(
+                                        margin: const EdgeInsets.symmetric(vertical: 12),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.shade50.withOpacity(0.8),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          _getDateHeaderString(msg.createdAt),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.blue300,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   Padding(
                                     padding: EdgeInsets.only(
                                       bottom: 4,
@@ -526,6 +551,21 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
       backgroundColor: danger ? Colors.red.shade50 : null,
       onPressed: loading ? null : onTap,
     );
+  }
+
+  String _getDateHeaderString(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final msgDate = DateTime(date.year, date.month, date.day);
+
+    if (msgDate == today) {
+      return 'Today';
+    } else if (msgDate == yesterday) {
+      return 'Yesterday';
+    } else {
+      return DateFormat('MMMM d, yyyy').format(date);
+    }
   }
 }
 

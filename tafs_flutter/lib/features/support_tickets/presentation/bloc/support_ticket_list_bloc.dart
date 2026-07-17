@@ -37,6 +37,8 @@ class SupportTicketListBloc
       );
       final open = await repository.listTickets(open: true);
       final closed = await repository.listTickets(open: false);
+      open.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+      closed.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
       emit(SupportTicketListLoaded(
         openTickets: open,
         closedTickets: closed,
@@ -56,6 +58,8 @@ class SupportTicketListBloc
     try {
       final open = await repository.listTickets(open: true);
       final closed = await repository.listTickets(open: false);
+      open.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+      closed.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
       emit(SupportTicketListLoaded(
         openTickets: open,
         closedTickets: closed,

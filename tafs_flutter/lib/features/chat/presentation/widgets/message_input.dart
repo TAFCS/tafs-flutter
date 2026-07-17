@@ -661,7 +661,7 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                         // Unified Pill Container
                         Expanded(
                           child: Container(
-                            height: 54,
+                            constraints: const BoxConstraints(minHeight: 54, maxHeight: 120),
                             decoration: BoxDecoration(
                               color: Colors.grey[50],
                               borderRadius: BorderRadius.circular(27),
@@ -718,6 +718,10 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                                         child: TextField(
                                           controller: _controller,
                                           enabled: !_isRecording,
+                                          minLines: 1,
+                                          maxLines: 5,
+                                          keyboardType: TextInputType.multiline,
+                                          textInputAction: TextInputAction.newline,
                                           style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w500,
@@ -737,7 +741,6 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                                             isDense: true,
                                             contentPadding: const EdgeInsets.fromLTRB(4, 14, 16, 14),
                                           ),
-                                          onSubmitted: (_) => _sendMessage(),
                                         ),
                                       ),
                                     ),

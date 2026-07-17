@@ -78,6 +78,7 @@ class StaffTicketQueueBloc extends Bloc<StaffTicketQueueEvent, StaffTicketQueueS
     StaffQueueInit event,
     Emitter<StaffTicketQueueState> emit,
   ) async {
+    if (_socketSub != null) return;
     final tab = defaultQueueTabForRole(event.role);
     emit(state.copyWith(tab: tab));
     add(StaffQueueRefreshRequested());
@@ -113,6 +114,7 @@ class StaffTicketQueueBloc extends Bloc<StaffTicketQueueEvent, StaffTicketQueueS
         case StaffQueueTab.myQueue:
           items = await repository.fetchMyQueue();
       }
+      items.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
       emit(state.copyWith(items: items, loading: false));
     } catch (e) {
       emit(state.copyWith(

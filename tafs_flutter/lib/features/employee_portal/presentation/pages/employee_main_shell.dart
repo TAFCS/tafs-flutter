@@ -18,6 +18,8 @@ import '../../../staff_payroll/presentation/pages/staff_payroll_list_page.dart';
 import '../../../leave_requests/domain/repositories/leave_requests_repository.dart';
 import '../../../support_tickets/staff/presentation/pages/staff_support_tickets_shell.dart';
 import '../../../support_tickets/staff/support_ticket_staff_access.dart';
+import '../../../support_tickets/staff/presentation/bloc/staff_ticket_queue_bloc.dart';
+import '../../../support_tickets/staff/presentation/bloc/staff_pending_approvals_cubit.dart';
 import '../../../../core/session/session_reset.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
@@ -68,6 +70,14 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
     _syncTabsFromStaff();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (_showTickets) {
+        context.read<StaffTicketQueueBloc>().add(StaffQueueInit(widget.staff.role));
+        if (widget.staff.role == 'SUPER_ADMIN') {
+          final approvalsCubit = context.read<StaffPendingApprovalsCubit>();
+          approvalsCubit.startListening();
+          approvalsCubit.load();
+        }
+      }
       if (_showEmployeeNoticeBoard && isEmployeeSelfServiceRole(widget.staff)) {
         InjectionContainer.employeeNoticeCubit.load();
       }
@@ -258,9 +268,39 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
           label: 'Payroll',
         );
       case _EmployeeTab.tickets:
-        return const NavigationDestination(
-          icon: Icon(Icons.confirmation_number_outlined, size: 20),
-          selectedIcon: Icon(Icons.confirmation_number, size: 20),
+        return NavigationDestination(
+          icon: BlocBuilder<StaffPendingApprovalsCubit, StaffPendingApprovalsState>(
+            builder: (context, approvalsState) {
+              return BlocBuilder<StaffTicketQueueBloc, StaffTicketQueueState>(
+                builder: (context, queueState) {
+                  final pendingCount = approvalsState.items.length;
+                  final unreadCount = queueState.items.fold<int>(0, (sum, t) => sum + t.unreadByStaff);
+                  final hasIndicator = (widget.staff.role == 'SUPER_ADMIN' && pendingCount > 0) || unreadCount > 0;
+
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Icon(Icons.confirmation_number_outlined, size: 20),
+                      if (hasIndicator)
+                        Positioned(
+                          top: -2,
+                          right: -2,
+                          child: Container(
+                            width: 7,
+                            height: 7,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+          selectedIcon: const Icon(Icons.confirmation_number, size: 20),
           label: 'Tickets',
         );
       case _EmployeeTab.noticeBoard:
