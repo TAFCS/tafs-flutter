@@ -248,29 +248,23 @@ class _MainShellPageState extends State<MainShellPage> with WidgetsBindingObserv
             appBar: _selectedIndex == 1
                 ? StudentAppBar(
                     student: student,
-                    actions: const [_ChatAppBarAction()],
+                    actions: [
+                      _CalendarAppBarAction(student: student),
+                      const _ChatAppBarAction(),
+                    ],
                   )
                 : _selectedIndex == 0
                     ? FamilyAppBar(
                         actions: [
-                          IconButton(
-                            icon: const Icon(Icons.calendar_month_rounded, color: AppTheme.navy),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AttendanceCalendarPage(
-                                    student: student,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                          _CalendarAppBarAction(student: student),
                           const _ChatAppBarAction(),
                         ],
                       )
-                    : const FamilyAppBar(
-                        actions: [_ChatAppBarAction()],
+                    : FamilyAppBar(
+                        actions: [
+                          _CalendarAppBarAction(student: student),
+                          const _ChatAppBarAction(),
+                        ],
                       ),
             body: Stack(
               children: [
@@ -521,3 +515,27 @@ class _ChatAppBarAction extends StatelessWidget {
     );
   }
 }
+
+class _CalendarAppBarAction extends StatelessWidget {
+  final Student student;
+
+  const _CalendarAppBarAction({required this.student});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.calendar_month_rounded, color: AppTheme.navy),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AttendanceCalendarPage(
+              student: student,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
