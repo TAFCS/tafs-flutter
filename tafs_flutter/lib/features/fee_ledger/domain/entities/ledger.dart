@@ -26,6 +26,7 @@ class StudentProfile extends Equatable {
   final String? className;
   final String? section;
   final String? house;
+  final String? houseColor;
   final String? photographUrl;
   final DateTime? dob;
   final String? gender;
@@ -39,6 +40,7 @@ class StudentProfile extends Equatable {
     this.className,
     this.section,
     this.house,
+    this.houseColor,
     this.photographUrl,
     this.dob,
     this.gender,
@@ -47,7 +49,7 @@ class StudentProfile extends Equatable {
 
   @override
   List<Object?> get props => [
-    cc, fullName, grNumber, campus, className, section, house, photographUrl, dob, gender, guardians
+    cc, fullName, grNumber, campus, className, section, house, houseColor, photographUrl, dob, gender, guardians
   ];
 }
 

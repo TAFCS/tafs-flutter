@@ -47,7 +47,7 @@ class StudentProfilePage extends StatelessWidget {
                 _InfoRow(label: 'Campus', value: student.campus ?? 'N/A'),
                 _InfoRow(label: 'Class', value: student.className ?? 'N/A'),
                 _InfoRow(label: 'Section', value: student.section ?? 'N/A'),
-                _InfoRow(label: 'House', value: student.house ?? 'N/A'),
+                _InfoRow(label: 'House', valueWidget: _buildHouseValue(context)),
                 _InfoRow(label: 'CC', value: student.cc.toString()),
                 _InfoRow(label: 'GR Number', value: student.grNumber ?? 'N/A'),
                 GestureDetector(
@@ -119,6 +119,90 @@ class StudentProfilePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildHouseValue(BuildContext context) {
+    final houseName = student.house?.trim();
+    final houseColor = student.houseColor?.trim();
+
+    if (houseName == null || houseName.isEmpty) {
+      return Text(
+        'N/A',
+        textAlign: TextAlign.end,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: AppTheme.navy,
+              fontWeight: FontWeight.w600,
+            ),
+      );
+    }
+
+    final color = _colorFromHouseName(houseColor);
+    final displayText = houseColor != null && houseColor.isNotEmpty
+        ? '$houseName ($houseColor)'
+        : houseName;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        if (color != null) ...[
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppTheme.blue100),
+            ),
+          ),
+          const SizedBox(width: AppTheme.space2),
+        ],
+        Flexible(
+          child: Text(
+            displayText,
+            textAlign: TextAlign.end,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.navy,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color? _colorFromHouseName(String? colorName) {
+    if (colorName == null || colorName.isEmpty) return null;
+
+    final normalized = colorName.trim().toLowerCase();
+    if (normalized.startsWith('#')) {
+      final hex = normalized.substring(1);
+      final value = int.tryParse(hex.length == 6 ? 'FF$hex' : hex, radix: 16);
+      return value != null ? Color(value) : null;
+    }
+
+    const colors = <String, Color>{
+      'red': Colors.red,
+      'blue': Colors.blue,
+      'green': Colors.green,
+      'yellow': Colors.yellow,
+      'orange': Colors.orange,
+      'purple': Colors.purple,
+      'pink': Colors.pink,
+      'brown': Colors.brown,
+      'black': Colors.black,
+      'white': Colors.white,
+      'grey': Colors.grey,
+      'gray': Colors.grey,
+      'cyan': Colors.cyan,
+      'teal': Colors.teal,
+      'indigo': Colors.indigo,
+      'amber': Colors.amber,
+      'gold': Color(0xFFFFD700),
+      'maroon': Color(0xFF800000),
+      'navy': Color(0xFF000080),
+    };
+
+    return colors[normalized];
   }
 
   Widget _buildProfileHeader(BuildContext context) {
@@ -214,9 +298,14 @@ class StudentProfilePage extends StatelessWidget {
 
 class _InfoRow extends StatelessWidget {
   final String label;
-  final String value;
+  final String? value;
+  final Widget? valueWidget;
 
-  const _InfoRow({required this.label, required this.value});
+  const _InfoRow({
+    required this.label,
+    this.value,
+    this.valueWidget,
+  }) : assert(value != null || valueWidget != null);
 
   @override
   Widget build(BuildContext context) {
@@ -235,14 +324,15 @@ class _InfoRow extends StatelessWidget {
         ),
         const SizedBox(width: AppTheme.space4),
         Expanded(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppTheme.navy,
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
+          child: valueWidget ??
+              Text(
+                value!,
+                textAlign: TextAlign.end,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: AppTheme.navy,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
         ),
       ],
     );
