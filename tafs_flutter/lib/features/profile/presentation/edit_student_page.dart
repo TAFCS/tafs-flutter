@@ -33,7 +33,8 @@ class _EditStudentPageState extends State<EditStudentPage> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.student.fullName);
-    _selectedDob = widget.student.dob;
+    // Normalize to a local date-only value so timezone never shifts the calendar day.
+    _selectedDob = _asLocalDateOnly(widget.student.dob);
     _selectedGender = widget.student.gender?.toUpperCase();
     if (_selectedGender != 'MALE' && _selectedGender != 'FEMALE') {
       _selectedGender = null;
@@ -44,6 +45,12 @@ class _EditStudentPageState extends State<EditStudentPage> {
   void dispose() {
     _nameController.dispose();
     super.dispose();
+  }
+
+  /// Calendar Y/M/D only — ignores time and timezone.
+  DateTime? _asLocalDateOnly(DateTime? date) {
+    if (date == null) return null;
+    return DateTime(date.year, date.month, date.day);
   }
 
   Future<void> _pickImage() async {
@@ -67,11 +74,15 @@ class _EditStudentPageState extends State<EditStudentPage> {
 
   Future<void> _selectDate() async {
     final initialDate = _selectedDob ?? DateTime(2018);
+    // calendarOnly blocks typed MM/dd vs dd/MM ambiguity (common on en_US
+    // devices in PK) which was submitting month/day-swapped DOBs
+    // (e.g. 2010-07-12 → 2010-12-07).
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(2005),
       lastDate: DateTime.now(),
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -87,9 +98,17 @@ class _EditStudentPageState extends State<EditStudentPage> {
     );
     if (pickedDate != null) {
       setState(() {
-        _selectedDob = pickedDate;
+        _selectedDob = _asLocalDateOnly(pickedDate);
       });
     }
+  }
+
+  /// Match Postgres/Prisma JSON serialization for @db.Date fields:
+  /// `YYYY-MM-DDT00:00:00.000Z`
+  String? _dobToPostgresIso(DateTime? date) {
+    final d = _asLocalDateOnly(date);
+    if (d == null) return null;
+    return DateTime.utc(d.year, d.month, d.day).toIso8601String();
   }
 
   void _submitRequest() {
@@ -107,7 +126,11 @@ class _EditStudentPageState extends State<EditStudentPage> {
     }
 
     addIfChanged('full_name', widget.student.fullName, _nameController.text.trim());
-    addIfChanged('dob', widget.student.dob?.toIso8601String().split('T').first, _selectedDob?.toIso8601String().split('T').first);
+
+    final originalDob = _dobToPostgresIso(widget.student.dob);
+    final nextDob = _dobToPostgresIso(_selectedDob);
+    addIfChanged('dob', originalDob, nextDob);
+
     addIfChanged('gender', widget.student.gender?.toUpperCase(), _selectedGender);
 
     if (changes.isEmpty && _pickedImageFile == null) {
