@@ -137,33 +137,56 @@ class StudentProfilePage extends StatelessWidget {
     }
 
     final color = _colorFromHouseName(houseColor);
-    final displayText = houseColor != null && houseColor.isNotEmpty
-        ? '$houseName ($houseColor)'
-        : houseName;
+    final valueStyle = Theme.of(context).textTheme.bodyLarge?.copyWith(
+          color: AppTheme.navy,
+          fontWeight: FontWeight.w600,
+        );
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+    if (color == null || houseColor == null || houseColor.isEmpty) {
+      return Text(
+        houseName,
+        textAlign: TextAlign.end,
+        style: valueStyle,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        if (color != null) ...[
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppTheme.blue100),
-            ),
+        Text(
+          houseName,
+          textAlign: TextAlign.end,
+          style: valueStyle,
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: color.withValues(alpha: 0.35)),
           ),
-          const SizedBox(width: AppTheme.space2),
-        ],
-        Flexible(
-          child: Text(
-            displayText,
-            textAlign: TextAlign.end,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppTheme.navy,
-                  fontWeight: FontWeight.w600,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
                 ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                houseColor.toUpperCase(),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppTheme.navy,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+              ),
+            ],
           ),
         ),
       ],
