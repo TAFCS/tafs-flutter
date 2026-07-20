@@ -13,6 +13,7 @@ import 'bloc/auth_state.dart';
 import 'signup_page.dart';
 import 'forgot_password_page.dart';
 import 'widgets/biometric_sign_in_button.dart';
+import 'widgets/demo_videos_button.dart';
 
 enum _LoginMode { parent, staff }
 
@@ -254,6 +255,8 @@ class _LoginPageState extends State<LoginPage> {
                               style: Theme.of(context).textTheme.displayMedium,
                               textAlign: TextAlign.center,
                             ),
+                            SizedBox(height: AppTheme.space4),
+                            const DemoVideosButton(),
                             SizedBox(height: sectionGap),
                             CustomTextField(
                               label: isStaff ? 'Username' : 'Email Address',

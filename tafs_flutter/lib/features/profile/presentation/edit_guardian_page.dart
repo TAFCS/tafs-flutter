@@ -22,8 +22,41 @@ class EditGuardianPage extends StatefulWidget {
   State<EditGuardianPage> createState() => _EditGuardianPageState();
 }
 
-class _EditGuardianPageState extends State<EditGuardianPage> {
+String _formatPakistaniNumber(String? raw) {
+  final trimmed = (raw ?? '').trim();
+  if (trimmed.isEmpty) return '+92';
+
+  String formatted = trimmed;
+  if (!formatted.startsWith('+92')) {
+    String digits = formatted.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('92')) {
+      digits = digits.substring(2);
+    } else if (digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+    formatted = '+92$digits';
+  }
+  if (formatted.length > 13) {
+    formatted = formatted.substring(0, 13);
+  }
+  return formatted;
+}
+
+String? _validatePakistaniNumber(String? value) {
+  final text = (value ?? '').trim();
+  if (text.isEmpty || text == '+92') return null;
+  if (!RegExp(r'^\+92\d{10}$').hasMatch(text)) {
+    return 'Enter exactly 10 digits after +92';
+  }
+  return null;
+}
+
+class _EditGuardianPageState extends State<EditGuardianPage> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+  final Map<String, GlobalKey<FormFieldState<String>>> _fieldKeys = {};
+  final List<String> _fieldOrder = [];
+  late final AnimationController _shakeController;
+  late final Animation<double> _shakeAnimation;
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _whatsappController;
@@ -112,28 +145,17 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
   @override
   void initState() {
     super.initState();
+    _shakeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
+    _shakeAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: -10.0), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: -10.0, end: 10.0), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 10.0, end: -8.0), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: -8.0, end: 8.0), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 8.0, end: 0.0), weight: 1),
+    ]).animate(_shakeController);
     _nameController = TextEditingController(text: widget.guardian.name);
-    _phoneController = TextEditingController(text: widget.guardian.phone);
-    
-    final initialWhatsapp = widget.guardian.whatsapp ?? '';
-    String formattedWhatsapp = initialWhatsapp.trim();
-    if (formattedWhatsapp.isNotEmpty) {
-      if (!formattedWhatsapp.startsWith('+92')) {
-        String digits = formattedWhatsapp.replaceAll(RegExp(r'\D'), '');
-        if (digits.startsWith('92')) {
-          digits = digits.substring(2);
-        } else if (digits.startsWith('0')) {
-          digits = digits.substring(1);
-        }
-        formattedWhatsapp = '+92$digits';
-      }
-      if (formattedWhatsapp.length > 13) {
-        formattedWhatsapp = formattedWhatsapp.substring(0, 13);
-      }
-    } else {
-      formattedWhatsapp = '+92';
-    }
-    _whatsappController = TextEditingController(text: formattedWhatsapp);
+    _phoneController = TextEditingController(text: _formatPakistaniNumber(widget.guardian.phone));
+    _whatsappController = TextEditingController(text: _formatPakistaniNumber(widget.guardian.whatsapp));
     _emailController = TextEditingController(text: widget.guardian.email);
     _cnicController = TextEditingController(text: widget.guardian.cnic);
     _occupationController = TextEditingController(text: widget.guardian.occupation);
@@ -154,6 +176,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
 
   @override
   void dispose() {
+    _shakeController.dispose();
     _nameController.dispose();
     _phoneController.dispose();
     _whatsappController.dispose();
@@ -170,8 +193,37 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
     super.dispose();
   }
 
+  GlobalKey<FormFieldState<String>>? _keyFor(String? apiKey) {
+    if (apiKey == null) return null;
+    return _fieldKeys.putIfAbsent(apiKey, () {
+      _fieldOrder.add(apiKey);
+      return GlobalKey<FormFieldState<String>>();
+    });
+  }
+
+  void _scrollToFirstError() {
+    HapticFeedback.mediumImpact();
+    _shakeController.forward(from: 0);
+
+    for (final apiKey in _fieldOrder) {
+      final fieldState = _fieldKeys[apiKey]?.currentState;
+      if (fieldState != null && fieldState.hasError) {
+        Scrollable.ensureVisible(
+          fieldState.context,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: 0.2,
+        );
+        return;
+      }
+    }
+  }
+
   void _submitRequest() {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToFirstError());
+      return;
+    }
 
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return;
@@ -344,6 +396,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
                         PakistaniPhoneFormatter(),
                       ],
+                      validator: _validatePakistaniNumber,
                       apiKey: 'primary_phone',
                     ),
                     _buildTextField(
@@ -353,8 +406,9 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                       keyboardType: TextInputType.phone,
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
-                        WhatsAppFormatter(),
+                        PakistaniPhoneFormatter(),
                       ],
+                      validator: _validatePakistaniNumber,
                       apiKey: 'whatsapp_number',
                     ),
                     _buildTextField(_emailController, 'Email Address', Icons.email_rounded, apiKey: 'email_address'),
@@ -463,22 +517,29 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                     _buildTextField(_areaBlockController, 'Area and Block #', Icons.grid_view_rounded, apiKey: 'area_block'),
                     _buildTextField(_postalCodeController, 'Postal Code', Icons.markunread_mailbox_rounded, apiKey: 'postal_code'),
                     const SizedBox(height: AppTheme.space8),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _submitRequest,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.navy,
-                          foregroundColor: AppTheme.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                    AnimatedBuilder(
+                      animation: _shakeAnimation,
+                      builder: (context, child) => Transform.translate(
+                        offset: Offset(_shakeAnimation.value, 0),
+                        child: child,
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _submitRequest,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.navy,
+                            foregroundColor: AppTheme.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                            ),
+                            elevation: 0,
                           ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'SUBMIT CHANGES',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                          child: const Text(
+                            'SUBMIT CHANGES',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                          ),
                         ),
                       ),
                     ),
@@ -499,6 +560,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
     int maxLines = 1,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
     String? apiKey,
   }) {
     final isPending = apiKey != null && widget.guardian.pendingFields.contains(apiKey);
@@ -508,10 +570,12 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextFormField(
+            key: validator != null ? _keyFor(apiKey) : null,
             controller: controller,
             maxLines: maxLines,
             keyboardType: keyboardType,
             inputFormatters: inputFormatters,
+            validator: validator,
             readOnly: isPending,
             style: TextStyle(
               fontWeight: FontWeight.w600,
@@ -569,20 +633,32 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
 class PakistaniPhoneFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    final text = newValue.text;
-    if (text.isEmpty) return newValue;
+    String text = newValue.text;
 
-    int maxLength = 11;
-    if (text.startsWith('+')) {
-      maxLength = 13;
-    } else if (text.startsWith('92')) {
-      maxLength = 12;
+    // Do not allow deleting the +92 prefix
+    if (!text.startsWith('+92')) {
+      if (text.startsWith('+9') || text.startsWith('+') || text.startsWith('9') || text.startsWith('2')) {
+        text = '+92';
+      } else {
+        String digits = text.replaceAll(RegExp(r'\D'), '');
+        if (digits.startsWith('92')) {
+          digits = digits.substring(2);
+        } else if (digits.startsWith('0')) {
+          digits = digits.substring(1);
+        }
+        text = '+92$digits';
+      }
     }
 
-    if (text.length > maxLength) {
-      return oldValue;
+    // Enforce max 10 digits after +92 (total 13 characters)
+    if (text.length > 13) {
+      text = text.substring(0, 13);
     }
-    return newValue;
+
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
   }
 }
 
@@ -651,38 +727,6 @@ class CnicFormatter extends TextInputFormatter {
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formattedCursorPos),
-    );
-  }
-}
-
-class WhatsAppFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    String text = newValue.text;
-
-    // Do not allow deleting the +92 prefix
-    if (!text.startsWith('+92')) {
-      if (text.startsWith('+9') || text.startsWith('+') || text.startsWith('9') || text.startsWith('2')) {
-        text = '+92';
-      } else {
-        String digits = text.replaceAll(RegExp(r'\D'), '');
-        if (digits.startsWith('92')) {
-          digits = digits.substring(2);
-        } else if (digits.startsWith('0')) {
-          digits = digits.substring(1);
-        }
-        text = '+92$digits';
-      }
-    }
-
-    // Enforce max 10 digits after +92 (total 13 characters)
-    if (text.length > 13) {
-      text = text.substring(0, 13);
-    }
-
-    return TextEditingValue(
-      text: text,
-      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }
