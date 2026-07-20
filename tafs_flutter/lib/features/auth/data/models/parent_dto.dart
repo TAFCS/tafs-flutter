@@ -12,6 +12,7 @@ class ParentDto extends Parent {
     required super.accessToken,
     required super.refreshToken,
     super.photographUrl,
+    super.homePhone,
   });
 
   factory ParentDto.fromJson(Map<String, dynamic> json) {
@@ -26,6 +27,8 @@ class ParentDto extends Parent {
       householdName: family['householdName'] as String? ?? '',
       photographUrl: (family['photographUrl'] as String?) ??
           (family['photograph_url'] as String?),
+      homePhone: (family['homePhone'] as String?) ??
+          (family['home_phone'] as String?),
       students: studentsList
           .map((e) => StudentDto.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -45,6 +48,7 @@ class ParentDto extends Parent {
           'email': username,
           'householdName': householdName,
           'photographUrl': photographUrl,
+          'homePhone': homePhone,
           'guardians': guardians
               .map((e) => (e as FamilyGuardianDto).toJson())
               .toList(),
@@ -65,6 +69,7 @@ class ParentDto extends Parent {
     String? accessToken,
     String? refreshToken,
     String? photographUrl,
+    String? homePhone,
   }) {
     return ParentDto(
       id: id ?? this.id,
@@ -75,6 +80,7 @@ class ParentDto extends Parent {
       accessToken: accessToken ?? this.accessToken,
       refreshToken: refreshToken ?? this.refreshToken,
       photographUrl: photographUrl ?? this.photographUrl,
+      homePhone: homePhone ?? this.homePhone,
     );
   }
 }
@@ -93,6 +99,12 @@ class FamilyGuardianDto extends FamilyGuardian {
     super.cnic,
     super.whatsapp,
     super.address,
+    super.houseApptName,
+    super.areaBlock,
+    super.city,
+    super.province,
+    super.country,
+    super.postalCode,
     super.jobPosition,
     super.isEmergencyContact,
   });
@@ -113,7 +125,17 @@ class FamilyGuardianDto extends FamilyGuardian {
       cnic: json['cnic'] as String?,
       whatsapp: json['whatsapp'] as String?,
       address: json['address'] as String?,
-      jobPosition: json['jobPosition'] as String?,
+      houseApptName: (json['houseApptName'] as String?) ??
+          (json['house_appt_name'] as String?),
+      areaBlock: (json['areaBlock'] as String?) ??
+          (json['area_block'] as String?),
+      city: json['city'] as String?,
+      province: json['province'] as String?,
+      country: json['country'] as String?,
+      postalCode: (json['postalCode'] as String?) ??
+          (json['postal_code'] as String?),
+      jobPosition: (json['jobPosition'] as String?) ??
+          (json['job_position'] as String?),
       isEmergencyContact: (json['isEmergencyContact'] as bool?) ?? false,
     );
   }
@@ -132,6 +154,12 @@ class FamilyGuardianDto extends FamilyGuardian {
       'cnic': cnic,
       'whatsapp': whatsapp,
       'address': address,
+      'houseApptName': houseApptName,
+      'areaBlock': areaBlock,
+      'city': city,
+      'province': province,
+      'country': country,
+      'postalCode': postalCode,
       'jobPosition': jobPosition,
       'isEmergencyContact': isEmergencyContact,
     };

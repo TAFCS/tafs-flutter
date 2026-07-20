@@ -33,7 +33,11 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
   late TextEditingController _organizationController;
   late TextEditingController _educationController;
   late TextEditingController _addressController;
+  late TextEditingController _houseApptController;
+  late TextEditingController _areaBlockController;
+  late TextEditingController _postalCodeController;
   File? _pickedImageFile;
+  File? _pickedCnicImageFile;
   final ImagePicker _imagePicker = ImagePicker();
 
   Future<void> _pickImage() async {
@@ -55,12 +59,80 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
     }
   }
 
+  Future<void> _pickCnicImage(ImageSource source) async {
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 80,
+        maxWidth: 800,
+      );
+      if (pickedFile != null) {
+        setState(() {
+          _pickedCnicImageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to pick CNIC image.')),
+      );
+    }
+  }
+
+  void _showCnicSourcePicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_library_rounded, color: AppTheme.blue300),
+                title: const Text('Choose from Gallery', style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () {
+                  _pickCnicImage(ImageSource.gallery);
+                  Navigator.of(context).pop();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_rounded, color: AppTheme.blue300),
+                title: const Text('Take Photo (Camera)', style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () {
+                  _pickCnicImage(ImageSource.camera);
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.guardian.name);
     _phoneController = TextEditingController(text: widget.guardian.phone);
-    _whatsappController = TextEditingController(text: widget.guardian.whatsapp);
+    
+    final initialWhatsapp = widget.guardian.whatsapp ?? '';
+    String formattedWhatsapp = initialWhatsapp.trim();
+    if (formattedWhatsapp.isNotEmpty) {
+      if (!formattedWhatsapp.startsWith('+92')) {
+        String digits = formattedWhatsapp.replaceAll(RegExp(r'\D'), '');
+        if (digits.startsWith('92')) {
+          digits = digits.substring(2);
+        } else if (digits.startsWith('0')) {
+          digits = digits.substring(1);
+        }
+        formattedWhatsapp = '+92$digits';
+      }
+      if (formattedWhatsapp.length > 13) {
+        formattedWhatsapp = formattedWhatsapp.substring(0, 13);
+      }
+    } else {
+      formattedWhatsapp = '+92';
+    }
+    _whatsappController = TextEditingController(text: formattedWhatsapp);
     _emailController = TextEditingController(text: widget.guardian.email);
     _cnicController = TextEditingController(text: widget.guardian.cnic);
     _occupationController = TextEditingController(text: widget.guardian.occupation);
@@ -68,6 +140,15 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
     _organizationController = TextEditingController(text: widget.guardian.organization);
     _educationController = TextEditingController(text: widget.guardian.education);
     _addressController = TextEditingController(text: widget.guardian.address);
+    final initialHouseAppt = widget.guardian.houseApptName?.isNotEmpty == true
+        ? widget.guardian.houseApptName
+        : widget.guardian.address;
+    _houseApptController = TextEditingController(text: initialHouseAppt);
+    _areaBlockController = TextEditingController(text: widget.guardian.areaBlock);
+    _postalCodeController = TextEditingController(text: widget.guardian.postalCode);
+    _cnicController.addListener(() {
+      setState(() {});
+    });
   }
 
   @override
@@ -82,6 +163,9 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
     _organizationController.dispose();
     _educationController.dispose();
     _addressController.dispose();
+    _houseApptController.dispose();
+    _areaBlockController.dispose();
+    _postalCodeController.dispose();
     super.dispose();
   }
 
@@ -111,9 +195,22 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
     addIfChanged('job_position', widget.guardian.jobPosition, _jobPositionController.text);
     addIfChanged('organization', widget.guardian.organization, _organizationController.text);
     addIfChanged('education_level', widget.guardian.education, _educationController.text);
-    addIfChanged('mailing_address', widget.guardian.address, _addressController.text);
+    addIfChanged('house_appt_name', widget.guardian.houseApptName, _houseApptController.text);
+    addIfChanged('area_block', widget.guardian.areaBlock, _areaBlockController.text);
+    addIfChanged('postal_code', widget.guardian.postalCode, _postalCodeController.text);
 
-    if (changes.isEmpty && _pickedImageFile == null) {
+    final cnicChanged = _cnicController.text.trim() != (widget.guardian.cnic ?? '').trim();
+    if (cnicChanged && _pickedCnicImageFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please upload a photo of your CNIC card to request a CNIC change.'),
+          backgroundColor: AppTheme.danger,
+        ),
+      );
+      return;
+    }
+
+    if (changes.isEmpty && _pickedImageFile == null && _pickedCnicImageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No changes detected.')),
       );
@@ -125,6 +222,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
       familyId: authState.parent.id,
       changes: changes,
       localPhotoPath: _pickedImageFile?.path,
+      localCnicPhotoPath: _pickedCnicImageFile?.path,
     ));
   }
 
@@ -252,7 +350,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                       keyboardType: TextInputType.phone,
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
-                        PakistaniPhoneFormatter(),
+                        WhatsAppFormatter(),
                       ],
                     ),
                     _buildTextField(_emailController, 'Email Address', Icons.email_rounded),
@@ -289,7 +387,76 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                         CnicFormatter(),
                       ],
                     ),
-                    _buildTextField(_addressController, 'Home Address', Icons.location_on_rounded, maxLines: 2),
+                    if (_cnicController.text.trim() != (widget.guardian.cnic ?? '').trim()) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: AppTheme.space4),
+                        child: InkWell(
+                          onTap: _showCnicSourcePicker,
+                          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.white,
+                              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                              border: Border.all(
+                                color: _pickedCnicImageFile != null ? AppTheme.blue100 : AppTheme.danger.withValues(alpha: 0.5),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  _pickedCnicImageFile != null ? Icons.check_circle_rounded : Icons.add_photo_alternate_rounded,
+                                  color: _pickedCnicImageFile != null ? AppTheme.success : AppTheme.danger,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _pickedCnicImageFile != null ? 'CNIC Card Image Selected' : 'Upload CNIC Card Photo *',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: _pickedCnicImageFile != null ? AppTheme.navy : AppTheme.danger,
+                                        ),
+                                      ),
+                                      if (_pickedCnicImageFile == null) ...[
+                                        const SizedBox(height: 2),
+                                        const Text(
+                                          'A photo of the CNIC is required for CNIC changes',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: AppTheme.textMuted,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                if (_pickedCnicImageFile != null)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                                    child: Image.file(
+                                      _pickedCnicImageFile!,
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                else
+                                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.blue200),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                    _buildTextField(_houseApptController, 'House / Apartment Name and No.', Icons.home_rounded),
+                    _buildTextField(_areaBlockController, 'Area and Block #', Icons.grid_view_rounded),
+                    _buildTextField(_postalCodeController, 'Postal Code', Icons.markunread_mailbox_rounded),
                     const SizedBox(height: AppTheme.space8),
                     SizedBox(
                       width: double.infinity,
@@ -338,6 +505,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
         style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.navy),
         decoration: InputDecoration(
           labelText: label,
+          alignLabelWithHint: maxLines > 1,
           prefixIcon: Icon(icon, color: AppTheme.blue200, size: 20),
           filled: true,
           fillColor: AppTheme.white,
@@ -446,6 +614,38 @@ class CnicFormatter extends TextInputFormatter {
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formattedCursorPos),
+    );
+  }
+}
+
+class WhatsAppFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    String text = newValue.text;
+
+    // Do not allow deleting the +92 prefix
+    if (!text.startsWith('+92')) {
+      if (text.startsWith('+9') || text.startsWith('+') || text.startsWith('9') || text.startsWith('2')) {
+        text = '+92';
+      } else {
+        String digits = text.replaceAll(RegExp(r'\D'), '');
+        if (digits.startsWith('92')) {
+          digits = digits.substring(2);
+        } else if (digits.startsWith('0')) {
+          digits = digits.substring(1);
+        }
+        text = '+92$digits';
+      }
+    }
+
+    // Enforce max 10 digits after +92 (total 13 characters)
+    if (text.length > 13) {
+      text = text.substring(0, 13);
+    }
+
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }

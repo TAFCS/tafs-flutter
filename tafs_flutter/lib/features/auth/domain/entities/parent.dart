@@ -10,6 +10,7 @@ class Parent extends Equatable {
   final String accessToken;
   final String refreshToken;
   final String? photographUrl;
+  final String? homePhone;
 
   const Parent({
     required this.id,
@@ -20,6 +21,7 @@ class Parent extends Equatable {
     required this.accessToken,
     required this.refreshToken,
     this.photographUrl,
+    this.homePhone,
   });
 
   @override
@@ -32,6 +34,7 @@ class Parent extends Equatable {
         accessToken,
         refreshToken,
         photographUrl,
+        homePhone,
       ];
 }
 
@@ -49,6 +52,12 @@ class FamilyGuardian extends Equatable {
   final String? cnic;
   final String? whatsapp;
   final String? address;
+  final String? houseApptName;
+  final String? areaBlock;
+  final String? city;
+  final String? province;
+  final String? country;
+  final String? postalCode;
   final String? jobPosition;
   final bool isEmergencyContact;
 
@@ -65,6 +74,12 @@ class FamilyGuardian extends Equatable {
     this.cnic,
     this.whatsapp,
     this.address,
+    this.houseApptName,
+    this.areaBlock,
+    this.city,
+    this.province,
+    this.country,
+    this.postalCode,
     this.jobPosition,
     this.isEmergencyContact = false,
   });
@@ -83,6 +98,12 @@ class FamilyGuardian extends Equatable {
         cnic,
         whatsapp,
         address,
+        houseApptName,
+        areaBlock,
+        city,
+        province,
+        country,
+        postalCode,
         jobPosition,
         isEmergencyContact,
       ];

@@ -86,4 +86,22 @@ class ProfileRepositoryImpl implements ProfileRepository {
       return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
     }
   }
+
+  @override
+  Future<Either<Failure, String>> uploadGuardianCnic({
+    required int guardianId,
+    required String filePath,
+  }) async {
+    try {
+      final url = await remoteDataSource.uploadGuardianCnic(
+        guardianId: guardianId,
+        filePath: filePath,
+      );
+      return Right(url);
+    } on Failure catch (failure) {
+      return Left(failure);
+    } catch (e) {
+      return Left(ServerFailure(ApiErrorMapper.fromObject(e)));
+    }
+  }
 }

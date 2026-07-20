@@ -113,6 +113,7 @@ class TokenInterceptor extends Interceptor {
           accessToken: newAccess,
           refreshToken: newRefresh,
           photographUrl: cached.photographUrl,
+          homePhone: cached.homePhone,
         );
         await localDataSource.cacheParent(updated);
         onParentTokenRefreshed(updated);

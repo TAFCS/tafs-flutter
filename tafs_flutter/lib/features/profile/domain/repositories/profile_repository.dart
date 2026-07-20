@@ -24,4 +24,9 @@ abstract class ProfileRepository {
     required int guardianId,
     required String filePath,
   });
+
+  Future<Either<Failure, String>> uploadGuardianCnic({
+    required int guardianId,
+    required String filePath,
+  });
 }

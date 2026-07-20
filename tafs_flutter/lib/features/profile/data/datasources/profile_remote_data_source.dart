@@ -25,6 +25,11 @@ abstract class ProfileRemoteDataSource {
     required int guardianId,
     required String filePath,
   });
+
+  Future<String> uploadGuardianCnic({
+    required int guardianId,
+    required String filePath,
+  });
 }
 
 class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
@@ -169,6 +174,44 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       throw ServerFailure(ApiErrorMapper.fromObject(
         e,
         fallback: 'Unable to upload photo right now. Please try again.',
+      ));
+    }
+  }
+
+  @override
+  Future<String> uploadGuardianCnic({
+    required int guardianId,
+    required String filePath,
+  }) async {
+    try {
+      final fileName = filePath.split('/').last;
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          filePath,
+          filename: fileName,
+        ),
+      });
+
+      final response = await dio.post(
+        '/media/guardian/$guardianId/cnic?temp=true',
+        data: formData,
+      );
+
+      if (response.data != null) {
+        return response.data['url'] as String;
+      }
+      throw const ServerFailure('Invalid response from server');
+    } on DioException catch (e) {
+      throw ServerFailure(ApiErrorMapper.fromDioException(
+        e,
+        fallback: 'Unable to upload CNIC right now. Please try again.',
+      ));
+    } on Failure {
+      rethrow;
+    } catch (e) {
+      throw ServerFailure(ApiErrorMapper.fromObject(
+        e,
+        fallback: 'Unable to upload CNIC right now. Please try again.',
       ));
     }
   }

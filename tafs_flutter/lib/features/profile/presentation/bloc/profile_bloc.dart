@@ -41,6 +41,26 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       if (hasError) return;
     }
 
+    if (event.localCnicPhotoPath != null) {
+      final uploadResult = await repository.uploadGuardianCnic(
+        guardianId: event.guardianId,
+        filePath: event.localCnicPhotoPath!,
+      );
+
+      bool hasError = false;
+      uploadResult.fold(
+        (failure) {
+          emit(ProfileError(ApiErrorMapper.userMessage(failure)));
+          hasError = true;
+        },
+        (url) {
+          finalChanges['cnic_pic_url'] = url;
+        },
+      );
+
+      if (hasError) return;
+    }
+
     final result = await repository.submitGuardianChangeRequest(
       guardianId: event.guardianId,
       familyId: event.familyId,
