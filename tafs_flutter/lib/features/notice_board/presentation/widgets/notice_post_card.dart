@@ -76,40 +76,16 @@ class _NoticePostCardState extends State<NoticePostCard> {
           // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(
-                AppTheme.space4, AppTheme.space4, AppTheme.space4, AppTheme.space3),
+                AppTheme.space4, AppTheme.space4, AppTheme.space4, AppTheme.space2),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _InitialsAvatar(name: post.postedByName),
-                const SizedBox(width: AppTheme.space3),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              post.postedByName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                                color: AppTheme.navy,
-                              ),
-                            ),
-                          ),
-                          if (post.isPinned)
-                            const Icon(Icons.push_pin_rounded, size: 14, color: AppTheme.navy),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _formatTime(post.postedAt),
-                        style: const TextStyle(fontSize: 11, color: AppTheme.blue300),
-                      ),
-                    ],
-                  ),
+                Text(
+                  _formatTime(post.postedAt),
+                  style: const TextStyle(fontSize: 11, color: AppTheme.blue300, fontWeight: FontWeight.w500),
                 ),
+                const Spacer(),
+                if (post.isPinned)
+                  const Icon(Icons.push_pin_rounded, size: 14, color: AppTheme.navy),
               ],
             ),
           ),
