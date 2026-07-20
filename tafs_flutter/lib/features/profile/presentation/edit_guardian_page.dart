@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../auth/domain/entities/parent.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
 import '../../auth/presentation/bloc/auth_state.dart';
+import '../../auth/presentation/bloc/auth_event.dart';
 import 'bloc/profile_bloc.dart';
 import 'bloc/profile_event.dart';
 import 'bloc/profile_state.dart';
@@ -231,6 +232,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
     return BlocConsumer<ProfileBloc, ProfileState>(
       listener: (context, state) {
         if (state is ProfileSuccess) {
+          context.read<AuthBloc>().add(AuthRefreshRequested());
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Request submitted! Admin will review it soon.'),
@@ -322,7 +324,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                           ),
                     ),
                     const SizedBox(height: AppTheme.space4),
-                    _buildTextField(_nameController, 'Full Name', Icons.person_rounded),
+                    _buildTextField(_nameController, 'Full Name', Icons.person_rounded, apiKey: 'full_name'),
                     const SizedBox(height: AppTheme.space6),
                     Text(
                       'CONTACT INFORMATION',
@@ -342,6 +344,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
                         PakistaniPhoneFormatter(),
                       ],
+                      apiKey: 'primary_phone',
                     ),
                     _buildTextField(
                       _whatsappController,
@@ -352,8 +355,9 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
                         WhatsAppFormatter(),
                       ],
+                      apiKey: 'whatsapp_number',
                     ),
-                    _buildTextField(_emailController, 'Email Address', Icons.email_rounded),
+                    _buildTextField(_emailController, 'Email Address', Icons.email_rounded, apiKey: 'email_address'),
                     const SizedBox(height: AppTheme.space4),
                     Text(
                       'PROFESSIONAL DETAILS',
@@ -364,10 +368,10 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                           ),
                     ),
                     const SizedBox(height: AppTheme.space4),
-                    _buildTextField(_occupationController, 'Occupation', Icons.work_rounded),
-                    _buildTextField(_jobPositionController, 'Job Position', Icons.person_pin_rounded),
-                    _buildTextField(_organizationController, 'Organization', Icons.business_rounded),
-                    _buildTextField(_educationController, 'Education Level', Icons.school_rounded),
+                    _buildTextField(_occupationController, 'Occupation', Icons.work_rounded, apiKey: 'occupation'),
+                    _buildTextField(_jobPositionController, 'Job Position', Icons.person_pin_rounded, apiKey: 'job_position'),
+                    _buildTextField(_organizationController, 'Organization', Icons.business_rounded, apiKey: 'organization'),
+                    _buildTextField(_educationController, 'Education Level', Icons.school_rounded, apiKey: 'education_level'),
                     const SizedBox(height: AppTheme.space4),
                     Text(
                       'OTHER INFORMATION',
@@ -386,6 +390,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                       inputFormatters: [
                         CnicFormatter(),
                       ],
+                      apiKey: 'cnic',
                     ),
                     if (_cnicController.text.trim() != (widget.guardian.cnic ?? '').trim()) ...[
                       Padding(
@@ -454,9 +459,9 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
                         ),
                       ),
                     ],
-                    _buildTextField(_houseApptController, 'House / Apartment Name and No.', Icons.home_rounded),
-                    _buildTextField(_areaBlockController, 'Area and Block #', Icons.grid_view_rounded),
-                    _buildTextField(_postalCodeController, 'Postal Code', Icons.markunread_mailbox_rounded),
+                    _buildTextField(_houseApptController, 'House / Apartment Name and No.', Icons.home_rounded, apiKey: 'house_appt_name'),
+                    _buildTextField(_areaBlockController, 'Area and Block #', Icons.grid_view_rounded, apiKey: 'area_block'),
+                    _buildTextField(_postalCodeController, 'Postal Code', Icons.markunread_mailbox_rounded, apiKey: 'postal_code'),
                     const SizedBox(height: AppTheme.space8),
                     SizedBox(
                       width: double.infinity,
@@ -494,36 +499,68 @@ class _EditGuardianPageState extends State<EditGuardianPage> {
     int maxLines = 1,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
+    String? apiKey,
   }) {
+    final isPending = apiKey != null && widget.guardian.pendingFields.contains(apiKey);
     return Padding(
       padding: const EdgeInsets.only(bottom: AppTheme.space4),
-      child: TextFormField(
-        controller: controller,
-        maxLines: maxLines,
-        keyboardType: keyboardType,
-        inputFormatters: inputFormatters,
-        style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.navy),
-        decoration: InputDecoration(
-          labelText: label,
-          alignLabelWithHint: maxLines > 1,
-          prefixIcon: Icon(icon, color: AppTheme.blue200, size: 20),
-          filled: true,
-          fillColor: AppTheme.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-            borderSide: const BorderSide(color: AppTheme.blue100),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextFormField(
+            controller: controller,
+            maxLines: maxLines,
+            keyboardType: keyboardType,
+            inputFormatters: inputFormatters,
+            readOnly: isPending,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: isPending ? AppTheme.blue300 : AppTheme.navy,
+            ),
+            decoration: InputDecoration(
+              labelText: label,
+              alignLabelWithHint: maxLines > 1,
+              prefixIcon: Icon(icon, color: AppTheme.blue200, size: 20),
+              suffixIcon: isPending ? const Icon(Icons.lock_rounded, color: AppTheme.blue200, size: 16) : null,
+              filled: true,
+              fillColor: isPending ? AppTheme.blue100.withValues(alpha: 0.15) : AppTheme.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                borderSide: const BorderSide(color: AppTheme.blue100),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                borderSide: const BorderSide(color: AppTheme.blue100),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                borderSide: BorderSide(color: isPending ? AppTheme.blue100 : AppTheme.navy, width: isPending ? 1.0 : 1.5),
+              ),
+              labelStyle: const TextStyle(color: AppTheme.blue300, fontSize: 13, fontWeight: FontWeight.w500),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            ),
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-            borderSide: const BorderSide(color: AppTheme.blue100),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-            borderSide: const BorderSide(color: AppTheme.navy, width: 1.5),
-          ),
-          labelStyle: const TextStyle(color: AppTheme.blue300, fontSize: 13, fontWeight: FontWeight.w500),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        ),
+          if (isPending) ...[
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.pending_actions_rounded, color: AppTheme.blue300, size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Pending admin approval',
+                    style: TextStyle(
+                      color: AppTheme.blue300.withValues(alpha: 0.9),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

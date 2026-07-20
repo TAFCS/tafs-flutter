@@ -60,6 +60,7 @@ class FamilyGuardian extends Equatable {
   final String? postalCode;
   final String? jobPosition;
   final bool isEmergencyContact;
+  final List<String> pendingFields;
 
   const FamilyGuardian({
     required this.id,
@@ -82,6 +83,7 @@ class FamilyGuardian extends Equatable {
     this.postalCode,
     this.jobPosition,
     this.isEmergencyContact = false,
+    this.pendingFields = const [],
   });
 
   @override
@@ -106,5 +108,6 @@ class FamilyGuardian extends Equatable {
         postalCode,
         jobPosition,
         isEmergencyContact,
+        pendingFields,
       ];
 }

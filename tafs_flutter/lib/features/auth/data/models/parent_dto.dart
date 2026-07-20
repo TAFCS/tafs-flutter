@@ -107,6 +107,7 @@ class FamilyGuardianDto extends FamilyGuardian {
     super.postalCode,
     super.jobPosition,
     super.isEmergencyContact,
+    super.pendingFields,
   });
 
   factory FamilyGuardianDto.fromJson(Map<String, dynamic> json) {
@@ -137,6 +138,13 @@ class FamilyGuardianDto extends FamilyGuardian {
       jobPosition: (json['jobPosition'] as String?) ??
           (json['job_position'] as String?),
       isEmergencyContact: (json['isEmergencyContact'] as bool?) ?? false,
+      pendingFields: (json['pendingFields'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          (json['pending_fields'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
     );
   }
 
@@ -162,6 +170,7 @@ class FamilyGuardianDto extends FamilyGuardian {
       'postalCode': postalCode,
       'jobPosition': jobPosition,
       'isEmergencyContact': isEmergencyContact,
+      'pendingFields': pendingFields,
     };
   }
 }
