@@ -39,6 +39,7 @@ class EmployeeProfile extends Equatable {
     final campus = json['campuses'] as Map<String, dynamic>?;
     final department = json['departments'] as Map<String, dynamic>?;
     final designation = json['designations'] as Map<String, dynamic>?;
+    final staffCategory = json['staff_categories'] as Map<String, dynamic>?;
     final user = json['users'] as Map<String, dynamic>?;
 
     String? dateOnly(dynamic value) {
@@ -52,7 +53,7 @@ class EmployeeProfile extends Equatable {
       employeeCode: json['employee_code'] as String?,
       fullName: json['full_name'] as String?,
       jobTitle: json['job_title'] as String?,
-      staffCategory: json['staff_category'] as String?,
+      staffCategory: staffCategory?['name'] as String? ?? json['staff_category'] as String?,
       joinDate: dateOnly(json['join_date']),
       personalPhone: json['personal_phone'] as String?,
       personalEmail: json['personal_email'] as String?,
