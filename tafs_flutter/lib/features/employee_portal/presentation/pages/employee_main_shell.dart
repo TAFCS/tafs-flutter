@@ -425,7 +425,9 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
               height: _currentTabs.length > 5 ? 72 : 64,
               onDestinationSelected: (index) {
                 setState(() => _activeTab = _currentTabs[index]);
-                if (_activeTab == _EmployeeTab.noticeBoard) {
+                if (_activeTab == _EmployeeTab.attendance) {
+                  _attendanceKey.currentState?.refresh();
+                } else if (_activeTab == _EmployeeTab.noticeBoard) {
                   context.read<StaffNoticeBoardCubit>().load();
                 } else if (_activeTab == _EmployeeTab.employeeNoticeBoard) {
                   InjectionContainer.employeeNoticeCubit.load();
