@@ -76,6 +76,10 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
       staffTyping: false,
       clearError: true,
     ));
+    // Already viewing — clear unread now so the list badge stays clean.
+    if (msg.senderType == TicketMessageSenderType.staff) {
+      unawaited(repository.markRead(msg.ticketId));
+    }
   }
 
   Future<void> _resyncAfterReconnect(String ticketId) async {

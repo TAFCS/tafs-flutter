@@ -28,4 +28,20 @@ class SupportTicket {
     this.studentName,
     this.campusName,
   });
+
+  SupportTicket copyWith({int? unreadByParent}) {
+    return SupportTicket(
+      id: id,
+      familyId: familyId,
+      category: category,
+      subtopic: subtopic,
+      description: description,
+      status: status,
+      lastMessageSnippet: lastMessageSnippet,
+      lastMessageAt: lastMessageAt,
+      unreadByParent: unreadByParent ?? this.unreadByParent,
+      studentName: studentName,
+      campusName: campusName,
+    );
+  }
 }

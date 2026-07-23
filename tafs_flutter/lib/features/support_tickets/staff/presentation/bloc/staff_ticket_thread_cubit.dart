@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../chat/domain/entities/chat_message.dart';
 import '../../../domain/entities/ticket_message.dart';
+import '../../../presentation/utils/ticket_thread_presence.dart';
 import '../../domain/entities/staff_support_ticket.dart';
 import '../../data/models/staff_support_ticket_dto.dart';
 import '../../domain/repositories/staff_support_ticket_repository.dart';
@@ -96,6 +97,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
 
   Future<void> load(String ticketId) async {
     _activeTicketId = ticketId;
+    TicketThreadPresence.activeTicketId = ticketId;
     await _sub?.cancel();
     await _pendingSub?.cancel();
     await _reviewedSub?.cancel();
@@ -119,6 +121,10 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
           messages: [...state.messages, msg],
           parentTyping: false,
         ));
+        // Already viewing — clear unread so queue badge stays clean on back.
+        if (msg.senderType == TicketMessageSenderType.guardian) {
+          unawaited(repository.markRead(ticketId));
+        }
       },
       onError: (Object e, StackTrace st) {
         print('StaffTicketThreadCubit message stream error: $e');
@@ -269,6 +275,9 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
     if (id != null) {
       repository.emitTicketTyping(ticketId: id, isTyping: false);
       await repository.leaveTicket(id);
+    }
+    if (TicketThreadPresence.activeTicketId == id) {
+      TicketThreadPresence.activeTicketId = null;
     }
     _typingIdleTimer?.cancel();
     _parentTypingClearTimer?.cancel();

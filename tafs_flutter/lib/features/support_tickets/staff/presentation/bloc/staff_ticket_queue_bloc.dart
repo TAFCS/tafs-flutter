@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../presentation/utils/ticket_thread_presence.dart';
 import '../../domain/entities/staff_support_ticket.dart';
 import '../../domain/repositories/staff_support_ticket_repository.dart';
 import '../../support_ticket_staff_access.dart';
@@ -115,7 +116,14 @@ class StaffTicketQueueBloc extends Bloc<StaffTicketQueueEvent, StaffTicketQueueS
           items = await repository.fetchMyQueue();
       }
       items.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
-      emit(state.copyWith(items: items, loading: false));
+      final activeId = TicketThreadPresence.activeTicketId;
+      final normalized = activeId == null
+          ? items
+          : items
+              .map((t) =>
+                  t.id == activeId ? t.copyWith(unreadByStaff: 0) : t)
+              .toList();
+      emit(state.copyWith(items: normalized, loading: false));
     } catch (e) {
       emit(state.copyWith(
         loading: false,

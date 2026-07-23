@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/repositories/support_ticket_repository.dart';
+import '../utils/ticket_thread_presence.dart';
 import 'support_ticket_list_event.dart';
 import 'support_ticket_list_state.dart';
 
@@ -39,8 +40,14 @@ class SupportTicketListBloc
       final closed = await repository.listTickets(open: false);
       open.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
       closed.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+      final activeId = TicketThreadPresence.activeTicketId;
       emit(SupportTicketListLoaded(
-        openTickets: open,
+        openTickets: activeId == null
+            ? open
+            : open
+                .map((t) =>
+                    t.id == activeId ? t.copyWith(unreadByParent: 0) : t)
+                .toList(),
         closedTickets: closed,
         showingOpen: event.open,
       ));
@@ -60,8 +67,14 @@ class SupportTicketListBloc
       final closed = await repository.listTickets(open: false);
       open.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
       closed.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+      final activeId = TicketThreadPresence.activeTicketId;
       emit(SupportTicketListLoaded(
-        openTickets: open,
+        openTickets: activeId == null
+            ? open
+            : open
+                .map((t) =>
+                    t.id == activeId ? t.copyWith(unreadByParent: 0) : t)
+                .toList(),
         closedTickets: closed,
         showingOpen: current.showingOpen,
       ));

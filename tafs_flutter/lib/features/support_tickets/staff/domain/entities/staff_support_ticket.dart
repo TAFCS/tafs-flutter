@@ -46,6 +46,32 @@ class StaffSupportTicket {
     this.assigneeName,
     this.assigneeRole,
   });
+
+  StaffSupportTicket copyWith({int? unreadByStaff}) {
+    return StaffSupportTicket(
+      id: id,
+      familyId: familyId,
+      category: category,
+      subtopic: subtopic,
+      description: description,
+      status: status,
+      routedRole: routedRole,
+      currentAssigneeId: currentAssigneeId,
+      lastMessageSnippet: lastMessageSnippet,
+      lastFamilySnippet: lastFamilySnippet,
+      lastFamilySenderName: lastFamilySenderName,
+      lastStaffSnippet: lastStaffSnippet,
+      lastStaffSenderId: lastStaffSenderId,
+      lastStaffSenderName: lastStaffSenderName,
+      lastMessageAt: lastMessageAt,
+      unreadByStaff: unreadByStaff ?? this.unreadByStaff,
+      householdName: householdName,
+      studentName: studentName,
+      campusName: campusName,
+      assigneeName: assigneeName,
+      assigneeRole: assigneeRole,
+    );
+  }
 }
 
 class PendingApproval {
