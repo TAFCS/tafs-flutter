@@ -29,14 +29,14 @@ class SupportTicket {
     this.campusName,
   });
 
-  SupportTicket copyWith({int? unreadByParent}) {
+  SupportTicket copyWith({int? unreadByParent, TicketStatus? status}) {
     return SupportTicket(
       id: id,
       familyId: familyId,
       category: category,
       subtopic: subtopic,
       description: description,
-      status: status,
+      status: status ?? this.status,
       lastMessageSnippet: lastMessageSnippet,
       lastMessageAt: lastMessageAt,
       unreadByParent: unreadByParent ?? this.unreadByParent,

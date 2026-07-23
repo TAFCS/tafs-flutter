@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../../injection_container.dart';
 import '../../../../chat/domain/entities/chat_message.dart';
+import '../../../domain/entities/support_ticket.dart';
 import '../../../domain/entities/ticket_message.dart';
 import '../../../presentation/utils/ticket_thread_presence.dart';
 import '../../domain/entities/staff_support_ticket.dart';
 import '../../data/models/staff_support_ticket_dto.dart';
 import '../../domain/repositories/staff_support_ticket_repository.dart';
+import 'staff_ticket_queue_bloc.dart';
 
 class StaffTicketThreadState {
   final StaffSupportTicket? ticket;
@@ -59,6 +62,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
   StreamSubscription<Map<String, dynamic>>? _reviewedSub;
   StreamSubscription<Map<String, dynamic>>? _typingSub;
   StreamSubscription<Map<String, dynamic>>? _readSub;
+  StreamSubscription<Map<String, dynamic>>? _closedSub;
   StreamSubscription<void>? _connectSub;
   Timer? _typingIdleTimer;
   Timer? _parentTypingClearTimer;
@@ -89,6 +93,9 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
         clearError: true,
       ));
       await repository.markRead(ticketId);
+      InjectionContainer.staffTicketQueueBloc.add(
+        StaffQueueUnreadCleared(ticketId),
+      );
     } catch (_) {
     } finally {
       _resyncing = false;
@@ -103,6 +110,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
     await _reviewedSub?.cancel();
     await _typingSub?.cancel();
     await _readSub?.cancel();
+    await _closedSub?.cancel();
     await _connectSub?.cancel();
     _parentTypingClearTimer?.cancel();
     emit(state.copyWith(
@@ -124,6 +132,9 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
         // Already viewing — clear unread so queue badge stays clean on back.
         if (msg.senderType == TicketMessageSenderType.guardian) {
           unawaited(repository.markRead(ticketId));
+          InjectionContainer.staffTicketQueueBloc.add(
+            StaffQueueUnreadCleared(ticketId),
+          );
         }
       },
       onError: (Object e, StackTrace st) {
@@ -222,11 +233,30 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
     _connectSub = repository.onSocketConnect.listen((_) {
       unawaited(_resyncAfterReconnect(ticketId));
     });
+    _closedSub = repository.onTicketClosed.listen(
+      (payload) {
+        if (_activeTicketId != ticketId) return;
+        final closedId = payload['ticket']?['id']?.toString() ??
+            payload['ticketId']?.toString();
+        if (closedId != ticketId) return;
+        final current = state.ticket;
+        if (current == null || isClosed) return;
+        emit(state.copyWith(
+          ticket: current.copyWith(status: TicketStatus.closed),
+          parentTyping: false,
+        ));
+      },
+      onError: (_) {},
+      cancelOnError: false,
+    );
 
     try {
       await repository.connectSocket();
       await repository.enterTicket(ticketId);
       await repository.markRead(ticketId);
+      InjectionContainer.staffTicketQueueBloc.add(
+        StaffQueueUnreadCleared(ticketId),
+      );
       final detail = await repository.fetchDetail(ticketId);
       if (isClosed || _activeTicketId != ticketId) return;
 
@@ -286,12 +316,14 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
     await _reviewedSub?.cancel();
     await _typingSub?.cancel();
     await _readSub?.cancel();
+    await _closedSub?.cancel();
     await _connectSub?.cancel();
     _sub = null;
     _pendingSub = null;
     _reviewedSub = null;
     _typingSub = null;
     _readSub = null;
+    _closedSub = null;
     _connectSub = null;
     _activeTicketId = null;
   }

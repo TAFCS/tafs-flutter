@@ -11,6 +11,7 @@ class SupportTicketListBloc
     extends Bloc<SupportTicketListEvent, SupportTicketListState> {
   final SupportTicketRepository repository;
   StreamSubscription? _ticketSub;
+  StreamSubscription? _queueSub;
 
   /// Tickets the parent has opened this session — keep badge at 0 even if a
   /// concurrent list refresh still returns the pre-markRead unread count.
@@ -23,7 +24,9 @@ class SupportTicketListBloc
     on<SupportTicketListUnreadCleared>(_onUnreadCleared);
     on<SupportTicketListResetRequested>((event, emit) {
       _ticketSub?.cancel();
+      _queueSub?.cancel();
       _ticketSub = null;
+      _queueSub = null;
       _locallyReadTicketIds.clear();
       emit(SupportTicketListInitial());
     });
@@ -74,6 +77,11 @@ class SupportTicketListBloc
         onError: (_) {},
         cancelOnError: false,
       );
+      _queueSub ??= repository.onTicketQueueChanged.listen(
+        (_) => add(const SupportTicketListSocketRefreshRequested()),
+        onError: (_) {},
+        cancelOnError: false,
+      );
       final open = await repository.listTickets(open: true);
       final closed = await repository.listTickets(open: false);
       open.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
@@ -110,6 +118,7 @@ class SupportTicketListBloc
   @override
   Future<void> close() {
     _ticketSub?.cancel();
+    _queueSub?.cancel();
     return super.close();
   }
 }

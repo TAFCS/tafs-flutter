@@ -37,6 +37,8 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   final _attendanceAlertController =
       StreamController<Map<String, dynamic>>.broadcast();
   final _ticketQueueChangedController = StreamController<void>.broadcast();
+  final _ticketClosedController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final _replyPendingApprovalController =
       StreamController<Map<String, dynamic>>.broadcast();
   final _replyReviewedController =
@@ -86,6 +88,10 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   @override
   Stream<void> get onTicketQueueChanged =>
       _ticketQueueChangedController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get onTicketClosed =>
+      _ticketClosedController.stream;
 
   @override
   Stream<void> get onReplyPendingApproval =>
@@ -513,10 +519,20 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       'ticketClaimed',
       'ticketTransferred',
       'ticketForwarded',
-      'ticketClosed',
     ]) {
       _socket!.on(event, (_) => _emitTicketQueueChanged());
     }
+
+    _socket!.on('ticketClosed', (data) {
+      _emitTicketQueueChanged();
+      try {
+        if (data is Map && !_ticketClosedController.isClosed) {
+          _ticketClosedController.add(Map<String, dynamic>.from(data));
+        }
+      } catch (e) {
+        print('Error parsing ticketClosed: $e');
+      }
+    });
 
     _socket!.onDisconnect((reason) {
       print('[ChatRepo] Disconnected from socket. Reason: $reason');

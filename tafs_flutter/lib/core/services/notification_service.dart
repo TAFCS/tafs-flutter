@@ -1,20 +1,25 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart' as fln;
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import '../navigation/app_navigator.dart';
-import 'fcm_registration_service.dart';
-import 'in_app_notification_service.dart';
-import 'voucher_alert_banner_helper.dart';
-import 'notice_board_realtime_service.dart';
-import 'attendance_alert_realtime_service.dart';
-import '../../injection_container.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'
+    as fln;
+
 import '../../features/attendance_history/presentation/pages/attendance_calendar_page.dart';
+import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/notice_board/presentation/bloc/notice_board_event.dart';
 import '../../features/notice_board/presentation/utils/notice_board_realtime.dart';
-import '../../features/auth/presentation/bloc/auth_state.dart';
+import '../../features/support_tickets/presentation/utils/ticket_thread_presence.dart';
+import '../../injection_container.dart';
+import '../navigation/app_navigator.dart';
+import 'attendance_alert_realtime_service.dart';
+import 'fcm_registration_service.dart';
+import 'in_app_notification_service.dart';
+import 'notice_board_realtime_service.dart';
+import 'pending_notification_router.dart';
+import 'voucher_alert_banner_helper.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -22,6 +27,13 @@ class NotificationService {
   NotificationService._internal();
 
   static const String _androidNotificationIcon = 'ic_notification';
+
+  /// Exposed for unit tests / diagnostics.
+  @visibleForTesting
+  final PendingNotificationRouter pendingRouter = PendingNotificationRouter();
+
+  StreamSubscription<AuthState>? _authSub;
+  bool _flushScheduled = false;
 
   static Future<void> clearBadge() async {}
 
@@ -79,11 +91,77 @@ class NotificationService {
     FirebaseMessaging.instance.getInitialMessage().then((message) {
       if (message != null) _handleRemoteMessage(message);
     });
+    _ensureAuthListener();
+  }
+
+  void _ensureAuthListener() {
+    if (_authSub != null) return;
+    try {
+      _authSub = InjectionContainer.authBloc.stream.listen(_onAuthState);
+      // Also flush if auth already restored before this listener attached.
+      _onAuthState(InjectionContainer.authBloc.state);
+    } catch (_) {
+      // InjectionContainer may not be ready yet in some test contexts.
+    }
+  }
+
+  void _onAuthState(AuthState state) {
+    if (state is AuthUnauthenticated) {
+      pendingRouter.clear();
+      return;
+    }
+    if (_sessionAcceptsNotifications()) {
+      unawaited(_flushPendingLaunch());
+    }
   }
 
   bool _sessionAcceptsNotifications() {
     final state = InjectionContainer.authBloc.state;
-    return state is AuthAuthenticated || state is AuthAuthenticatedStaff;
+    return state is AuthAuthenticated ||
+        state is AuthAuthenticatedStaff ||
+        state is AuthProfileRefreshFailed ||
+        state is AuthAccountDeletionRequested;
+  }
+
+  Future<void> _flushPendingLaunch() async {
+    if (_flushScheduled) return;
+    _flushScheduled = true;
+    try {
+      // Wait briefly for navigator / shell to mount after auth restore.
+      for (var i = 0; i < 20; i++) {
+        if (!pendingRouter.hasPending) return;
+        if (!_sessionAcceptsNotifications()) return;
+
+        final context = appNavigatorKey.currentContext;
+        final data = pendingRouter.flushIfReady(
+          isAuthenticated: true,
+          hasNavigator: context != null && context.mounted,
+        );
+        if (data != null) {
+          _handleNotificationRouting(data, fromPendingFlush: true);
+          return;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
+    } finally {
+      _flushScheduled = false;
+    }
+  }
+
+  void _queueOrRoute(Map<String, dynamic> data) {
+    if (_sessionAcceptsNotifications()) {
+      final context = appNavigatorKey.currentContext;
+      if (context != null && context.mounted) {
+        _handleNotificationRouting(data, fromPendingFlush: true);
+        return;
+      }
+      // Authed but navigator not ready yet — queue and flush shortly.
+      pendingRouter.queue(data);
+      unawaited(_flushPendingLaunch());
+      return;
+    }
+    pendingRouter.queue(data);
+    _ensureAuthListener();
   }
 
   void _deliverForegroundMessage(RemoteMessage message) {
@@ -141,6 +219,16 @@ class NotificationService {
         return;
       }
 
+      // Already in this ticket thread — don't stack a redundant banner.
+      if ((type == 'SUPPORT_TICKET_MESSAGE' ||
+              type == 'SUPPORT_TICKET_CLOSED' ||
+              type == 'SUPPORT_TICKET_CREATED') &&
+          ticketId != null &&
+          ticketId.isNotEmpty &&
+          TicketThreadPresence.isViewing(ticketId)) {
+        return;
+      }
+
       InAppNotificationService.show(
         context: context,
         title: title,
@@ -153,7 +241,7 @@ class NotificationService {
               ticketId.isNotEmpty) {
             navigateToSupportTicketThread(ticketId);
           } else if (type == 'calendar_alert') {
-            _handleNotificationRouting(message.data);
+            _handleNotificationRouting(message.data, fromPendingFlush: true);
           } else if (type == 'EMPLOYEE_NOTICE') {
             InjectionContainer.employeeNoticeCubit.refresh();
           }
@@ -171,17 +259,15 @@ class NotificationService {
   }
 
   void _onLocalNotificationTap(fln.NotificationResponse details) {
-    if (!_sessionAcceptsNotifications()) return;
     if (details.payload == null || details.payload!.isEmpty) return;
     try {
       final data = jsonDecode(details.payload!) as Map<String, dynamic>;
-      _handleNotificationRouting(data);
+      _queueOrRoute(data);
     } catch (_) {}
   }
 
   void _handleRemoteMessage(RemoteMessage message) {
-    if (!_sessionAcceptsNotifications()) return;
-    _handleNotificationRouting(message.data);
+    _queueOrRoute(Map<String, dynamic>.from(message.data));
   }
 
   String _resolveTitle(RemoteMessage message) {
@@ -194,11 +280,19 @@ class NotificationService {
     return message.notification?.body ?? message.data['body'] as String? ?? '';
   }
 
-  void _handleNotificationRouting(Map<String, dynamic> data) {
+  void _handleNotificationRouting(
+    Map<String, dynamic> data, {
+    bool fromPendingFlush = false,
+  }) {
+    if (!fromPendingFlush && !_sessionAcceptsNotifications()) {
+      pendingRouter.queue(data);
+      _ensureAuthListener();
+      return;
+    }
     if (!_sessionAcceptsNotifications()) return;
 
     final type = data['type'] as String?;
-    
+
     if (type == 'SUPPORT_TICKET_MESSAGE' ||
         type == 'SUPPORT_TICKET_CLOSED' ||
         type == 'SUPPORT_TICKET_CREATED') {
@@ -206,15 +300,19 @@ class NotificationService {
       if (ticketId != null && ticketId.isNotEmpty) {
         navigateToSupportTicketThread(ticketId);
       }
-    } else if (type == 'ATTENDANCE_ALERT' || type == 'biometric_attendance' || type == 'calendar_alert') {
-      InjectionContainer.noticeBoardBloc.add(const NoticeBoardRefreshRequested());
+    } else if (type == 'ATTENDANCE_ALERT' ||
+        type == 'biometric_attendance' ||
+        type == 'calendar_alert') {
+      InjectionContainer.noticeBoardBloc
+          .add(const NoticeBoardRefreshRequested());
       _handleAttendanceRouting(data);
     } else if (type == 'voucher_alert') {
       _handleVoucherAlertRouting(studentCcStr: data['student_cc']);
       _applyVoucherAlertToFeed(data);
     } else if (type == 'notice_board') {
       switchToHomeTab();
-      InjectionContainer.noticeBoardBloc.add(const NoticeBoardRefreshRequested());
+      InjectionContainer.noticeBoardBloc
+          .add(const NoticeBoardRefreshRequested());
     } else if (type == 'EMPLOYEE_NOTICE') {
       // Refresh the employee notice cubit so the Notices tab is up-to-date
       try {
@@ -228,12 +326,14 @@ class NotificationService {
     if (context == null) return;
 
     final studentCcStr = data['studentCc'] ?? data['student_cc'];
-    final studentCc = studentCcStr != null ? int.tryParse(studentCcStr.toString()) : null;
+    final studentCc =
+        studentCcStr != null ? int.tryParse(studentCcStr.toString()) : null;
     final activeStudent = InjectionContainer.selectedStudentCubit.state;
     if (activeStudent == null || activeStudent.cc != studentCc) return;
 
     final scanTimeStr = data['scanTime'] ?? data['scan_time'] ?? data['date'];
-    final parsedDate = scanTimeStr != null ? DateTime.tryParse(scanTimeStr.toString()) : null;
+    final parsedDate =
+        scanTimeStr != null ? DateTime.tryParse(scanTimeStr.toString()) : null;
 
     Navigator.push(
       context,
@@ -250,9 +350,13 @@ class NotificationService {
     final context = appNavigatorKey.currentContext;
     if (context == null) return;
 
-    final parsedCc = studentCcStr != null ? int.tryParse(studentCcStr.toString()) : null;
+    final parsedCc =
+        studentCcStr != null ? int.tryParse(studentCcStr.toString()) : null;
     final activeStudent = InjectionContainer.selectedStudentCubit.state;
-    if (activeStudent == null || (parsedCc != null && activeStudent.cc != parsedCc)) return;
+    if (activeStudent == null ||
+        (parsedCc != null && activeStudent.cc != parsedCc)) {
+      return;
+    }
 
     switchToFeesTab();
   }
@@ -260,7 +364,8 @@ class NotificationService {
   void _applyVoucherAlertToFeed(Map<String, dynamic> data) {
     final authState = InjectionContainer.authBloc.state;
     if (authState is! AuthAuthenticated) {
-      InjectionContainer.noticeBoardBloc.add(const NoticeBoardRefreshRequested());
+      InjectionContainer.noticeBoardBloc
+          .add(const NoticeBoardRefreshRequested());
       return;
     }
 

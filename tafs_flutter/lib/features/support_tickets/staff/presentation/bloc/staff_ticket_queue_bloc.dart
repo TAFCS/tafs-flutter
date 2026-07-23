@@ -59,11 +59,19 @@ class StaffQueueTicketSelected extends StaffTicketQueueEvent {
 
 class StaffQueueSocketMessage extends StaffTicketQueueEvent {}
 
+class StaffQueueUnreadCleared extends StaffTicketQueueEvent {
+  final String ticketId;
+  StaffQueueUnreadCleared(this.ticketId);
+}
+
 class StaffQueueReset extends StaffTicketQueueEvent {}
 
 class StaffTicketQueueBloc extends Bloc<StaffTicketQueueEvent, StaffTicketQueueState> {
   final StaffSupportTicketRepository repository;
   StreamSubscription? _socketSub;
+
+  /// Tickets staff opened this session — keep queue unread at 0 across refresh races.
+  final Set<String> _locallyReadTicketIds = {};
 
   StaffTicketQueueBloc({required this.repository})
       : super(const StaffTicketQueueState()) {
@@ -72,7 +80,29 @@ class StaffTicketQueueBloc extends Bloc<StaffTicketQueueEvent, StaffTicketQueueS
     on<StaffQueueRefreshRequested>(_onRefresh);
     on<StaffQueueTicketSelected>(_onSelect);
     on<StaffQueueSocketMessage>(_onSocket);
+    on<StaffQueueUnreadCleared>(_onUnreadCleared);
     on<StaffQueueReset>(_onReset);
+  }
+
+  List<StaffSupportTicket> _applyUnreadOverrides(List<StaffSupportTicket> items) {
+    final activeId = TicketThreadPresence.activeTicketId;
+    if (activeId == null && _locallyReadTicketIds.isEmpty) return items;
+    return items
+        .map((t) {
+          if (t.id == activeId || _locallyReadTicketIds.contains(t.id)) {
+            return t.copyWith(unreadByStaff: 0);
+          }
+          return t;
+        })
+        .toList();
+  }
+
+  void _onUnreadCleared(
+    StaffQueueUnreadCleared event,
+    Emitter<StaffTicketQueueState> emit,
+  ) {
+    _locallyReadTicketIds.add(event.ticketId);
+    emit(state.copyWith(items: _applyUnreadOverrides(state.items)));
   }
 
   Future<void> _onInit(
@@ -116,14 +146,10 @@ class StaffTicketQueueBloc extends Bloc<StaffTicketQueueEvent, StaffTicketQueueS
           items = await repository.fetchMyQueue();
       }
       items.sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
-      final activeId = TicketThreadPresence.activeTicketId;
-      final normalized = activeId == null
-          ? items
-          : items
-              .map((t) =>
-                  t.id == activeId ? t.copyWith(unreadByStaff: 0) : t)
-              .toList();
-      emit(state.copyWith(items: normalized, loading: false));
+      emit(state.copyWith(
+        items: _applyUnreadOverrides(items),
+        loading: false,
+      ));
     } catch (e) {
       emit(state.copyWith(
         loading: false,
@@ -143,6 +169,10 @@ class StaffTicketQueueBloc extends Bloc<StaffTicketQueueEvent, StaffTicketQueueS
     StaffQueueSocketMessage event,
     Emitter<StaffTicketQueueState> emit,
   ) {
+    // Any queue activity may include new unread for tickets we previously
+    // opened — drop local-read except the thread currently on screen.
+    final activeId = TicketThreadPresence.activeTicketId;
+    _locallyReadTicketIds.removeWhere((id) => id != activeId);
     add(StaffQueueRefreshRequested());
   }
 
@@ -152,6 +182,7 @@ class StaffTicketQueueBloc extends Bloc<StaffTicketQueueEvent, StaffTicketQueueS
   ) async {
     await _socketSub?.cancel();
     _socketSub = null;
+    _locallyReadTicketIds.clear();
     await repository.disconnectSocket();
     emit(const StaffTicketQueueState());
   }

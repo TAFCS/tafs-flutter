@@ -34,6 +34,14 @@ class SupportTicketRepositoryImpl implements SupportTicketRepository {
       chatRepository.onTicketMessagesRead;
 
   @override
+  Stream<void> get onTicketQueueChanged =>
+      chatRepository.onTicketQueueChanged;
+
+  @override
+  Stream<Map<String, dynamic>> get onTicketClosed =>
+      chatRepository.onTicketClosed;
+
+  @override
   Stream<void> get onSocketConnect => chatRepository.onConnect;
 
   @override

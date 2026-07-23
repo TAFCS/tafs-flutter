@@ -36,6 +36,10 @@ class StaffSupportTicketRepositoryImpl implements StaffSupportTicketRepository {
       chatRepository.onTicketQueueChanged;
 
   @override
+  Stream<Map<String, dynamic>> get onTicketClosed =>
+      chatRepository.onTicketClosed;
+
+  @override
   Stream<void> get onReplyPendingApproval =>
       chatRepository.onReplyPendingApproval;
 

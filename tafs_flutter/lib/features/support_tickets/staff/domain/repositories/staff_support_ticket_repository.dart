@@ -5,6 +5,7 @@ import '../entities/staff_support_ticket.dart';
 abstract class StaffSupportTicketRepository {
   Stream<TicketMessage> get onTicketMessage;
   Stream<void> get onTicketQueueChanged;
+  Stream<Map<String, dynamic>> get onTicketClosed;
   Stream<void> get onReplyPendingApproval;
   Stream<Map<String, dynamic>> get onReplyPendingApprovalPayload;
   Stream<Map<String, dynamic>> get onReplyReviewedPayload;

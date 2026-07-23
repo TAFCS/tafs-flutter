@@ -50,6 +50,7 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
   StreamSubscription<TicketMessage>? _sub;
   StreamSubscription<Map<String, dynamic>>? _typingSub;
   StreamSubscription<Map<String, dynamic>>? _readSub;
+  StreamSubscription<Map<String, dynamic>>? _closedSub;
   StreamSubscription<void>? _connectSub;
   Timer? _typingClearTimer;
   Timer? _typingIdleTimer;
@@ -148,6 +149,7 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
     await _sub?.cancel();
     await _typingSub?.cancel();
     await _readSub?.cancel();
+    await _closedSub?.cancel();
     await _connectSub?.cancel();
     _typingClearTimer?.cancel();
     emit(state.copyWith(loading: true, staffTyping: false, clearError: true));
@@ -213,6 +215,22 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
     _connectSub = repository.onSocketConnect.listen((_) {
       unawaited(_resyncAfterReconnect(ticketId));
     });
+    _closedSub = repository.onTicketClosed.listen(
+      (payload) {
+        if (_activeTicketId != ticketId) return;
+        final closedId = payload['ticket']?['id']?.toString() ??
+            payload['ticketId']?.toString();
+        if (closedId != ticketId) return;
+        final current = state.ticket;
+        if (current == null || isClosed) return;
+        emit(state.copyWith(
+          ticket: current.copyWith(status: TicketStatus.closed),
+          staffTyping: false,
+        ));
+      },
+      onError: (_) {},
+      cancelOnError: false,
+    );
 
     try {
       await repository.connectSocket();
@@ -332,6 +350,7 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
     await _sub?.cancel();
     await _typingSub?.cancel();
     await _readSub?.cancel();
+    await _closedSub?.cancel();
     await _connectSub?.cancel();
     return super.close();
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/support_tickets/presentation/bloc/support_ticket_list_event.dart';
 import '../../features/support_tickets/presentation/pages/ticket_thread_page.dart';
+import '../../features/support_tickets/staff/presentation/bloc/staff_ticket_queue_bloc.dart';
 import '../../features/support_tickets/staff/presentation/pages/staff_ticket_thread_page.dart';
 import '../../injection_container.dart';
 
@@ -13,14 +14,18 @@ void navigateToSupportTicketThread(String ticketId) {
 
   final authState = InjectionContainer.authBloc.state;
   if (authState is AuthAuthenticatedStaff) {
-    Navigator.of(context).push(
+    Navigator.of(context)
+        .push(
       MaterialPageRoute(
         builder: (_) => StaffTicketThreadPage(
           ticketId: ticketId,
           staff: authState.staff,
         ),
       ),
-    );
+    )
+        .then((_) {
+      InjectionContainer.staffTicketQueueBloc.add(StaffQueueRefreshRequested());
+    });
     return;
   }
 

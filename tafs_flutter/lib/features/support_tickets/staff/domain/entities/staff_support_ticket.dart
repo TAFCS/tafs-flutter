@@ -47,14 +47,14 @@ class StaffSupportTicket {
     this.assigneeRole,
   });
 
-  StaffSupportTicket copyWith({int? unreadByStaff}) {
+  StaffSupportTicket copyWith({int? unreadByStaff, TicketStatus? status}) {
     return StaffSupportTicket(
       id: id,
       familyId: familyId,
       category: category,
       subtopic: subtopic,
       description: description,
-      status: status,
+      status: status ?? this.status,
       routedRole: routedRole,
       currentAssigneeId: currentAssigneeId,
       lastMessageSnippet: lastMessageSnippet,
