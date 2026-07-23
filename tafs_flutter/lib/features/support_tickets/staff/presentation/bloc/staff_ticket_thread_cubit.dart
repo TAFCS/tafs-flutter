@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../chat/domain/entities/chat_message.dart';
 import '../../../domain/entities/ticket_message.dart';
 import '../../domain/entities/staff_support_ticket.dart';
 import '../../data/models/staff_support_ticket_dto.dart';
@@ -56,6 +57,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
   StreamSubscription<Map<String, dynamic>>? _pendingSub;
   StreamSubscription<Map<String, dynamic>>? _reviewedSub;
   StreamSubscription<Map<String, dynamic>>? _typingSub;
+  StreamSubscription<Map<String, dynamic>>? _readSub;
   StreamSubscription<void>? _connectSub;
   Timer? _typingIdleTimer;
   Timer? _parentTypingClearTimer;
@@ -98,6 +100,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
     await _pendingSub?.cancel();
     await _reviewedSub?.cancel();
     await _typingSub?.cancel();
+    await _readSub?.cancel();
     await _connectSub?.cancel();
     _parentTypingClearTimer?.cancel();
     emit(state.copyWith(
@@ -190,6 +193,26 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
       onError: (_) {},
       cancelOnError: false,
     );
+    _readSub = repository.onTicketMessagesRead.listen(
+      (payload) {
+        if (_activeTicketId != ticketId) return;
+        final payloadTicketId = payload['ticketId']?.toString();
+        if (payloadTicketId != null && payloadTicketId != ticketId) return;
+        // Parent read staff messages → blue ticks on our outgoing
+        final by = payload['by']?.toString().toUpperCase();
+        if (by != 'PARENT') return;
+        if (isClosed) return;
+        emit(state.copyWith(
+          messages: state.messages
+              .map((m) => m.senderType == TicketMessageSenderType.staff
+                  ? m.copyWith(isRead: true)
+                  : m)
+              .toList(),
+        ));
+      },
+      onError: (_) {},
+      cancelOnError: false,
+    );
     _connectSub = repository.onSocketConnect.listen((_) {
       unawaited(_resyncAfterReconnect(ticketId));
     });
@@ -253,30 +276,57 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
     await _pendingSub?.cancel();
     await _reviewedSub?.cancel();
     await _typingSub?.cancel();
+    await _readSub?.cancel();
     await _connectSub?.cancel();
     _sub = null;
     _pendingSub = null;
     _reviewedSub = null;
     _typingSub = null;
+    _readSub = null;
     _connectSub = null;
     _activeTicketId = null;
+  }
+
+  Map<String, dynamic> _replyMetadata(ChatMessage? replyTo) {
+    if (replyTo == null) return {};
+    final replyUrl = replyTo.mediaMetadata?['url'] as String? ??
+        (replyTo.messageType == ChatMessageType.image ||
+                replyTo.messageType == ChatMessageType.document ||
+                replyTo.messageType == ChatMessageType.voice
+            ? replyTo.content
+            : null);
+    return {
+      'replyTo': {
+        'id': replyTo.id,
+        'content': replyTo.content,
+        'type': replyTo.messageType.name.toUpperCase(),
+        'senderName': replyTo.senderName ?? 'Message',
+        if (replyUrl != null && replyUrl.isNotEmpty) 'url': replyUrl,
+      },
+    };
   }
 
   Future<void> sendMedia({
     required String messageType,
     required String content,
     Map<String, dynamic>? mediaMetadata,
+    ChatMessage? replyTo,
   }) async {
     final ticket = state.ticket;
     if (ticket == null) return;
     repository.emitTicketTyping(ticketId: ticket.id, isTyping: false);
     emit(state.copyWith(sending: true, clearActionError: true));
     try {
+      final replyMeta = _replyMetadata(replyTo);
+      final merged = <String, dynamic>{
+        ...?mediaMetadata,
+        ...replyMeta,
+      };
       final msg = await repository.sendMessage(
         ticketId: ticket.id,
         messageType: messageType,
         content: content,
-        mediaMetadata: mediaMetadata,
+        mediaMetadata: merged.isEmpty ? null : merged,
       );
       if (!state.messages.any((m) => m.id == msg.id)) {
         emit(state.copyWith(
@@ -294,16 +344,18 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
     }
   }
 
-  Future<void> sendMessage(String content) async {
+  Future<void> sendMessage(String content, {ChatMessage? replyTo}) async {
     final ticket = state.ticket;
     if (ticket == null || content.trim().isEmpty) return;
     repository.emitTicketTyping(ticketId: ticket.id, isTyping: false);
     emit(state.copyWith(sending: true, clearActionError: true));
     try {
+      final replyMeta = _replyMetadata(replyTo);
       final msg = await repository.sendMessage(
         ticketId: ticket.id,
         messageType: 'TEXT',
         content: content.trim(),
+        mediaMetadata: replyMeta.isEmpty ? null : replyMeta,
       );
       if (!state.messages.any((m) => m.id == msg.id)) {
         emit(state.copyWith(

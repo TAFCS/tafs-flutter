@@ -67,7 +67,7 @@ ChatMessage staffTicketMessageToChatMessage(
     messageType: type,
     content: _ticketMessageContent(message, type),
     mediaMetadata: message.mediaMetadata,
-    isRead: true,
+    isRead: message.isRead,
     createdAt: message.createdAt,
     status: MessageStatus.sent,
   );
@@ -88,7 +88,7 @@ ChatMessage ticketMessageToChatMessage(TicketMessage message) {
     messageType: type,
     content: _ticketMessageContent(message, type),
     mediaMetadata: message.mediaMetadata,
-    isRead: true,
+    isRead: message.isRead,
     createdAt: message.createdAt,
     status: MessageStatus.sent,
   );

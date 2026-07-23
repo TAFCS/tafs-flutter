@@ -44,6 +44,8 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   final _announcementController = StreamController<ChatMessage>.broadcast();
   final _ticketTypingController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _ticketMessagesReadController =
+      StreamController<Map<String, dynamic>>.broadcast();
   bool _isRefreshingToken = false;
   bool _isDrainingOutbox = false;
   String? _activeTicketId;
@@ -126,6 +128,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   void _bindTicketRealtimeHandlers(io.Socket socket) {
     socket.off('ticketMessageReceived');
     socket.off('ticketTyping');
+    socket.off('ticketMessagesRead');
     socket.off('replyReviewed');
     socket.off('replyPendingApproval');
 
@@ -147,6 +150,16 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
         }
       } catch (e) {
         print('Error parsing ticketTyping: $e');
+      }
+    });
+
+    socket.on('ticketMessagesRead', (data) {
+      try {
+        if (data is Map && !_ticketMessagesReadController.isClosed) {
+          _ticketMessagesReadController.add(Map<String, dynamic>.from(data));
+        }
+      } catch (e) {
+        print('Error parsing ticketMessagesRead: $e');
       }
     });
 
@@ -176,6 +189,10 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   @override
   Stream<Map<String, dynamic>> get onTicketTyping =>
       _ticketTypingController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get onTicketMessagesRead =>
+      _ticketMessagesReadController.stream;
 
   @override
   Future<List<ChatMessage>> getChatHistory({int take = 50, int skip = 0}) async {
@@ -653,9 +670,10 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       'tempId': entry.clientMessageId,
       if (entry.mediaMetadata != null) ...entry.mediaMetadata!,
     };
-    if (entry.replyToId != null) {
+    if (entry.replyToId != null && metadata['replyToId'] == null) {
       metadata['replyToId'] = entry.replyToId;
     }
+    // Nested replyTo is already spread from entry.mediaMetadata when present.
 
     // Local file upload: only supported on mobile.
     // On web there is no local filesystem; mediaMetadata['url'] should

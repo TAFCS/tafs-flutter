@@ -28,6 +28,7 @@ abstract class SupportTicketRepository {
   Future<Map<String, dynamic>> uploadMedia(XFile file);
   Stream<TicketMessage> get onTicketMessage;
   Stream<Map<String, dynamic>> get onTicketTyping;
+  Stream<Map<String, dynamic>> get onTicketMessagesRead;
   Stream<void> get onSocketConnect;
   Future<void> connectSocket();
   Future<void> enterTicket(String ticketId);

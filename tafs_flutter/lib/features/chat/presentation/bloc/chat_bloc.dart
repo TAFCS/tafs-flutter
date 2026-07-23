@@ -290,14 +290,22 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     if (event.file != null) metadata['localPath'] = event.file!.path;
 
     if (event.replyTo != null) {
+      final reply = event.replyTo!;
+      final replyUrl = reply.mediaMetadata?['url'] as String? ??
+          (reply.messageType == ChatMessageType.image ||
+                  reply.messageType == ChatMessageType.document ||
+                  reply.messageType == ChatMessageType.voice
+              ? reply.content
+              : null);
       metadata['replyTo'] = {
-        'id': event.replyTo!.id,
-        'content': event.replyTo!.content,
-        'type': event.replyTo!.messageType.name.toUpperCase(),
-        'senderName': event.replyTo!.senderName ??
-            (event.replyTo!.senderType == ChatSenderType.guardian
+        'id': reply.id,
+        'content': reply.content,
+        'type': reply.messageType.name.toUpperCase(),
+        'senderName': reply.senderName ??
+            (reply.senderType == ChatSenderType.guardian
                 ? 'You'
                 : 'TAFS Support'),
+        if (replyUrl != null && replyUrl.isNotEmpty) 'url': replyUrl,
       };
     }
 
@@ -323,12 +331,19 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
     // On web, XFile.path is a blob URL and not a real filesystem path.
     // We store it only on native so the outbox can re-upload on retry.
+    final outboxMeta = <String, dynamic>{};
+    if (event.batchId != null) outboxMeta['batchId'] = event.batchId;
+    if (event.replyTo != null) {
+      outboxMeta['replyToId'] = event.replyTo!.id;
+      outboxMeta['replyTo'] = metadata['replyTo'];
+    }
+
     final outboxEntry = ChatOutboxEntry(
       clientMessageId: tempId,
       messageType: event.type.name.toUpperCase(),
       content: event.content,
       localFilePath: (!kIsWeb && event.file != null) ? event.file!.path : null,
-      mediaMetadata: event.batchId != null ? {'batchId': event.batchId} : null,
+      mediaMetadata: outboxMeta.isEmpty ? null : outboxMeta,
       replyToId: event.replyTo?.id,
       createdAt: DateTime.now(),
     );

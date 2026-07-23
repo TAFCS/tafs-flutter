@@ -119,6 +119,19 @@ class ChatBubble extends StatelessWidget {
     final type = replyTo['type']?.toString().toUpperCase() ?? 'TEXT';
     final isImage = type == 'IMAGE';
     final isVoice = type == 'VOICE';
+    final isDocument = type == 'DOCUMENT';
+    final thumbUrl = (replyTo['url'] ?? replyTo['content'])?.toString();
+
+    String previewLabel;
+    if (isImage) {
+      previewLabel = 'Photo';
+    } else if (isVoice) {
+      previewLabel = 'Voice Note';
+    } else if (isDocument) {
+      previewLabel = 'Document';
+    } else {
+      previewLabel = (replyTo['content'] ?? '').toString();
+    }
 
     return Container(
       width: double.infinity,
@@ -166,9 +179,13 @@ class ChatBubble extends StatelessWidget {
                             Icon(Icons.photo, size: 14, color: isMe ? Colors.white70 : Colors.black54),
                             const SizedBox(width: 4),
                           ],
+                          if (isDocument) ...[
+                            Icon(Icons.insert_drive_file, size: 14, color: isMe ? Colors.white70 : Colors.black54),
+                            const SizedBox(width: 4),
+                          ],
                           Expanded(
                             child: Text(
-                              isImage ? 'Photo' : isVoice ? 'Voice Note' : (replyTo['content'] ?? ''),
+                              previewLabel,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -185,7 +202,7 @@ class ChatBubble extends StatelessWidget {
                 ),
               ),
             ),
-            if (isImage)
+            if (isImage && thumbUrl != null && thumbUrl.isNotEmpty)
               Container(
                 width: 50,
                 decoration: const BoxDecoration(
@@ -194,7 +211,7 @@ class ChatBubble extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: const BorderRadius.horizontal(right: Radius.circular(4)),
                   child: _renderImage(
-                    replyTo['content'],
+                    thumbUrl,
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -319,7 +336,9 @@ class ChatBubble extends StatelessWidget {
             Icon(
               message.isRead ? Icons.done_all_rounded : Icons.done_rounded,
               size: 14,
-              color: Colors.white.withOpacity(0.7),
+              color: message.isRead
+                  ? const Color(0xFF53BDEB)
+                  : Colors.white.withOpacity(0.7),
             ),
         ],
       ],

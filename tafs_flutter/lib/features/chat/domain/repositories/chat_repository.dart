@@ -42,6 +42,7 @@ abstract class ChatRepository {
   void leaveTicket(String ticketId);
   void emitTicketTyping({required String ticketId, required bool isTyping});
   Stream<Map<String, dynamic>> get onTicketTyping;
+  Stream<Map<String, dynamic>> get onTicketMessagesRead;
   /// Ticket currently being viewed (if any). Rejoined automatically after reconnect.
   String? get activeTicketId;
 

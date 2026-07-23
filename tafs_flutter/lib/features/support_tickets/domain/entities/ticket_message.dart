@@ -17,6 +17,7 @@ class TicketMessage {
   final String? senderUserId;
   final Map<String, dynamic>? mediaMetadata;
   final String? reviewComment;
+  final bool isRead;
 
   const TicketMessage({
     required this.id,
@@ -31,5 +32,27 @@ class TicketMessage {
     this.senderUserId,
     this.mediaMetadata,
     this.reviewComment,
+    this.isRead = false,
   });
+
+  TicketMessage copyWith({
+    bool? isRead,
+    Map<String, dynamic>? mediaMetadata,
+  }) {
+    return TicketMessage(
+      id: id,
+      ticketId: ticketId,
+      senderType: senderType,
+      messageType: messageType,
+      content: content,
+      reviewStatus: reviewStatus,
+      createdAt: createdAt,
+      senderName: senderName,
+      senderRole: senderRole,
+      senderUserId: senderUserId,
+      mediaMetadata: mediaMetadata ?? this.mediaMetadata,
+      reviewComment: reviewComment,
+      isRead: isRead ?? this.isRead,
+    );
+  }
 }

@@ -68,6 +68,7 @@ class TicketMessageDto {
           ? Map<String, dynamic>.from(json['media_metadata'] as Map)
           : null,
       reviewComment: _asString(json['review_comment']),
+      isRead: json['is_read'] == true || json['isRead'] == true,
     );
   }
 

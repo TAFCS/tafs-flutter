@@ -52,6 +52,10 @@ class StaffSupportTicketRepositoryImpl implements StaffSupportTicketRepository {
       chatRepository.onTicketTyping;
 
   @override
+  Stream<Map<String, dynamic>> get onTicketMessagesRead =>
+      chatRepository.onTicketMessagesRead;
+
+  @override
   bool get isSocketConnected => chatRepository.isConnected;
 
   @override

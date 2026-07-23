@@ -30,6 +30,10 @@ class SupportTicketRepositoryImpl implements SupportTicketRepository {
       chatRepository.onTicketTyping;
 
   @override
+  Stream<Map<String, dynamic>> get onTicketMessagesRead =>
+      chatRepository.onTicketMessagesRead;
+
+  @override
   Stream<void> get onSocketConnect => chatRepository.onConnect;
 
   @override

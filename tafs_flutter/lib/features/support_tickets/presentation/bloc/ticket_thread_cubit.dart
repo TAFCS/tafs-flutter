@@ -47,6 +47,7 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
   final SupportTicketRepository repository;
   StreamSubscription<TicketMessage>? _sub;
   StreamSubscription<Map<String, dynamic>>? _typingSub;
+  StreamSubscription<Map<String, dynamic>>? _readSub;
   StreamSubscription<void>? _connectSub;
   Timer? _typingClearTimer;
   Timer? _typingIdleTimer;
@@ -109,13 +110,22 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
 
   Map<String, dynamic> _replyMetadata(ChatMessage? replyTo) {
     if (replyTo == null) return {};
+    final replyUrl = replyTo.mediaMetadata?['url'] as String? ??
+        (replyTo.messageType == ChatMessageType.image ||
+                replyTo.messageType == ChatMessageType.document ||
+                replyTo.messageType == ChatMessageType.voice
+            ? replyTo.content
+            : null);
     return {
       'replyTo': {
         'id': replyTo.id,
         'content': replyTo.content,
         'type': replyTo.messageType.name.toUpperCase(),
         'senderName': replyTo.senderName ??
-            (replyTo.senderType == ChatSenderType.guardian ? 'You' : 'TAFS Support'),
+            (replyTo.senderType == ChatSenderType.guardian
+                ? 'You'
+                : 'TAFS Support'),
+        if (replyUrl != null && replyUrl.isNotEmpty) 'url': replyUrl,
       },
     };
   }
@@ -125,6 +135,7 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
     TicketThreadPresence.activeTicketId = ticketId;
     await _sub?.cancel();
     await _typingSub?.cancel();
+    await _readSub?.cancel();
     await _connectSub?.cancel();
     _typingClearTimer?.cancel();
     emit(state.copyWith(loading: true, staffTyping: false, clearError: true));
@@ -163,6 +174,26 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
             if (!isClosed) emit(state.copyWith(staffTyping: false));
           });
         }
+      },
+      onError: (_) {},
+      cancelOnError: false,
+    );
+    _readSub = repository.onTicketMessagesRead.listen(
+      (payload) {
+        if (_activeTicketId != ticketId) return;
+        final payloadTicketId = payload['ticketId']?.toString();
+        if (payloadTicketId != null && payloadTicketId != ticketId) return;
+        // Staff read our messages → blue double-ticks on parent outgoing
+        final by = payload['by']?.toString().toUpperCase();
+        if (by != 'STAFF') return;
+        if (isClosed) return;
+        emit(state.copyWith(
+          messages: state.messages
+              .map((m) => m.senderType == TicketMessageSenderType.guardian
+                  ? m.copyWith(isRead: true)
+                  : m)
+              .toList(),
+        ));
       },
       onError: (_) {},
       cancelOnError: false,
@@ -284,6 +315,7 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
     _typingIdleTimer?.cancel();
     await _sub?.cancel();
     await _typingSub?.cancel();
+    await _readSub?.cancel();
     await _connectSub?.cancel();
     return super.close();
   }

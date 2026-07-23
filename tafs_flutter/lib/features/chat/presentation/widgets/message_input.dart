@@ -467,15 +467,19 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                                 const Icon(Icons.mic, size: 14, color: Colors.grey),
                                 const SizedBox(width: 4),
                               ],
+                              if (widget.replyingTo!.messageType == ChatMessageType.document) ...[
+                                const Icon(Icons.insert_drive_file, size: 14, color: Colors.grey),
+                                const SizedBox(width: 4),
+                              ],
                               Expanded(
                                 child: Text(
-                                  widget.replyingTo!.messageType == ChatMessageType.text 
-                                    ? widget.replyingTo!.content 
-                                    : widget.replyingTo!.messageType == ChatMessageType.image 
-                                      ? 'Photo' 
-                                      : widget.replyingTo!.messageType == ChatMessageType.voice 
-                                        ? 'Voice Note' 
-                                        : '[${widget.replyingTo!.messageType.name.toUpperCase()}]',
+                                  widget.replyingTo!.messageType == ChatMessageType.text
+                                    ? widget.replyingTo!.content
+                                    : widget.replyingTo!.messageType == ChatMessageType.image
+                                      ? 'Photo'
+                                      : widget.replyingTo!.messageType == ChatMessageType.voice
+                                        ? 'Voice Note'
+                                        : 'Document',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(

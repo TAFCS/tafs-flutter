@@ -33,6 +33,7 @@ class StaffTicketThreadPage extends StatefulWidget {
 class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
   late final StaffTicketThreadCubit _cubit;
   final ScrollController _scrollController = ScrollController();
+  ChatMessage? _replyingTo;
 
   @override
   void initState() {
@@ -352,8 +353,28 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                                                 ),
                                               );
                                             },
-                                            onReplyTap: (_) {},
-                                            onReply: (_) {},
+                                            onReplyTap: (id) {
+                                              final idx = state.messages
+                                                  .indexWhere((m) => m.id == id);
+                                              if (idx < 0 ||
+                                                  !_scrollController.hasClients) {
+                                                return;
+                                              }
+                                              // Approximate scroll — messages are in a ListView
+                                              _scrollController.animateTo(
+                                                (idx * 80).toDouble().clamp(
+                                                      0,
+                                                      _scrollController
+                                                          .position.maxScrollExtent,
+                                                    ),
+                                                duration: const Duration(
+                                                    milliseconds: 350),
+                                                curve: Curves.easeOut,
+                                              );
+                                            },
+                                            onReply: (message) {
+                                              setState(() => _replyingTo = message);
+                                            },
                                           ),
                                         ),
                                         if (isSuperAdmin && isIncomingStaff &&
@@ -458,8 +479,8 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                           ),
                         MessageInput(
                       isSending: state.sending,
-                      replyingTo: null,
-                      onCancelReply: () {},
+                      replyingTo: _replyingTo,
+                      onCancelReply: () => setState(() => _replyingTo = null),
                       students: const [],
                       onTypingChanged: (text) {
                         context.read<StaffTicketThreadCubit>().onComposerChanged(text);
@@ -480,9 +501,13 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                             messageType: messageType,
                             content: mediaUrl ?? content,
                             mediaMetadata: media,
+                            replyTo: replyTo,
                           );
                         } else {
-                          await cubit.sendMessage(content);
+                          await cubit.sendMessage(content, replyTo: replyTo);
+                        }
+                        if (_replyingTo != null) {
+                          setState(() => _replyingTo = null);
                         }
                         _scrollToBottom();
                       },
