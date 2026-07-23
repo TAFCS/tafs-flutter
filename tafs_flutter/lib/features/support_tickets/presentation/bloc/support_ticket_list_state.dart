@@ -18,6 +18,15 @@ class SupportTicketListSocketRefreshRequested extends SupportTicketListEvent {
   const SupportTicketListSocketRefreshRequested();
 }
 
+/// Zero unread for a ticket after the parent opened the thread (markRead).
+/// Needed when entry is via in-app notification — the list is not reloaded on pop.
+class SupportTicketListUnreadCleared extends SupportTicketListEvent {
+  final String ticketId;
+  const SupportTicketListUnreadCleared(this.ticketId);
+  @override
+  List<Object?> get props => [ticketId];
+}
+
 class SupportTicketListResetRequested extends SupportTicketListEvent {
   const SupportTicketListResetRequested();
 }

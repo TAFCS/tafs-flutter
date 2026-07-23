@@ -77,7 +77,12 @@ class _MainShellPageState extends State<MainShellPage> with WidgetsBindingObserv
               MaterialPageRoute(
                 builder: (_) => TicketThreadPage(ticketId: msg.ticketId),
               ),
-            );
+            ).then((_) {
+              if (!context.mounted) return;
+              context.read<SupportTicketListBloc>().add(
+                    const SupportTicketListLoadRequested(),
+                  );
+            });
           },
         );
         context.read<SupportTicketListBloc>().add(const SupportTicketListLoadRequested());

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
+import '../../features/support_tickets/presentation/bloc/support_ticket_list_event.dart';
 import '../../features/support_tickets/presentation/pages/ticket_thread_page.dart';
 import '../../features/support_tickets/staff/presentation/pages/staff_ticket_thread_page.dart';
 import '../../injection_container.dart';
@@ -23,11 +24,17 @@ void navigateToSupportTicketThread(String ticketId) {
     return;
   }
 
-  Navigator.of(context).push(
+  Navigator.of(context)
+      .push(
     MaterialPageRoute(
       builder: (_) => TicketThreadPage(ticketId: ticketId),
     ),
-  );
+  )
+      .then((_) {
+    InjectionContainer.supportTicketListBloc.add(
+      const SupportTicketListLoadRequested(),
+    );
+  });
 }
 
 /// Requests that [MainShellPage] switch its bottom-nav tab to the given

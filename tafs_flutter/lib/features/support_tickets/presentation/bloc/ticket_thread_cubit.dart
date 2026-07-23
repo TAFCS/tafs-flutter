@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../injection_container.dart';
 import '../../../chat/domain/entities/chat_message.dart';
 import '../../domain/entities/support_ticket.dart';
 import '../../domain/entities/ticket_message.dart';
 import '../../domain/repositories/support_ticket_repository.dart';
+import 'support_ticket_list_event.dart';
 import '../utils/ticket_thread_presence.dart';
 
 class TicketThreadState {
@@ -79,6 +81,9 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
     // Already viewing — clear unread now so the list badge stays clean.
     if (msg.senderType == TicketMessageSenderType.staff) {
       unawaited(repository.markRead(msg.ticketId));
+      InjectionContainer.supportTicketListBloc.add(
+        SupportTicketListUnreadCleared(msg.ticketId),
+      );
     }
   }
 
@@ -105,6 +110,9 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
         clearError: true,
       ));
       await repository.markRead(ticketId);
+      InjectionContainer.supportTicketListBloc.add(
+        SupportTicketListUnreadCleared(ticketId),
+      );
     } catch (_) {
       // Soft resync — keep current UI.
     } finally {
@@ -210,6 +218,10 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
       await repository.connectSocket();
       await repository.enterTicket(ticketId);
       await repository.markRead(ticketId);
+      // Clear home / list unread badge immediately (notification entry skips list reload on pop).
+      InjectionContainer.supportTicketListBloc.add(
+        SupportTicketListUnreadCleared(ticketId),
+      );
       final detail = await repository.getTicketDetail(ticketId);
       if (isClosed || _activeTicketId != ticketId) return;
 
