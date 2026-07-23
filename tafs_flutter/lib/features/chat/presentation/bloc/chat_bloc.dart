@@ -380,7 +380,12 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       if (state is! ChatLoaded) return;
       final successState = state as ChatLoaded;
       final updatedMessages = successState.messages.map((m) {
-        if (m.id == tempId) return confirmedMessage;
+        if (m.id == tempId) {
+          // Preserve a live read receipt that arrived before send confirmed
+          return confirmedMessage.copyWith(
+            isRead: confirmedMessage.isRead || m.isRead,
+          );
+        }
         return m;
       }).toList();
       await repository.removeFromOutbox(tempId);
