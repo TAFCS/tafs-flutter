@@ -51,14 +51,26 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
     super.dispose();
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+  void _scrollToBottom({bool jump = false}) {
+    void attempt() {
       if (!_scrollController.hasClients) return;
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
+      final target = _scrollController.position.maxScrollExtent;
+      if (jump) {
+        _scrollController.jumpTo(target);
+      } else {
+        _scrollController.animateTo(
+          target,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      attempt();
+      if (!_scrollController.hasClients) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => attempt());
+      }
     });
   }
 
@@ -97,8 +109,14 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
     return BlocProvider.value(
       value: _cubit,
       child: BlocListener<StaffTicketThreadCubit, StaffTicketThreadState>(
-        listenWhen: (p, c) => c.messages.length != p.messages.length,
-        listener: (_, __) => _scrollToBottom(),
+        listenWhen: (p, c) =>
+            c.messages.length != p.messages.length ||
+            (p.loading && !c.loading && c.messages.isNotEmpty),
+        listener: (context, state) {
+          final isInitialLoad =
+              state.messages.isNotEmpty && !_scrollController.hasClients;
+          _scrollToBottom(jump: isInitialLoad);
+        },
         child: Scaffold(
           backgroundColor: AppTheme.surface2,
           appBar: AppBar(

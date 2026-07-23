@@ -29,12 +29,19 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
   int _clusterCount = 0;
   bool _isLoadingMore = false;
+  /// Block infinite-scroll until we've landed on the latest message.
+  /// Otherwise the reverse list briefly reports high indices and loads older
+  /// history, which jumps the viewport up away from the newest messages.
+  bool _allowPagination = false;
+  bool _pendingJumpToLatest = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _chatBloc = context.read<ChatBloc>();
+    _pendingJumpToLatest = true;
+    _allowPagination = false;
     _chatBloc.add(ChatViewEntered());
     _itemPositionsListener.itemPositions.addListener(_onScrollPositionChanged);
   }
@@ -58,7 +65,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   }
 
   void _onScrollPositionChanged() {
-    if (_isLoadingMore) return;
+    if (!_allowPagination || _isLoadingMore) return;
     final positions = _itemPositionsListener.itemPositions.value;
     if (positions.isEmpty) return;
     final maxIndex = positions.map((p) => p.index).reduce(max);
@@ -70,6 +77,22 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       setState(() => _isLoadingMore = true);
       _chatBloc.add(ChatHistoryLoaded());
     }
+  }
+
+  /// Pin viewport to the newest cluster (index 0 with reverse:true).
+  void _scheduleJumpToLatest({required int clusterCount}) {
+    if (!_pendingJumpToLatest || clusterCount <= 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_pendingJumpToLatest) return;
+      if (_itemScrollController.isAttached) {
+        _itemScrollController.jumpTo(index: 0);
+      }
+      _pendingJumpToLatest = false;
+      // Let layout settle before allowing "load older" pagination.
+      Future<void>.delayed(const Duration(milliseconds: 400), () {
+        if (mounted) setState(() => _allowPagination = true);
+      });
+    });
   }
 
   void _scrollToMessage(List<List<ChatMessage>> clusters, String messageId) {
@@ -216,6 +239,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                       }
                       final reversedClusters = clusters.reversed.toList();
                       _clusterCount = reversedClusters.length;
+                      _scheduleJumpToLatest(clusterCount: reversedClusters.length);
 
                       return ScrollablePositionedList.builder(
                         itemScrollController: _itemScrollController,
@@ -339,6 +363,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                       if (_replyingTo != null) {
                         setState(() => _replyingTo = null);
                       }
+                      // Stay pinned to the latest message after send.
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (_itemScrollController.isAttached) {
+                          _itemScrollController.jumpTo(index: 0);
+                        }
+                      });
                     },
                   );
                 },
