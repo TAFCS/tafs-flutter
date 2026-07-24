@@ -233,8 +233,10 @@ class _VoucherDetailPageState extends State<VoucherDetailPage> {
                     ),
                     const SizedBox(height: AppTheme.space3),
                     _BankDetails(bankInfo: widget.voucher.bankInfo!),
-                    const SizedBox(height: AppTheme.space8),
+                    const SizedBox(height: AppTheme.space6),
                   ],
+                  const _IbftDetailsNote(),
+                  const SizedBox(height: AppTheme.space8),
                 ],
               ),
             ),
@@ -835,6 +837,72 @@ class _BreakdownStat extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _IbftDetailsNote extends StatelessWidget {
+  const _IbftDetailsNote();
+
+  static const String _message = '''
+Assalam O Alaikum,
+Dear,
+Kindly note the following account details,
+
+BANK : MEEZAN BANK.
+
+BRANCH – RAMSHA AVENUE,
+BLOCK # 13, GULISTAN - E - JAUHAR, KARACHI.
+
+IBAN: PK98MEZN0010280107453476
+
+BRANCH CODE : 1028
+
+ACCOUNT TITLE : THE AMERICAN FOUNDATION SCHOOL.
+
+Kind Regards,
+Ms. Meshah.''';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.space5),
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.blue100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.account_balance_rounded,
+                size: 18,
+                color: AppTheme.navy,
+              ),
+              const SizedBox(width: AppTheme.space2),
+              Text(
+                'IBFT / Online Transfer Details',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.navy,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.space4),
+          SelectableText(
+            _message,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppTheme.navy,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
