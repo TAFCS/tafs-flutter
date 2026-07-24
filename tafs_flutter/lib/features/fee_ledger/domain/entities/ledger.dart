@@ -31,6 +31,9 @@ class StudentProfile extends Equatable {
   final DateTime? dob;
   final String? gender;
   final List<GuardianInfo> guardians;
+  final String? enrollmentStatus;
+  final String? graduatedFromClass;
+  final DateTime? graduatedAt;
 
   const StudentProfile({
     required this.cc,
@@ -45,11 +48,17 @@ class StudentProfile extends Equatable {
     this.dob,
     this.gender,
     required this.guardians,
+    this.enrollmentStatus,
+    this.graduatedFromClass,
+    this.graduatedAt,
   });
+
+  bool get isGraduated => enrollmentStatus == 'GRADUATED';
 
   @override
   List<Object?> get props => [
-    cc, fullName, grNumber, campus, className, section, house, houseColor, photographUrl, dob, gender, guardians
+    cc, fullName, grNumber, campus, className, section, house, houseColor, photographUrl, dob, gender, guardians,
+    enrollmentStatus, graduatedFromClass, graduatedAt,
   ];
 }
 

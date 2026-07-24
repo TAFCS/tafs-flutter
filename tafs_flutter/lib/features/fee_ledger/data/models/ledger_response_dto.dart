@@ -36,6 +36,9 @@ class StudentProfileDto extends StudentProfile {
     super.dob,
     super.gender,
     required super.guardians,
+    super.enrollmentStatus,
+    super.graduatedFromClass,
+    super.graduatedAt,
   });
 
   factory StudentProfileDto.fromJson(Map<String, dynamic> json) {
@@ -54,6 +57,11 @@ class StudentProfileDto extends StudentProfile {
       guardians: (json['guardians'] as List)
           .map((e) => GuardianInfoDto.fromJson(e))
           .toList(),
+      enrollmentStatus: json['enrollment_status'] as String?,
+      graduatedFromClass: json['graduated_from_class'] as String?,
+      graduatedAt: json['graduated_at'] != null
+          ? DateTime.tryParse(json['graduated_at'] as String)
+          : null,
     );
   }
 }

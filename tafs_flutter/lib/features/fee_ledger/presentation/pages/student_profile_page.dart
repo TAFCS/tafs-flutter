@@ -45,9 +45,23 @@ class StudentProfilePage extends StatelessWidget {
               title: 'Academic Details',
               items: [
                 _InfoRow(label: 'Campus', value: student.campus ?? 'N/A'),
-                _InfoRow(label: 'Class', value: student.className ?? 'N/A'),
-                _InfoRow(label: 'Section', value: student.section ?? 'N/A'),
-                _InfoRow(label: 'House', valueWidget: _buildHouseValue(context)),
+                if (student.isGraduated) ...[
+                  _InfoRow(label: 'Status', value: 'Graduated'),
+                  _InfoRow(
+                    label: 'Graduated From',
+                    value: student.graduatedFromClass ?? 'N/A',
+                  ),
+                  _InfoRow(
+                    label: 'Graduation Date',
+                    value: student.graduatedAt != null
+                        ? DateFormat('dd MMM yyyy').format(student.graduatedAt!)
+                        : 'N/A',
+                  ),
+                ] else ...[
+                  _InfoRow(label: 'Class', value: student.className ?? 'N/A'),
+                  _InfoRow(label: 'Section', value: student.section ?? 'N/A'),
+                  _InfoRow(label: 'House', valueWidget: _buildHouseValue(context)),
+                ],
                 _InfoRow(label: 'CC', value: student.cc.toString()),
                 _InfoRow(label: 'GR Number', value: student.grNumber ?? 'N/A'),
                 GestureDetector(

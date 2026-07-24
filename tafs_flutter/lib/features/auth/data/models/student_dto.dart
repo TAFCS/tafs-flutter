@@ -15,6 +15,9 @@ class StudentDto extends Student {
     super.campusId,
     super.classId,
     super.sectionId,
+    super.enrollmentStatus,
+    super.graduatedFromClass,
+    super.graduatedAt,
   });
 
   factory StudentDto.fromJson(Map<String, dynamic> json) {
@@ -32,6 +35,11 @@ class StudentDto extends Student {
       campusId: json['campusId'] as int?,
       classId: json['classId'] as int?,
       sectionId: json['sectionId'] as int?,
+      enrollmentStatus: json['enrollmentStatus'] as String?,
+      graduatedFromClass: json['graduatedFromClass'] as String?,
+      graduatedAt: json['graduatedAt'] != null
+          ? DateTime.tryParse(json['graduatedAt'] as String)
+          : null,
     );
   }
 
@@ -50,6 +58,9 @@ class StudentDto extends Student {
       'campusId': campusId,
       'classId': classId,
       'sectionId': sectionId,
+      'enrollmentStatus': enrollmentStatus,
+      'graduatedFromClass': graduatedFromClass,
+      'graduatedAt': graduatedAt?.toIso8601String(),
     };
   }
 }
