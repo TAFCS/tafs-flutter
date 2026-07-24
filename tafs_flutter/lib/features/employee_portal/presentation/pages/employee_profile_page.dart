@@ -143,6 +143,28 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
                         style: const TextStyle(color: AppTheme.textMuted),
                       ),
                     ],
+                    if (profile != null) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: profile.employmentStatusBackground,
+                          borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                          border: Border.all(
+                            color: profile.employmentStatusColor.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Text(
+                          profile.employmentStatusLabel.toUpperCase(),
+                          style: TextStyle(
+                            color: profile.employmentStatusColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -154,10 +176,7 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
               _row('Designation', profile?.designationName),
               _row('Category', profile?.staffCategory?.replaceAll('_', ' ')),
               _row('Join date', _fmtJoinDate(profile?.joinDate)),
-              _row(
-                'Service status',
-                profile?.isPermanentEmployee == true ? 'Permanent (14+ months)' : 'Probation / new hire',
-              ),
+              _row('Employment status', profile?.employmentStatusLabel),
             ]),
             const SizedBox(height: 12),
             _section('Contact', [
