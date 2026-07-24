@@ -206,6 +206,7 @@ class ChatBubble extends StatelessWidget {
             if (isImage && thumbUrl != null && thumbUrl.isNotEmpty)
               Container(
                 width: 50,
+                height: 50,
                 decoration: const BoxDecoration(
                   borderRadius: BorderRadius.horizontal(right: Radius.circular(4)),
                 ),
@@ -213,6 +214,8 @@ class ChatBubble extends StatelessWidget {
                   borderRadius: const BorderRadius.horizontal(right: Radius.circular(4)),
                   child: _renderImage(
                     thumbUrl,
+                    width: 50,
+                    height: 50,
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -379,6 +382,7 @@ class ChatBubble extends StatelessWidget {
         final caption = (message.mediaMetadata?['url'] != null && message.content != message.mediaMetadata?['url']) 
             ? message.content 
             : null;
+        final bubbleWidth = MediaQuery.of(context).size.width * 0.7;
         
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -387,9 +391,16 @@ class ChatBubble extends StatelessWidget {
               onTap: () => onImageTap(imageUrl),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: _renderImage(
-                  imageUrl,
-                  localPath: message.mediaMetadata?['localPath'],
+                child: SizedBox(
+                  width: bubbleWidth,
+                  height: 220,
+                  child: _renderImage(
+                    imageUrl,
+                    localPath: message.mediaMetadata?['localPath'],
+                    width: bubbleWidth,
+                    height: 220,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ),
@@ -580,6 +591,8 @@ class ChatBubble extends StatelessWidget {
               child: _renderImage(
                 url,
                 localPath: localPath,
+                width: double.infinity,
+                height: double.infinity,
                 fit: BoxFit.cover,
               ),
             );

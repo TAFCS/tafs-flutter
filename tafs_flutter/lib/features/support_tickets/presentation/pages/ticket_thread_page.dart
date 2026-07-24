@@ -55,12 +55,18 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
       }
     }
 
+    // Layout can grow as images resolve; re-pin to bottom for a few frames.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       attempt();
-      // First open: list may not attach until a second frame.
-      if (!_scrollController.hasClients) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => attempt());
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        attempt();
+        Future<void>.delayed(const Duration(milliseconds: 120), () {
+          if (mounted) attempt();
+        });
+        Future<void>.delayed(const Duration(milliseconds: 400), () {
+          if (mounted) attempt();
+        });
+      });
     });
   }
 

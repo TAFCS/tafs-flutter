@@ -68,9 +68,15 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       attempt();
-      if (!_scrollController.hasClients) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => attempt());
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        attempt();
+        Future<void>.delayed(const Duration(milliseconds: 120), () {
+          if (mounted) attempt();
+        });
+        Future<void>.delayed(const Duration(milliseconds: 400), () {
+          if (mounted) attempt();
+        });
+      });
     });
   }
 
