@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/session/logout_lock.dart';
+import '../../../core/widgets/app_cached_network_image.dart';
 import '../../../core/widgets/app_dialog_actions.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../auth/domain/entities/parent.dart';
@@ -464,9 +465,9 @@ class _ParentHeaderCard extends StatelessWidget {
               color: AppTheme.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppTheme.radiusMd),
               border: Border.all(color: AppTheme.white.withValues(alpha: 0.2)),
-              image: parent.photographUrl != null
+              image: appCachedNetworkImageProvider(parent.photographUrl) != null
                   ? DecorationImage(
-                      image: NetworkImage(parent.photographUrl!),
+                      image: appCachedNetworkImageProvider(parent.photographUrl)!,
                       fit: BoxFit.cover,
                     )
                   : null,
@@ -568,9 +569,7 @@ class _StudentInfoCard extends StatelessWidget {
                   CircleAvatar(
                     radius: 24,
                     backgroundColor: AppTheme.navy.withValues(alpha: 0.05),
-                    backgroundImage: student.photographUrl != null
-                        ? NetworkImage(student.photographUrl!)
-                        : null,
+                    backgroundImage: appCachedNetworkImageProvider(student.photographUrl),
                     child: student.photographUrl == null
                         ? Text(
                             student.fullName[0],
@@ -638,9 +637,7 @@ class _GuardianCard extends StatelessWidget {
               CircleAvatar(
                 radius: 24,
                 backgroundColor: AppTheme.navy.withValues(alpha: 0.05),
-                backgroundImage: guardian.photographUrl != null
-                    ? NetworkImage(guardian.photographUrl!)
-                    : null,
+                backgroundImage: appCachedNetworkImageProvider(guardian.photographUrl),
                 child: guardian.photographUrl == null
                     ? const Icon(Icons.person_outline, color: AppTheme.navy)
                     : null,
@@ -698,7 +695,7 @@ class _GuardianDetailsSheet extends StatelessWidget {
             CircleAvatar(
               radius: 48,
               backgroundColor: AppTheme.navy.withValues(alpha: 0.05),
-              backgroundImage: guardian.photographUrl != null ? NetworkImage(guardian.photographUrl!) : null,
+              backgroundImage: appCachedNetworkImageProvider(guardian.photographUrl),
               child: guardian.photographUrl == null ? const Icon(Icons.person_outline, size: 48, color: AppTheme.navy) : null,
             ),
             const SizedBox(height: AppTheme.space4),

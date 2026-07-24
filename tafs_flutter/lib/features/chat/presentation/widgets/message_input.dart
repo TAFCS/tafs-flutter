@@ -10,7 +10,7 @@ import 'dart:typed_data';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/chat_student.dart';
 import 'package:tafs_flutter/core/theme/app_theme.dart';
-import 'package:tafs_flutter/core/utils/cdn_utils.dart';
+import 'package:tafs_flutter/core/widgets/app_cached_network_image.dart';
 
 class MentionsController extends TextEditingController {
   @override
@@ -504,10 +504,10 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          widget.replyingTo!.mediaMetadata?['url'] ?? widget.replyingTo!.content,
+                        child: AppCachedNetworkImage(
+                          url: widget.replyingTo!.mediaMetadata?['url'] ?? widget.replyingTo!.content,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 20),
+                          errorWidget: const Icon(Icons.broken_image, size: 20),
                         ),
                       ),
                     ),
@@ -635,9 +635,7 @@ class _MessageInputState extends State<MessageInput> with SingleTickerProviderSt
                             return ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: Colors.grey[200],
-                                backgroundImage: student.photographUrl != null
-                                  ? NetworkImage(CdnUtils.resolve(student.photographUrl!))
-                                  : null,
+                                backgroundImage: appCachedNetworkImageProvider(student.photographUrl),
                                 child: student.photographUrl == null
                                   ? const Icon(Icons.person, size: 20)
                                   : null,

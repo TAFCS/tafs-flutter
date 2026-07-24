@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_cached_network_image.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
 import '../../auth/presentation/bloc/auth_state.dart';
 import '../../fee_ledger/domain/entities/ledger.dart';
@@ -205,9 +206,7 @@ class _EditStudentPageState extends State<EditStudentPage> {
                                     backgroundColor: AppTheme.blue100.withValues(alpha: 0.3),
                                     backgroundImage: _pickedImageFile != null
                                         ? FileImage(_pickedImageFile!) as ImageProvider
-                                        : (widget.student.photographUrl != null
-                                            ? NetworkImage(widget.student.photographUrl!) as ImageProvider
-                                            : null),
+                                        : appCachedNetworkImageProvider(widget.student.photographUrl),
                                     child: _pickedImageFile == null && widget.student.photographUrl == null
                                         ? const Icon(Icons.person, size: 60, color: AppTheme.navy)
                                         : null,

@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_cached_network_image.dart';
 import '../../domain/repositories/leave_requests_repository.dart';
 import '../../domain/entities/leave_request.dart';
 
@@ -336,12 +337,12 @@ class _SubmitLeavePageState extends State<SubmitLeavePage> {
             const SizedBox(height: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-              child: Image.network(
-                _attachmentUrl!,
+              child: AppCachedNetworkImage(
+                url: _attachmentUrl,
                 height: 140,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                errorWidget: const SizedBox.shrink(),
               ),
             ),
           ],

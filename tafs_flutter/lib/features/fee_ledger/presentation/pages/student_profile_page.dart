@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_cached_network_image.dart';
 import '../../../auth/domain/entities/student.dart';
 import '../../../attendance_history/presentation/pages/attendance_calendar_page.dart';
 import '../../domain/entities/ledger.dart';
@@ -263,9 +264,7 @@ class StudentProfilePage extends StatelessWidget {
               child: CircleAvatar(
                 radius: 50,
                 backgroundColor: AppTheme.blue100.withValues(alpha: 0.3),
-                backgroundImage: student.photographUrl != null
-                    ? NetworkImage(student.photographUrl!)
-                    : null,
+                backgroundImage: appCachedNetworkImageProvider(student.photographUrl),
                 child: student.photographUrl == null
                     ? const Icon(Icons.person, size: 50, color: AppTheme.navy)
                     : null,

@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:tafs_flutter/core/theme/app_theme.dart';
 import 'package:tafs_flutter/core/utils/chat_format.dart';
 import 'package:tafs_flutter/core/utils/cdn_utils.dart';
+import 'package:tafs_flutter/core/widgets/app_cached_network_image.dart';
 import 'swipe_to_reply.dart';
 
 class ChatBubble extends StatelessWidget {
@@ -619,23 +620,17 @@ class ChatBubble extends StatelessWidget {
       );
     }
 
-    // On web, route CDN URLs through backend proxy to avoid CORS errors.
-    final effectiveUrl = CdnUtils.resolve(url);
-
-    return Image.network(
-      effectiveUrl,
+    return AppCachedNetworkImage(
+      url: url,
       width: width,
       height: height,
       fit: fit,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return SizedBox(
-          width: width ?? 200,
-          height: height ?? 200,
-          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-        );
-      },
-      errorBuilder: (_, __, ___) => Container(
+      placeholder: SizedBox(
+        width: width ?? 200,
+        height: height ?? 200,
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      ),
+      errorWidget: Container(
         width: width ?? 200,
         height: height ?? 200,
         color: Colors.grey[100],

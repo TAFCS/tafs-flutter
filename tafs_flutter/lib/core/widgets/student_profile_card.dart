@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../features/auth/domain/entities/student.dart';
 import '../../features/auth/presentation/bloc/selected_student_cubit.dart';
 import '../theme/app_theme.dart';
+import 'app_cached_network_image.dart';
 
 class StudentProfileCard extends StatelessWidget {
   final bool showEditButton;
@@ -33,9 +34,7 @@ class StudentProfileCard extends StatelessWidget {
                 child: CircleAvatar(
                   radius: 30,
                   backgroundColor: AppTheme.blue100.withValues(alpha: 0.3),
-                  backgroundImage: student.photographUrl != null
-                      ? NetworkImage(student.photographUrl!)
-                      : null,
+                  backgroundImage: appCachedNetworkImageProvider(student.photographUrl),
                   child: student.photographUrl == null
                       ? Text(
                           student.fullName[0],

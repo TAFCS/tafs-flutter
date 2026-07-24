@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:photo_view/photo_view.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/utils/cdn_utils.dart';
+import '../../../../core/widgets/app_cached_network_image.dart';
 import '../../../auth/domain/entities/student.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
@@ -199,9 +199,7 @@ class _TargetedStudentChip extends StatelessWidget {
           CircleAvatar(
             radius: 10,
             backgroundColor: AppTheme.blue100.withValues(alpha: 0.3),
-            backgroundImage: student.photographUrl != null
-                ? NetworkImage(CdnUtils.resolve(student.photographUrl))
-                : null,
+            backgroundImage: appCachedNetworkImageProvider(student.photographUrl),
             child: student.photographUrl == null
                 ? Text(
                     student.fullName.isNotEmpty ? student.fullName[0] : '?',
@@ -356,7 +354,11 @@ class _MediaThumb extends StatelessWidget {
 
   Widget _buildThumbContent() {
     if (type == 'image') {
-      return Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: AppTheme.blue300));
+      return AppCachedNetworkImage(
+        url: url,
+        fit: BoxFit.cover,
+        errorWidget: const Icon(Icons.broken_image, color: AppTheme.blue300),
+      );
     }
     if (type == 'pdf') {
       return const Column(
@@ -402,7 +404,7 @@ class _FullScreenImage extends StatelessWidget {
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: PhotoView(imageProvider: NetworkImage(url)),
+      body: PhotoView(imageProvider: appCachedNetworkImageProvider(url)!),
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_cached_network_image.dart';
 import '../../auth/domain/entities/parent.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
 import '../../auth/presentation/bloc/auth_state.dart';
@@ -335,9 +336,7 @@ class _EditGuardianPageState extends State<EditGuardianPage> with SingleTickerPr
                                 backgroundColor: AppTheme.blue100.withValues(alpha: 0.3),
                                 backgroundImage: _pickedImageFile != null
                                     ? FileImage(_pickedImageFile!) as ImageProvider
-                                    : (widget.guardian.photographUrl != null
-                                        ? NetworkImage(widget.guardian.photographUrl!) as ImageProvider
-                                        : null),
+                                    : appCachedNetworkImageProvider(widget.guardian.photographUrl),
                                 child: _pickedImageFile == null && widget.guardian.photographUrl == null
                                     ? const Icon(Icons.person, size: 60, color: AppTheme.navy)
                                     : null,

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/session/session_reset.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_cached_network_image.dart';
 import '../../../auth/presentation/change_password_page.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
@@ -104,7 +105,7 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
                     CircleAvatar(
                       radius: 40,
                       backgroundColor: AppTheme.navy.withValues(alpha: 0.1),
-                      backgroundImage: profile?.photoUrl != null ? NetworkImage(profile!.photoUrl!) : null,
+                      backgroundImage: appCachedNetworkImageProvider(profile?.photoUrl),
                       child: profile?.photoUrl == null
                           ? Text(
                               displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',

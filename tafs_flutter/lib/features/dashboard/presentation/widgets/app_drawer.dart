@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/session/logout_lock.dart';
+import '../../../../core/widgets/app_cached_network_image.dart';
 import '../../../../core/widgets/app_dialog_actions.dart';
 import '../../../auth/domain/entities/student.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -64,10 +65,9 @@ class AppDrawer extends StatelessWidget {
                     radius: 32,
                     backgroundColor: AppTheme.blue100,
                     backgroundImage: (authState is AuthAuthenticated)
-                        ? (authState.parent.photographUrl != null
-                            ? NetworkImage(authState.parent.photographUrl!)
-                            : (authState.parent.guardians.isNotEmpty && authState.parent.guardians.first.photographUrl != null
-                                ? NetworkImage(authState.parent.guardians.first.photographUrl!)
+                        ? (appCachedNetworkImageProvider(authState.parent.photographUrl) ??
+                            (authState.parent.guardians.isNotEmpty
+                                ? appCachedNetworkImageProvider(authState.parent.guardians.first.photographUrl)
                                 : null))
                         : null,
                     child: (authState is! AuthAuthenticated || 

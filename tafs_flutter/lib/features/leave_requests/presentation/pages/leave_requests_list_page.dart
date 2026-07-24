@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_cached_network_image.dart';
 import '../../../../core/widgets/app_dialog_actions.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../domain/entities/leave_request.dart';
@@ -265,12 +266,12 @@ class _LeaveCard extends StatelessWidget {
               if (item.attachmentType == 'image')
                 ClipRRect(
                   borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                  child: Image.network(
-                    item.attachmentUrl!,
+                  child: AppCachedNetworkImage(
+                    url: item.attachmentUrl,
                     height: 120,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    errorWidget: const SizedBox.shrink(),
                   ),
                 ),
               TextButton.icon(

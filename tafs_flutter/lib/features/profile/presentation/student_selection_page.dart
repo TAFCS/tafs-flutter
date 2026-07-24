@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_cached_network_image.dart';
 import '../../auth/domain/entities/student.dart';
 import '../../auth/presentation/bloc/selected_student_cubit.dart';
 
@@ -74,9 +75,7 @@ class StudentSelectionPage extends StatelessWidget {
                             child: CircleAvatar(
                               radius: 32,
                               backgroundColor: AppTheme.navy.withValues(alpha: 0.05),
-                              backgroundImage: student.photographUrl != null
-                                  ? NetworkImage(student.photographUrl!)
-                                  : null,
+                              backgroundImage: appCachedNetworkImageProvider(student.photographUrl),
                               child: student.photographUrl == null
                                   ? Text(
                                       student.fullName[0],

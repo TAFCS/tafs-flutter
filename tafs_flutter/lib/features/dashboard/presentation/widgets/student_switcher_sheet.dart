@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_cached_network_image.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../auth/presentation/bloc/selected_student_cubit.dart';
@@ -69,9 +70,7 @@ class StudentSwitcherSheet extends StatelessWidget {
                   ),
                   child: CircleAvatar(
                     backgroundColor: AppTheme.blue100.withValues(alpha: 0.3),
-                    backgroundImage: student.photographUrl != null
-                        ? NetworkImage(student.photographUrl!)
-                        : null,
+                    backgroundImage: appCachedNetworkImageProvider(student.photographUrl),
                     child: student.photographUrl == null
                         ? Text(
                             student.fullName[0],
