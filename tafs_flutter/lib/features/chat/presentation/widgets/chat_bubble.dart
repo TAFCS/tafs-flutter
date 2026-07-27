@@ -671,14 +671,18 @@ class ChatBubble extends StatelessWidget {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
+  static final _inlineTokenRegex = RegExp(
+    r'(@\[.*?\]\(student:\d+\))'
+    r'|(https?:\/\/[^\s]+)'
+    r'|(www\.[^\s]+)'
+    // Bare domains: tafs.edu.pk, tafs.edu.pk/path
+    r'|((?:[a-zA-Z0-9](?:[a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(?:/[^\s]*)?)',
+    caseSensitive: false,
+  );
+
   List<InlineSpan> _parseMentions(String text, bool isMe) {
     final List<InlineSpan> spans = [];
-    // Mentions and URLs (http/https/www)
-    final regex = RegExp(
-      r'(@\[.*?\]\(student:\d+\))|(https?:\/\/[^\s]+)|(www\.[^\s]+)',
-      caseSensitive: false,
-    );
-    final matches = regex.allMatches(text);
+    final matches = _inlineTokenRegex.allMatches(text);
 
     int lastMatchEnd = 0;
     for (final match in matches) {
