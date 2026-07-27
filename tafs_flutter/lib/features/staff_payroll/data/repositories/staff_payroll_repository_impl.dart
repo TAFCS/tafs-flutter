@@ -41,8 +41,12 @@ class StaffPayrollRepositoryImpl implements StaffPayrollRepository {
       halfDayDeduction: (json['half_day_deduction'] as num?)?.toDouble() ?? 0,
       lateDeduction: (json['late_deduction'] as num?)?.toDouble() ?? 0,
       breakDeduction: (json['break_deduction'] as num?)?.toDouble() ?? 0,
+      sandwichDeduction: (json['sandwich_deduction'] as num?)?.toDouble() ?? 0,
+      consecutiveLateDeduction: (json['consecutive_late_deduction'] as num?)?.toDouble() ?? 0,
       dailyRate: (json['daily_rate'] as num?)?.toDouble() ?? 0,
       perMinuteRate: (json['per_minute_rate'] as num?)?.toDouble() ?? 0,
+      overtimeDays: json['overtime_days'] as int? ?? 0,
+      settlement: _mapSettlement(json['settlement'] as Map<String, dynamic>?),
       dailyBreakdown: (json['daily_breakdown'] as List? ?? [])
           .cast<Map<String, dynamic>>(),
     );
@@ -61,6 +65,23 @@ class StaffPayrollRepositoryImpl implements StaffPayrollRepository {
       monthlyPay: (json['monthly_pay'] as num).toDouble(),
       totalDeductions: (json['total_deductions'] as num).toDouble(),
       netPay: (json['net_pay'] as num).toDouble(),
+      overtimeDays: json['overtime_days'] as int? ?? 0,
+      settlement: _mapSettlement(json['settlement'] as Map<String, dynamic>?),
+    );
+  }
+
+  // cash_bonus_amount is never present in this payload — the backend
+  // self-service endpoints deliberately omit it, see PayrollService.
+  StaffPayrollSettlement? _mapSettlement(Map<String, dynamic>? json) {
+    if (json == null) return null;
+    return StaffPayrollSettlement(
+      overtimeRateType: json['overtime_rate_type'] as String?,
+      overtimeRateAmount: (json['overtime_rate_amount'] as num?)?.toDouble(),
+      overtimeMinutes: json['overtime_minutes'] as int? ?? 0,
+      overtimeRewardAmount: (json['overtime_reward_amount'] as num?)?.toDouble() ?? 0,
+      netPaid: (json['net_paid'] as num?)?.toDouble() ?? 0,
+      payslipPdfUrl: json['payslip_pdf_url'] as String?,
+      settledAt: DateTime.parse(json['settled_at'] as String),
     );
   }
 

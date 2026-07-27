@@ -20,6 +20,7 @@ import '../../../support_tickets/staff/presentation/pages/staff_support_tickets_
 import '../../../support_tickets/staff/support_ticket_staff_access.dart';
 import '../../../support_tickets/staff/presentation/bloc/staff_ticket_queue_bloc.dart';
 import '../../../support_tickets/staff/presentation/bloc/staff_pending_approvals_cubit.dart';
+import '../../../../core/navigation/app_navigator.dart';
 import '../../../../core/session/session_reset.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
@@ -82,6 +83,20 @@ class _EmployeeMainShellState extends State<EmployeeMainShell> {
         InjectionContainer.employeeNoticeCubit.load();
       }
     });
+    employeePayrollTabRequest.addListener(_onPayrollTabRequest);
+  }
+
+  @override
+  void dispose() {
+    employeePayrollTabRequest.removeListener(_onPayrollTabRequest);
+    super.dispose();
+  }
+
+  void _onPayrollTabRequest() {
+    if (!employeePayrollTabRequest.value) return;
+    employeePayrollTabRequest.value = false;
+    if (!mounted || !_showPayroll || !_currentTabs.contains(_EmployeeTab.payroll)) return;
+    setState(() => _activeTab = _EmployeeTab.payroll);
   }
 
   @override

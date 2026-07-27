@@ -54,3 +54,12 @@ void switchToFeesTab() {
 void switchToHomeTab() {
   mainShellTabRequest.value = 0;
 }
+
+/// Requests that [EmployeeMainShell] switch to its Payroll tab, if the
+/// signed-in staff member has one. Listened to by `_EmployeeMainShellState`,
+/// which resets this back to false once handled.
+final ValueNotifier<bool> employeePayrollTabRequest = ValueNotifier<bool>(false);
+
+void switchToPayrollTab() {
+  employeePayrollTabRequest.value = true;
+}

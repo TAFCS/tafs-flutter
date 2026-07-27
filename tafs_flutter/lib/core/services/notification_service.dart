@@ -244,6 +244,9 @@ class NotificationService {
             _handleNotificationRouting(message.data, fromPendingFlush: true);
           } else if (type == 'EMPLOYEE_NOTICE') {
             InjectionContainer.employeeNoticeCubit.refresh();
+          } else if (type == 'PAYROLL') {
+            InjectionContainer.employeeNoticeCubit.refresh();
+            switchToPayrollTab();
           }
         },
       );
@@ -318,6 +321,11 @@ class NotificationService {
       try {
         InjectionContainer.employeeNoticeCubit.refresh();
       } catch (_) {}
+    } else if (type == 'PAYROLL') {
+      try {
+        InjectionContainer.employeeNoticeCubit.refresh();
+      } catch (_) {}
+      switchToPayrollTab();
     }
   }
 

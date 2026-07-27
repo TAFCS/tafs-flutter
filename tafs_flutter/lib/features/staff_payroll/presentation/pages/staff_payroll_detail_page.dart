@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/pkt_format.dart';
 import '../../../staff_attendance/presentation/widgets/day_timeline_widget.dart';
 import '../../../staff_attendance/presentation/utils/payroll_period_utils.dart';
+import '../../domain/entities/staff_payroll_summary.dart';
 import '../../domain/repositories/staff_payroll_repository.dart';
 
 // ── Classification colours ────────────────────────────────────────────────────
@@ -99,6 +102,18 @@ class _StaffPayrollDetailPageState extends State<StaffPayrollDetailPage> {
 
   String _fmtPkr(double v) => 'PKR ${NumberFormat('#,##0.00').format(v)}';
 
+  Future<void> _openPayslip(String url) async {
+    final uri = Uri.parse(url);
+    final ok = kIsWeb
+        ? await launchUrl(uri, webOnlyWindowName: '_blank')
+        : await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the payslip. Please try again.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -116,9 +131,11 @@ class _StaffPayrollDetailPageState extends State<StaffPayrollDetailPage> {
   }
 
   Widget _buildBody() {
-    final d = _detail;
+    final StaffPayrollDetail d = _detail as StaffPayrollDetail;
     final start = parsePayrollPeriodDate(d.periodStart);
     final end   = parsePayrollPeriodDate(d.periodEnd);
+    final settlement = d.settlement;
+    final explanations = d.deductionExplanations;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -131,15 +148,23 @@ class _StaffPayrollDetailPageState extends State<StaffPayrollDetailPage> {
         if (d.disbursedAt != null)
           Text('Disbursed: ${DateFormat.yMMMd().format(d.disbursedAt!.toLocal())}'),
 
+        if (settlement != null) ...[
+          const SizedBox(height: 16),
+          _SettlementCard(settlement: settlement, onDownload: _openPayslip),
+        ],
+
         const Divider(height: 32),
-        _row('Monthly Pay (Base)',   _fmtPkr(d.monthlyPay)),
-        _row('− Absence Deduction',  _fmtPkr(d.absenceDeduction)),
-        _row('− Half-Day Deduction', _fmtPkr(d.halfDayDeduction)),
-        if (d.lateDeduction > 0)
-          _row('− Late Deduction (${d.totalLateMinutes}m)', _fmtPkr(d.lateDeduction), accent: true),
-        _row('− Break Deduction',    _fmtPkr(d.breakDeduction)),
+        _row('Monthly Pay (Base)', _fmtPkr(d.monthlyPay)),
+        if (explanations.isEmpty)
+          _row('Deductions', _fmtPkr(0))
+        else
+          ...explanations.map((e) => _row('− ${e.key}', _fmtPkr(e.value), accent: true)),
         const Divider(),
-        _row('Net Pay', _fmtPkr(d.netPay), bold: true),
+        _row('Net Pay (before overtime)', _fmtPkr(d.netPay), bold: true),
+        if (settlement != null && settlement.overtimeRewardAmount > 0)
+          _row('+ Overtime Reward', _fmtPkr(settlement.overtimeRewardAmount), accent: true),
+        if (settlement != null)
+          _row('Total Paid', _fmtPkr(settlement.netPaid), bold: true),
 
         const SizedBox(height: 16),
         Text(
@@ -170,6 +195,73 @@ class _StaffPayrollDetailPageState extends State<StaffPayrollDetailPage> {
         children: [
           Text(label, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: color)),
           Text(value, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: color)),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Settlement / payslip card ──────────────────────────────────────────────────
+
+class _SettlementCard extends StatelessWidget {
+  final StaffPayrollSettlement settlement;
+  final Future<void> Function(String url) onDownload;
+
+  const _SettlementCard({required this.settlement, required this.onDownload});
+
+  String _fmtOvertime() {
+    final minutes = settlement.overtimeMinutes;
+    if (minutes <= 0) return '';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    final duration = h > 0 ? (m > 0 ? '${h}h ${m}m' : '${h}h') : '${m}m';
+    return 'Based on $duration of overtime this period.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF16A34A).withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF16A34A)),
+              const SizedBox(width: 6),
+              Text(
+                'Settled on ${DateFormat.yMMMd().format(settlement.settledAt.toLocal())}',
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF14532D)),
+              ),
+            ],
+          ),
+          if (settlement.overtimeRewardAmount > 0) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Overtime reward included. ${_fmtOvertime()}',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF166534)),
+            ),
+          ],
+          if (settlement.payslipPdfUrl != null) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => onDownload(settlement.payslipPdfUrl!),
+                icon: const Icon(Icons.download_rounded, size: 16),
+                label: const Text('Download Payslip'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF14532D),
+                  side: const BorderSide(color: Color(0xFF16A34A)),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
