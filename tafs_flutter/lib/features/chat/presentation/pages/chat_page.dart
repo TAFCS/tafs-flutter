@@ -310,6 +310,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                                   ),
                                 ChatBubble(
                                   messages: item,
+                                  showReadReceipts: false,
                                   onReplyTap: (id) => _scrollToMessage(reversedClusters, id),
                                   onReply: (message) {
                                     setState(() {

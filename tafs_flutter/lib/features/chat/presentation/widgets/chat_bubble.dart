@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:audioplayers/audioplayers.dart';
@@ -19,6 +20,10 @@ class ChatBubble extends StatelessWidget {
   final void Function(String clientMessageId)? onRetryTap;
   final void Function(String messageId)? onAcknowledge;
 
+  /// When false (parent app), outgoing messages always show a single tick —
+  /// parents must not see when staff/support has read their message.
+  final bool showReadReceipts;
+
   const ChatBubble({
     super.key,
     required this.messages,
@@ -27,6 +32,7 @@ class ChatBubble extends StatelessWidget {
     required this.onReply,
     this.onRetryTap,
     this.onAcknowledge,
+    this.showReadReceipts = true,
   });
 
   @override
@@ -338,9 +344,11 @@ class ChatBubble extends StatelessWidget {
             )
           else
             Icon(
-              message.isRead ? Icons.done_all_rounded : Icons.done_rounded,
+              (showReadReceipts && message.isRead)
+                  ? Icons.done_all_rounded
+                  : Icons.done_rounded,
               size: 14,
-              color: message.isRead
+              color: (showReadReceipts && message.isRead)
                   ? const Color(0xFF53BDEB)
                   : Colors.white.withOpacity(0.7),
             ),
@@ -652,18 +660,35 @@ class ChatBubble extends StatelessWidget {
     );
   }
 
+  Future<void> _openLink(String raw) async {
+    final trimmed = raw.trim().replaceAll(RegExp(r'[.,;:!?)]+$'), '');
+    final lower = trimmed.toLowerCase();
+    final href = lower.startsWith('http://') || lower.startsWith('https://')
+        ? trimmed
+        : 'https://$trimmed';
+    final uri = Uri.tryParse(href);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   List<InlineSpan> _parseMentions(String text, bool isMe) {
     final List<InlineSpan> spans = [];
-    final regex = RegExp(r'(@\[.*?\]\(student:\d+\))');
+    // Mentions and URLs (http/https/www)
+    final regex = RegExp(
+      r'(@\[.*?\]\(student:\d+\))|(https?:\/\/[^\s]+)|(www\.[^\s]+)',
+      caseSensitive: false,
+    );
     final matches = regex.allMatches(text);
-    
+
     int lastMatchEnd = 0;
     for (final match in matches) {
       if (match.start > lastMatchEnd) {
         spans.add(TextSpan(text: text.substring(lastMatchEnd, match.start)));
       }
-      
-      final tagMatch = RegExp(r'@\[(.*?)\]\(student:(\d+)\)').firstMatch(match.group(0)!);
+
+      final token = match.group(0)!;
+      final tagMatch =
+          RegExp(r'@\[(.*?)\]\(student:(\d+)\)').firstMatch(token);
       if (tagMatch != null) {
         final name = tagMatch.group(1);
         spans.add(TextSpan(
@@ -671,17 +696,38 @@ class ChatBubble extends StatelessWidget {
           style: TextStyle(
             color: isMe ? Colors.white : AppTheme.navy,
             fontWeight: FontWeight.w900,
-            backgroundColor: isMe ? Colors.white.withOpacity(0.25) : AppTheme.navy.withOpacity(0.12),
+            backgroundColor:
+                isMe ? Colors.white.withOpacity(0.25) : AppTheme.navy.withOpacity(0.12),
           ),
         ));
+      } else {
+        // Strip trailing punctuation from the visible + open URL
+        final cleaned = token.replaceAll(RegExp(r'[.,;:!?)]+$'), '');
+        final trailing = token.substring(cleaned.length);
+        spans.add(TextSpan(
+          text: cleaned,
+          style: TextStyle(
+            color: isMe ? Colors.white : AppTheme.navy,
+            decoration: TextDecoration.underline,
+            decorationColor: isMe ? Colors.white70 : AppTheme.navy,
+            fontWeight: FontWeight.w600,
+          ),
+          recognizer: TapGestureRecognizer()
+            ..onTap = () {
+              _openLink(cleaned);
+            },
+        ));
+        if (trailing.isNotEmpty) {
+          spans.add(TextSpan(text: trailing));
+        }
       }
       lastMatchEnd = match.end;
     }
-    
+
     if (lastMatchEnd < text.length) {
       spans.add(TextSpan(text: text.substring(lastMatchEnd)));
     }
-    
+
     return spans;
   }
 }

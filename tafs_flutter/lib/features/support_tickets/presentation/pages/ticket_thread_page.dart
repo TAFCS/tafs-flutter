@@ -299,6 +299,7 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
                                     padding: const EdgeInsets.only(bottom: 8),
                                     child: ChatBubble(
                                       messages: [chatMsg],
+                                      showReadReceipts: false,
                                       onImageTap: (url) {
                                         Navigator.push(
                                           context,
