@@ -58,13 +58,16 @@ class _ObjectionSubmitPageState extends State<ObjectionSubmitPage> {
     setState(() => _submitting = true);
     try {
       final day = widget.attendanceDate.toUtc();
+      // The API stores attendance times as PKT wall clock (see [pktWallClock]),
+      // so send the picked time verbatim rather than shifting it to a real UTC
+      // instant — that would land the claim 5 hours early.
       final claimedUtc = DateTime.utc(
         day.year,
         day.month,
         day.day,
         _claimedTime!.hour,
         _claimedTime!.minute,
-      ).subtract(pktOffset);
+      );
       await widget.repository.submitObjection(
         attendanceDate: widget.attendanceDate,
         scanId: _scanId,
@@ -125,8 +128,7 @@ class _ObjectionSubmitPageState extends State<ObjectionSubmitPage> {
             onTap: () async {
               final picked = await showTimePicker(
                 context: context,
-                initialTime: _claimedTime ??
-                    TimeOfDay.fromDateTime(toPkt(DateTime.now().toUtc())),
+                initialTime: _claimedTime ?? TimeOfDay.fromDateTime(nowPkt()),
               );
               if (picked != null) setState(() => _claimedTime = picked);
             },

@@ -17,8 +17,8 @@ class DayStatusCell extends StatelessWidget {
   });
 
   bool get _isFuture {
-    final todayPkt = toPkt(DateTime.now());
-    final dayPkt = toPkt(day.date);
+    final todayPkt = nowPkt();
+    final dayPkt = pktWallClock(day.date);
     final todayKey = DateTime(todayPkt.year, todayPkt.month, todayPkt.day);
     final dayKey = DateTime(dayPkt.year, dayPkt.month, dayPkt.day);
     return dayKey.isAfter(todayKey);

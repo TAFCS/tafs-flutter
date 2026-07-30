@@ -89,10 +89,10 @@ class _DayTimelineWidgetState extends State<DayTimelineWidget>
     if (widget.scans.isEmpty) return [];
     final result = <_Seg>[];
     for (var i = 0; i < widget.scans.length; i += 2) {
-      final inPkt = toPkt(widget.scans[i].scanTime);
+      final inPkt = pktWallClock(widget.scans[i].scanTime);
       final inPct = ((inPkt.hour * 60 + inPkt.minute) / 1440) * 100;
       if (i + 1 < widget.scans.length) {
-        final outPkt = toPkt(widget.scans[i + 1].scanTime);
+        final outPkt = pktWallClock(widget.scans[i + 1].scanTime);
         final outPct = ((outPkt.hour * 60 + outPkt.minute) / 1440) * 100;
         result.add(_Seg(
           left: inPct,
