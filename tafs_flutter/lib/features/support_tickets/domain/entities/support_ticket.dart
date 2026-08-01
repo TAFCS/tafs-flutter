@@ -1,3 +1,5 @@
+import 'ticket_event.dart';
+
 enum TicketCategory { general, financial }
 
 enum TicketStatus { open, assigned, closed }
@@ -14,6 +16,8 @@ class SupportTicket {
   final int unreadByParent;
   final String? studentName;
   final String? campusName;
+  final String? closingNote;
+  final List<TicketEvent> events;
 
   const SupportTicket({
     required this.id,
@@ -27,9 +31,16 @@ class SupportTicket {
     this.unreadByParent = 0,
     this.studentName,
     this.campusName,
+    this.closingNote,
+    this.events = const [],
   });
 
-  SupportTicket copyWith({int? unreadByParent, TicketStatus? status}) {
+  SupportTicket copyWith({
+    int? unreadByParent,
+    TicketStatus? status,
+    String? closingNote,
+    List<TicketEvent>? events,
+  }) {
     return SupportTicket(
       id: id,
       familyId: familyId,
@@ -42,6 +53,8 @@ class SupportTicket {
       unreadByParent: unreadByParent ?? this.unreadByParent,
       studentName: studentName,
       campusName: campusName,
+      closingNote: closingNote ?? this.closingNote,
+      events: events ?? this.events,
     );
   }
 }

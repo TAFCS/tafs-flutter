@@ -91,6 +91,7 @@ class FamilyGuardianDto extends FamilyGuardian {
     required super.name,
     required super.relationship,
     super.phone,
+    super.phoneCountryCode,
     super.photographUrl,
     super.email,
     super.occupation,
@@ -98,6 +99,7 @@ class FamilyGuardianDto extends FamilyGuardian {
     super.education,
     super.cnic,
     super.whatsapp,
+    super.whatsappCountryCode,
     super.address,
     super.houseApptName,
     super.areaBlock,
@@ -116,6 +118,9 @@ class FamilyGuardianDto extends FamilyGuardian {
       name: json['name'] as String,
       relationship: json['relationship'] as String,
       phone: json['phone'] as String?,
+      phoneCountryCode: (json['phoneCountryCode'] as String?) ??
+          (json['phone_country_code'] as String?) ??
+          (json['primary_phone_country_code'] as String?),
       photographUrl: (json['photographUrl'] as String?) ??
           (json['photograph_url'] as String?) ??
           (json['photo_url'] as String?),
@@ -125,6 +130,8 @@ class FamilyGuardianDto extends FamilyGuardian {
       education: json['education'] as String?,
       cnic: json['cnic'] as String?,
       whatsapp: json['whatsapp'] as String?,
+      whatsappCountryCode: (json['whatsappCountryCode'] as String?) ??
+          (json['whatsapp_country_code'] as String?),
       address: json['address'] as String?,
       houseApptName: (json['houseApptName'] as String?) ??
           (json['house_appt_name'] as String?),
@@ -154,6 +161,7 @@ class FamilyGuardianDto extends FamilyGuardian {
       'name': name,
       'relationship': relationship,
       'phone': phone,
+      'phoneCountryCode': phoneCountryCode,
       'photographUrl': photographUrl,
       'email': email,
       'occupation': occupation,
@@ -161,6 +169,7 @@ class FamilyGuardianDto extends FamilyGuardian {
       'education': education,
       'cnic': cnic,
       'whatsapp': whatsapp,
+      'whatsappCountryCode': whatsappCountryCode,
       'address': address,
       'houseApptName': houseApptName,
       'areaBlock': areaBlock,

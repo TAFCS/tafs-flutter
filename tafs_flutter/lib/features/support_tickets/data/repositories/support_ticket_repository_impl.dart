@@ -34,6 +34,10 @@ class SupportTicketRepositoryImpl implements SupportTicketRepository {
       chatRepository.onTicketMessagesRead;
 
   @override
+  Stream<Map<String, dynamic>> get onTicketMessageDeleted =>
+      chatRepository.onTicketMessageDeleted;
+
+  @override
   Stream<void> get onTicketQueueChanged =>
       chatRepository.onTicketQueueChanged;
 
@@ -160,11 +164,23 @@ class SupportTicketRepositoryImpl implements SupportTicketRepository {
     }
     final form = FormData.fromMap({'file': multipartFile});
     final res = await dio.post('/support-tickets/media', data: form);
-    final data = res.data;
-    if (data is Map<String, dynamic>) {
-      return Map<String, dynamic>.from(data['data'] ?? data);
+    return _flattenUploadResponse(res.data);
+  }
+
+  Map<String, dynamic> _flattenUploadResponse(dynamic data) {
+    final raw = Map<String, dynamic>.from(
+      data is Map ? (data['data'] ?? data) as Map : <String, dynamic>{},
+    );
+    final nested = raw['metadata'];
+    final flat = <String, dynamic>{
+      if (raw['url'] != null) 'url': raw['url'],
+      if (nested is Map) ...Map<String, dynamic>.from(nested),
+    };
+    for (final entry in raw.entries) {
+      if (entry.key == 'metadata' || entry.key == 'data') continue;
+      flat.putIfAbsent(entry.key, () => entry.value);
     }
-    return Map<String, dynamic>.from(data as Map);
+    return flat;
   }
 
   @override

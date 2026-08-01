@@ -50,6 +50,7 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
   StreamSubscription<TicketMessage>? _sub;
   StreamSubscription<Map<String, dynamic>>? _typingSub;
   StreamSubscription<Map<String, dynamic>>? _readSub;
+  StreamSubscription<Map<String, dynamic>>? _deletedSub;
   StreamSubscription<Map<String, dynamic>>? _closedSub;
   StreamSubscription<void>? _connectSub;
   Timer? _typingClearTimer;
@@ -149,6 +150,7 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
     await _sub?.cancel();
     await _typingSub?.cancel();
     await _readSub?.cancel();
+    await _deletedSub?.cancel();
     await _closedSub?.cancel();
     await _connectSub?.cancel();
     _typingClearTimer?.cancel();
@@ -207,6 +209,21 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
                   ? m.copyWith(isRead: true)
                   : m)
               .toList(),
+        ));
+      },
+      onError: (_) {},
+      cancelOnError: false,
+    );
+    _deletedSub = repository.onTicketMessageDeleted.listen(
+      (payload) {
+        if (_activeTicketId != ticketId) return;
+        final payloadTicketId = payload['ticketId']?.toString();
+        final messageId = payload['messageId']?.toString();
+        if (payloadTicketId != null && payloadTicketId != ticketId) return;
+        if (messageId == null || messageId.isEmpty) return;
+        if (isClosed) return;
+        emit(state.copyWith(
+          messages: state.messages.where((m) => m.id != messageId).toList(),
         ));
       },
       onError: (_) {},
@@ -350,6 +367,7 @@ class TicketThreadCubit extends Cubit<TicketThreadState> {
     await _sub?.cancel();
     await _typingSub?.cancel();
     await _readSub?.cancel();
+    await _deletedSub?.cancel();
     await _closedSub?.cancel();
     await _connectSub?.cancel();
     return super.close();

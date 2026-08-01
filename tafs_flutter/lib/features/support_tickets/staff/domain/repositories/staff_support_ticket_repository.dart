@@ -11,6 +11,7 @@ abstract class StaffSupportTicketRepository {
   Stream<Map<String, dynamic>> get onReplyReviewedPayload;
   Stream<Map<String, dynamic>> get onTicketTyping;
   Stream<Map<String, dynamic>> get onTicketMessagesRead;
+  Stream<Map<String, dynamic>> get onTicketMessageDeleted;
   bool get isSocketConnected;
   Stream<void> get onSocketConnect;
   Stream<void> get onSocketDisconnect;
@@ -37,6 +38,7 @@ abstract class StaffSupportTicketRepository {
     required String content,
     Map<String, dynamic>? mediaMetadata,
   });
+  Future<void> deleteMessage(String messageId);
   Future<void> markRead(String ticketId);
   Future<StaffSupportTicket> claimTicket(String ticketId);
   Future<StaffSupportTicket> transferTicket(String ticketId, String targetUserId);

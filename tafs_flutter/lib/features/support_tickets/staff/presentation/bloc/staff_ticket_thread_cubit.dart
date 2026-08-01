@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../injection_container.dart';
 import '../../../../chat/domain/entities/chat_message.dart';
+import '../../../../../core/error/api_error_mapper.dart';
 import '../../../domain/entities/support_ticket.dart';
 import '../../../domain/entities/ticket_message.dart';
 import '../../../presentation/utils/ticket_thread_presence.dart';
@@ -62,6 +63,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
   StreamSubscription<Map<String, dynamic>>? _reviewedSub;
   StreamSubscription<Map<String, dynamic>>? _typingSub;
   StreamSubscription<Map<String, dynamic>>? _readSub;
+  StreamSubscription<Map<String, dynamic>>? _deletedSub;
   StreamSubscription<Map<String, dynamic>>? _closedSub;
   StreamSubscription<void>? _connectSub;
   Timer? _typingIdleTimer;
@@ -110,6 +112,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
     await _reviewedSub?.cancel();
     await _typingSub?.cancel();
     await _readSub?.cancel();
+    await _deletedSub?.cancel();
     await _closedSub?.cancel();
     await _connectSub?.cancel();
     _parentTypingClearTimer?.cancel();
@@ -230,6 +233,21 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
       onError: (_) {},
       cancelOnError: false,
     );
+    _deletedSub = repository.onTicketMessageDeleted.listen(
+      (payload) {
+        if (_activeTicketId != ticketId) return;
+        final payloadTicketId = payload['ticketId']?.toString();
+        final messageId = payload['messageId']?.toString();
+        if (payloadTicketId != null && payloadTicketId != ticketId) return;
+        if (messageId == null || messageId.isEmpty) return;
+        if (isClosed) return;
+        emit(state.copyWith(
+          messages: state.messages.where((m) => m.id != messageId).toList(),
+        ));
+      },
+      onError: (_) {},
+      cancelOnError: false,
+    );
     _connectSub = repository.onSocketConnect.listen((_) {
       unawaited(_resyncAfterReconnect(ticketId));
     });
@@ -316,6 +334,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
     await _reviewedSub?.cancel();
     await _typingSub?.cancel();
     await _readSub?.cancel();
+    await _deletedSub?.cancel();
     await _closedSub?.cancel();
     await _connectSub?.cancel();
     _sub = null;
@@ -323,6 +342,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
     _reviewedSub = null;
     _typingSub = null;
     _readSub = null;
+    _deletedSub = null;
     _closedSub = null;
     _connectSub = null;
     _activeTicketId = null;
@@ -380,7 +400,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
     } catch (e) {
       emit(state.copyWith(
         sending: false,
-        actionError: 'Failed to send attachment.',
+        actionError: ApiErrorMapper.fromObject(e, fallback: 'Failed to send attachment.'),
       ));
     }
   }
@@ -409,7 +429,7 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
     } catch (e) {
       emit(state.copyWith(
         sending: false,
-        actionError: 'Failed to send reply.',
+        actionError: ApiErrorMapper.fromObject(e, fallback: 'Failed to send reply.'),
       ));
     }
   }
@@ -494,6 +514,24 @@ class StaffTicketThreadCubit extends Cubit<StaffTicketThreadState> {
       emit(state.copyWith(
         actionLoading: false,
         actionError: 'Review failed.',
+      ));
+    }
+  }
+
+  Future<void> deleteMessage(String messageId) async {
+    try {
+      await repository.deleteMessage(messageId);
+      if (isClosed) return;
+      emit(state.copyWith(
+        messages: state.messages.where((m) => m.id != messageId).toList(),
+        clearActionError: true,
+      ));
+    } catch (e) {
+      emit(state.copyWith(
+        actionError: ApiErrorMapper.fromObject(
+          e,
+          fallback: 'Failed to delete message.',
+        ),
       ));
     }
   }

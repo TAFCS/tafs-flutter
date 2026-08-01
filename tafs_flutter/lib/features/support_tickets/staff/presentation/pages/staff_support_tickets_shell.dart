@@ -62,11 +62,13 @@ class _StaffSupportTicketsShellState extends State<StaffSupportTicketsShell> {
       final household = t.householdName?.toLowerCase() ?? '';
       final subtopic = t.subtopic?.toLowerCase() ?? '';
       final snippet = t.lastMessageSnippet?.toLowerCase() ?? '';
+      final closing = t.closingNote?.toLowerCase() ?? '';
       return title.contains(q) ||
           student.contains(q) ||
           household.contains(q) ||
           subtopic.contains(q) ||
-          snippet.contains(q);
+          snippet.contains(q) ||
+          closing.contains(q);
     }).toList();
   }
 
@@ -273,6 +275,7 @@ class _StaffSupportTicketsShellState extends State<StaffSupportTicketsShell> {
                           ticket: t,
                           pendingCount: pc,
                           currentStaffId: widget.staff.id,
+                          preferClosingNote: state.tab == StaffQueueTab.closed,
                           onTap: () => _openThread(t.id),
                         );
                       },
@@ -366,6 +369,7 @@ class _TicketCard extends StatelessWidget {
   final StaffSupportTicket ticket;
   final int pendingCount;
   final String currentStaffId;
+  final bool preferClosingNote;
   final VoidCallback onTap;
 
   const _TicketCard({
@@ -373,6 +377,7 @@ class _TicketCard extends StatelessWidget {
     required this.pendingCount,
     required this.currentStaffId,
     required this.onTap,
+    this.preferClosingNote = false,
   });
 
   String _formatTime(DateTime dt) {
@@ -395,9 +400,15 @@ class _TicketCard extends StatelessWidget {
     final hasUnread = ticket.unreadByStaff > 0;
     final hasPending = pendingCount > 0;
     final isFinancial = ticket.category.name == 'financial';
-    final hasFamily = ticket.lastFamilySnippet != null;
-    final hasStaff = ticket.lastStaffSnippet != null;
-    final hasFallback = !hasFamily && !hasStaff && ticket.lastMessageSnippet != null;
+    final closingNote =
+        preferClosingNote ? ticket.closingNote?.trim() : null;
+    final showClosing = closingNote != null && closingNote.isNotEmpty;
+    final hasFamily = !showClosing && ticket.lastFamilySnippet != null;
+    final hasStaff = !showClosing && ticket.lastStaffSnippet != null;
+    final hasFallback = !showClosing &&
+        !hasFamily &&
+        !hasStaff &&
+        ticket.lastMessageSnippet != null;
 
     return Material(
       color: Colors.white,
@@ -470,9 +481,16 @@ class _TicketCard extends StatelessWidget {
                   ],
                 ],
               ),
-              // Message previews
-              if (hasFamily || hasStaff || hasFallback) ...[
+              // Message previews / closing note
+              if (showClosing || hasFamily || hasStaff || hasFallback) ...[
                 const SizedBox(height: 10),
+                if (showClosing)
+                  _SnippetText(
+                    sender: 'Closing note',
+                    text: closingNote!,
+                    color: Colors.grey.shade600,
+                    bold: false,
+                  ),
                 if (hasFamily)
                   _SnippetText(
                     sender: ticket.lastFamilySenderName ?? 'Family',

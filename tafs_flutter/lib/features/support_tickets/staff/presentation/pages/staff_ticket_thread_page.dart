@@ -158,8 +158,11 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
               final isUnclaimedFinance = isFinance && ticket.currentAssigneeId == null;
               final isAssignee = ticket.currentAssigneeId == widget.staff.id;
               final isSuperAdmin = widget.staff.role == 'SUPER_ADMIN';
-              final isReadOnly = !isClosed && !isAssignee;
-              final canCompose = !isClosed && (isAssignee || isSuperAdmin);
+              final isFinanceClerk = widget.staff.role == 'FINANCE_CLERK';
+              // Mirror backend assertCanPostToTicket: closed → no; finance → clerk/super only; else assignee/super.
+              final canPostFinance = !isFinance || isFinanceClerk || isSuperAdmin;
+              final isReadOnly = !isClosed && !isAssignee && !isSuperAdmin;
+              final canCompose = !isClosed && (isAssignee || isSuperAdmin) && canPostFinance;
 
               return Column(
                 children: [
@@ -246,19 +249,58 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                   ),
                   const Divider(height: 1),
                   Expanded(
-                    child: state.messages.isEmpty
+                    child: (state.messages.isEmpty && ticket.events.isEmpty)
                         ? const Center(child: Text('No messages yet'))
                         : ListView.builder(
                             controller: _scrollController,
                             padding: const EdgeInsets.all(12),
-                            itemCount: state.messages.length,
+                            itemCount: state.messages.length +
+                                (ticket.events.isNotEmpty ? 1 : 0),
                             itemBuilder: (context, i) {
-                              final msg = state.messages[i];
+                              final eventOffset = ticket.events.isNotEmpty ? 1 : 0;
+                              if (eventOffset == 1 && i == 0) {
+                                return Column(
+                                  children: [
+                                    for (final event in ticket.events)
+                                      Padding(
+                                        padding: const EdgeInsets.only(bottom: 8),
+                                        child: Center(
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.shade200,
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              [
+                                                event.label,
+                                                if (event.actorName != null) event.actorName!,
+                                                if (event.note != null &&
+                                                    event.note!.trim().isNotEmpty)
+                                                  '"${event.note!.trim()}"',
+                                              ].join(' · '),
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.grey.shade700,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              }
+                              final msgIndex = i - eventOffset;
+                              final msg = state.messages[msgIndex];
                               final viewerStaffId = widget.staff.id;
-                              final showDateHeader = i == 0 ||
-                                  state.messages[i].createdAt.year != state.messages[i - 1].createdAt.year ||
-                                  state.messages[i].createdAt.month != state.messages[i - 1].createdAt.month ||
-                                  state.messages[i].createdAt.day != state.messages[i - 1].createdAt.day;
+                              final showDateHeader = msgIndex == 0 ||
+                                  state.messages[msgIndex].createdAt.year != state.messages[msgIndex - 1].createdAt.year ||
+                                  state.messages[msgIndex].createdAt.month != state.messages[msgIndex - 1].createdAt.month ||
+                                  state.messages[msgIndex].createdAt.day != state.messages[msgIndex - 1].createdAt.day;
 
                               final isOutgoing = isOwnStaffMessage(msg, viewerStaffId);
                               final isIncomingStaff = msg.senderType ==
@@ -399,6 +441,11 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                                             onReply: (message) {
                                               setState(() => _replyingTo = message);
                                             },
+                                            onDelete: isOutgoing
+                                                ? (message) => context
+                                                    .read<StaffTicketThreadCubit>()
+                                                    .deleteMessage(message.id)
+                                                : null,
                                           ),
                                         ),
                                         if (isSuperAdmin && isIncomingStaff &&
@@ -549,17 +596,19 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                           color: Colors.grey.shade200,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Column(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               'This query is closed',
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                             ),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
-                              'Messaging is disabled. You can still review the conversation history.',
-                              style: TextStyle(fontSize: 12),
+                              (ticket.closingNote != null && ticket.closingNote!.isNotEmpty)
+                                  ? 'Closing note: ${ticket.closingNote}'
+                                  : 'Messaging is disabled. You can still review the conversation history.',
+                              style: const TextStyle(fontSize: 12),
                             ),
                           ],
                         ),

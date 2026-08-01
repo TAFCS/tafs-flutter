@@ -96,12 +96,23 @@ class StaffAnnouncementsRepositoryImpl implements StaffAnnouncementsRepository {
     }
     final form = FormData.fromMap({'file': multipartFile});
     final res = await dio.post('/chat/media', data: form);
-    final body = res.data;
-    if (body is Map<String, dynamic>) {
-      final inner = body['data'] ?? body;
-      return Map<String, dynamic>.from(inner as Map);
+    return _flattenUploadResponse(res.data);
+  }
+
+  Map<String, dynamic> _flattenUploadResponse(dynamic data) {
+    final raw = Map<String, dynamic>.from(
+      data is Map ? (data['data'] ?? data) as Map : <String, dynamic>{},
+    );
+    final nested = raw['metadata'];
+    final flat = <String, dynamic>{
+      if (raw['url'] != null) 'url': raw['url'],
+      if (nested is Map) ...Map<String, dynamic>.from(nested),
+    };
+    for (final entry in raw.entries) {
+      if (entry.key == 'metadata' || entry.key == 'data') continue;
+      flat.putIfAbsent(entry.key, () => entry.value);
     }
-    return {'url': body.toString()};
+    return flat;
   }
 
   @override

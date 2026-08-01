@@ -1,4 +1,5 @@
 import '../../../domain/entities/support_ticket.dart';
+import '../../../domain/entities/ticket_event.dart';
 
 class StaffSupportTicket {
   final String id;
@@ -22,6 +23,8 @@ class StaffSupportTicket {
   final String? campusName;
   final String? assigneeName;
   final String? assigneeRole;
+  final String? closingNote;
+  final List<TicketEvent> events;
 
   const StaffSupportTicket({
     required this.id,
@@ -45,9 +48,16 @@ class StaffSupportTicket {
     this.campusName,
     this.assigneeName,
     this.assigneeRole,
+    this.closingNote,
+    this.events = const [],
   });
 
-  StaffSupportTicket copyWith({int? unreadByStaff, TicketStatus? status}) {
+  StaffSupportTicket copyWith({
+    int? unreadByStaff,
+    TicketStatus? status,
+    String? closingNote,
+    List<TicketEvent>? events,
+  }) {
     return StaffSupportTicket(
       id: id,
       familyId: familyId,
@@ -70,6 +80,8 @@ class StaffSupportTicket {
       campusName: campusName,
       assigneeName: assigneeName,
       assigneeRole: assigneeRole,
+      closingNote: closingNote ?? this.closingNote,
+      events: events ?? this.events,
     );
   }
 }
