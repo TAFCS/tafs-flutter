@@ -5,7 +5,8 @@ import 'package:image_picker/image_picker.dart';
 
 abstract class ChatRepository {
   Future<List<ChatMessage>> getChatHistory({int take = 50, int skip = 0});
-  Future<String> uploadMedia(XFile file);
+  /// Returns flattened upload payload: `{ url, sizeBytes?, mimetype?, width?, height?, ... }`.
+  Future<Map<String, dynamic>> uploadMedia(XFile file);
   void connect();
   void disconnect();
   bool get isConnected;
@@ -44,8 +45,11 @@ abstract class ChatRepository {
   void emitTicketTyping({required String ticketId, required bool isTyping});
   Stream<Map<String, dynamic>> get onTicketTyping;
   Stream<Map<String, dynamic>> get onTicketMessagesRead;
+  Stream<Map<String, dynamic>> get onTicketMessageDeleted;
   /// Ticket currently being viewed (if any). Rejoined automatically after reconnect.
   String? get activeTicketId;
+
+  Future<void> deleteTicketMessage(String messageId);
 
   Future<List<ChatMessage>> getAdminAnnouncementHistory({
     int take = 50,

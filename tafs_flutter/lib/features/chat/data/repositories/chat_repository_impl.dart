@@ -48,6 +48,8 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       StreamController<Map<String, dynamic>>.broadcast();
   final _ticketMessagesReadController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _ticketMessageDeletedController =
+      StreamController<Map<String, dynamic>>.broadcast();
   bool _isRefreshingToken = false;
   bool _isDrainingOutbox = false;
   String? _activeTicketId;
@@ -137,6 +139,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
     socket.off('ticketMessagesRead');
     socket.off('replyReviewed');
     socket.off('replyPendingApproval');
+    socket.off('ticketMessageDeleted');
 
     socket.on('ticketMessageReceived', (data) {
       try {
@@ -166,6 +169,17 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
         }
       } catch (e) {
         print('Error parsing ticketMessagesRead: $e');
+      }
+    });
+
+    socket.on('ticketMessageDeleted', (data) {
+      try {
+        if (data is Map && !_ticketMessageDeletedController.isClosed) {
+          _ticketMessageDeletedController.add(Map<String, dynamic>.from(data));
+        }
+        _emitTicketQueueChanged();
+      } catch (e) {
+        print('Error parsing ticketMessageDeleted: $e');
       }
     });
 
@@ -201,6 +215,19 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       _ticketMessagesReadController.stream;
 
   @override
+  Stream<Map<String, dynamic>> get onTicketMessageDeleted =>
+      _ticketMessageDeletedController.stream;
+
+  @override
+  Future<void> deleteTicketMessage(String messageId) async {
+    final response = await dio.delete('/support-tickets/messages/$messageId');
+    final data = response.data;
+    if (data is Map && data['error'] != null) {
+      throw Exception(data['error'].toString());
+    }
+  }
+
+  @override
   Future<List<ChatMessage>> getChatHistory({int take = 50, int skip = 0}) async {
     final response = await dio.get(
       '/chat/history/parent',
@@ -212,7 +239,7 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
   }
 
   @override
-  Future<String> uploadMedia(XFile file) async {
+  Future<Map<String, dynamic>> uploadMedia(XFile file) async {
     MultipartFile multipartFile;
     if (kIsWeb) {
       // On web, dart:io File is unavailable. Read bytes directly from XFile.
@@ -234,7 +261,23 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
 
     final formData = FormData.fromMap({'file': multipartFile});
     final response = await dio.post('/chat/media', data: formData);
-    return response.data['url'] as String;
+    return _flattenUploadResponse(response.data);
+  }
+
+  Map<String, dynamic> _flattenUploadResponse(dynamic data) {
+    final raw = Map<String, dynamic>.from(
+      data is Map ? (data['data'] ?? data) as Map : <String, dynamic>{},
+    );
+    final nested = raw['metadata'];
+    final flat = <String, dynamic>{
+      if (raw['url'] != null) 'url': raw['url'],
+      if (nested is Map) ...Map<String, dynamic>.from(nested),
+    };
+    for (final entry in raw.entries) {
+      if (entry.key == 'metadata' || entry.key == 'data') continue;
+      flat.putIfAbsent(entry.key, () => entry.value);
+    }
+    return flat;
   }
 
   /// Detects MIME type from a filename extension.
@@ -699,8 +742,9 @@ class ChatRepositoryImpl extends ChatRepository with WidgetsBindingObserver {
       if (await ioFile.exists()) {
         // Wrap dart:io File in XFile so uploadMedia's cross-platform
         // signature is satisfied (XFile is the common abstraction).
-        content = await uploadMedia(XFile(ioFile.path));
-        metadata['url'] = content;
+        final uploaded = await uploadMedia(XFile(ioFile.path));
+        content = uploaded['url'] as String? ?? content;
+        metadata.addAll(uploaded);
       }
     }
 

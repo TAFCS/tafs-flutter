@@ -1,4 +1,5 @@
 import '../../../domain/entities/support_ticket.dart';
+import '../../../domain/entities/ticket_event.dart';
 import '../../../domain/entities/ticket_message.dart';
 import '../../../data/models/support_ticket_dto.dart';
 import '../../domain/entities/staff_support_ticket.dart';
@@ -6,6 +7,7 @@ import '../../domain/entities/staff_support_ticket.dart';
 class StaffSupportTicketDto {
   static StaffSupportTicket fromJson(Map<String, dynamic> json) {
     final categoryRaw = (json['category'] as String).toUpperCase();
+    final events = _parseEvents(json['events']);
     return StaffSupportTicket(
       id: json['id'] as String,
       familyId: json['family_id'] as int,
@@ -30,7 +32,46 @@ class StaffSupportTicketDto {
       campusName: json['students']?['campuses']?['campus_name'] as String?,
       assigneeName: json['current_assignee']?['full_name'] as String?,
       assigneeRole: json['current_assignee']?['role'] as String?,
+      closingNote: _closingNote(json, events),
+      events: events,
     );
+  }
+
+  static String? _closingNote(
+    Map<String, dynamic> json,
+    List<TicketEvent> events,
+  ) {
+    final direct = json['closing_note'] as String?;
+    if (direct != null && direct.trim().isNotEmpty) return direct.trim();
+    for (var i = events.length - 1; i >= 0; i--) {
+      final e = events[i];
+      if (e.isCloseEvent && e.note != null && e.note!.trim().isNotEmpty) {
+        return e.note!.trim();
+      }
+    }
+    return null;
+  }
+
+  static List<TicketEvent> _parseEvents(dynamic raw) {
+    if (raw is! List) return const [];
+    return raw.map((e) {
+      final m = Map<String, dynamic>.from(e as Map);
+      return TicketEvent(
+        id: (m['id'] as num).toInt(),
+        eventType: (m['event_type'] as String?) ?? '',
+        note: m['note'] as String?,
+        createdAt: DateTime.tryParse(m['created_at']?.toString() ?? '') ??
+            DateTime.now(),
+        actorName: m['actor_user'] is Map
+            ? (m['actor_user'] as Map)['full_name'] as String?
+            : m['actor_guardian'] is Map
+                ? (m['actor_guardian'] as Map)['full_name'] as String?
+                : null,
+        toUserName: m['to_user'] is Map
+            ? (m['to_user'] as Map)['full_name'] as String?
+            : null,
+      );
+    }).toList();
   }
 
   static TicketStatus _status(String raw) {

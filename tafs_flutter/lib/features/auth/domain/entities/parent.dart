@@ -43,6 +43,7 @@ class FamilyGuardian extends Equatable {
   final String name;
   final String relationship;
   final String? phone;
+  final String? phoneCountryCode;
   final String? photographUrl;
 
   final String? email;
@@ -51,6 +52,7 @@ class FamilyGuardian extends Equatable {
   final String? education;
   final String? cnic;
   final String? whatsapp;
+  final String? whatsappCountryCode;
   final String? address;
   final String? houseApptName;
   final String? areaBlock;
@@ -67,6 +69,7 @@ class FamilyGuardian extends Equatable {
     required this.name,
     required this.relationship,
     this.phone,
+    this.phoneCountryCode,
     this.photographUrl,
     this.email,
     this.occupation,
@@ -74,6 +77,7 @@ class FamilyGuardian extends Equatable {
     this.education,
     this.cnic,
     this.whatsapp,
+    this.whatsappCountryCode,
     this.address,
     this.houseApptName,
     this.areaBlock,
@@ -86,12 +90,28 @@ class FamilyGuardian extends Equatable {
     this.pendingFields = const [],
   });
 
+  /// Composes dialling code + national number for display / tel: / WhatsApp.
+  String? composedPhone({bool whatsapp = false}) {
+    final code = (whatsapp ? whatsappCountryCode : phoneCountryCode)?.trim();
+    final national = (whatsapp ? this.whatsapp : phone)?.trim();
+    if (national == null || national.isEmpty || national.toUpperCase() == 'N/A') {
+      return null;
+    }
+    final dial = (code == null || code.isEmpty) ? '+92' : code;
+    if (national.startsWith('+')) return national;
+    if (national.startsWith(dial)) return national;
+    final digits = national.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return null;
+    return '$dial$digits';
+  }
+
   @override
   List<Object?> get props => [
         id,
         name,
         relationship,
         phone,
+        phoneCountryCode,
         photographUrl,
         email,
         occupation,
@@ -99,6 +119,7 @@ class FamilyGuardian extends Equatable {
         education,
         cnic,
         whatsapp,
+        whatsappCountryCode,
         address,
         houseApptName,
         areaBlock,

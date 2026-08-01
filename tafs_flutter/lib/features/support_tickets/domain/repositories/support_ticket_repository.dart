@@ -29,6 +29,7 @@ abstract class SupportTicketRepository {
   Stream<TicketMessage> get onTicketMessage;
   Stream<Map<String, dynamic>> get onTicketTyping;
   Stream<Map<String, dynamic>> get onTicketMessagesRead;
+  Stream<Map<String, dynamic>> get onTicketMessageDeleted;
   Stream<void> get onTicketQueueChanged;
   Stream<Map<String, dynamic>> get onTicketClosed;
   Stream<void> get onSocketConnect;

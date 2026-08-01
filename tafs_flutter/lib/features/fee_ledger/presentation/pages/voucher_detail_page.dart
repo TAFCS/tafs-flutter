@@ -119,6 +119,11 @@ class _VoucherDetailPageState extends State<VoucherDetailPage> {
       final tempFile = File(tempPath);
       await tempFile.writeAsBytes(bytes, flush: true);
 
+      // Keep an app-private copy for Open — FlutterFileDialog returns a SAF /
+      // content URI that OpenFilex cannot open, and we must not delete this
+      // temp file before the user taps Open.
+      final openablePath = tempPath;
+
       String? savedPath;
 
       if (Platform.isAndroid || Platform.isIOS) {
@@ -139,17 +144,15 @@ class _VoucherDetailPageState extends State<VoucherDetailPage> {
         throw Exception('Save cancelled.');
       }
 
-      final finalSavedPath = savedPath;
-
       setState(() {
         _isDownloading = false;
         _downloadProgress = 1.0;
       });
 
       if (mounted) {
-        final shownPath = finalSavedPath.length > 48
-            ? '...${finalSavedPath.substring(finalSavedPath.length - 48)}'
-            : finalSavedPath;
+        final shownPath = savedPath.length > 48
+            ? '...${savedPath.substring(savedPath.length - 48)}'
+            : savedPath;
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -157,19 +160,27 @@ class _VoucherDetailPageState extends State<VoucherDetailPage> {
             action: SnackBarAction(
               label: 'Open',
               onPressed: () async {
-                await OpenFilex.open(finalSavedPath);
+                final result = await OpenFilex.open(
+                  openablePath,
+                  type: 'application/pdf',
+                );
+                if (result.type != ResultType.done && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        result.message.isNotEmpty
+                            ? result.message
+                            : 'Could not open the PDF.',
+                      ),
+                    ),
+                  );
+                }
               },
             ),
             duration: const Duration(seconds: 5),
           ),
         );
       }
-
-      try {
-        if (await tempFile.exists()) {
-          await tempFile.delete();
-        }
-      } catch (_) {}
     } catch (e) {
       setState(() => _isDownloading = false);
       if (mounted) {
@@ -222,19 +233,21 @@ class _VoucherDetailPageState extends State<VoucherDetailPage> {
                   const SizedBox(height: AppTheme.space6),
                   _SummaryCard(voucher: widget.voucher),
                   const SizedBox(height: AppTheme.space6),
-                  if (widget.voucher.bankInfo != null) ...[
-                    Text(
-                      'PAYMENT INSTRUCTIONS',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: AppTheme.blue300,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                    ),
-                    const SizedBox(height: AppTheme.space3),
-                    _BankDetails(bankInfo: widget.voucher.bankInfo!),
-                    const SizedBox(height: AppTheme.space6),
-                  ],
+                  // Temporarily hidden — restore by uncommenting this block.
+                  // IBFT / Online Transfer Details below stays visible.
+                  // if (widget.voucher.bankInfo != null) ...[
+                  //   Text(
+                  //     'PAYMENT INSTRUCTIONS',
+                  //     style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  //           color: AppTheme.blue300,
+                  //           fontWeight: FontWeight.bold,
+                  //           letterSpacing: 1.2,
+                  //         ),
+                  //   ),
+                  //   const SizedBox(height: AppTheme.space3),
+                  //   _BankDetails(bankInfo: widget.voucher.bankInfo!),
+                  //   const SizedBox(height: AppTheme.space6),
+                  // ],
                   const _IbftDetailsNote(),
                   const SizedBox(height: AppTheme.space8),
                 ],

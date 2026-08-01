@@ -23,31 +23,59 @@ class EditGuardianPage extends StatefulWidget {
   State<EditGuardianPage> createState() => _EditGuardianPageState();
 }
 
-String _formatPakistaniNumber(String? raw) {
+/// Splits a stored phone into dialling code + national digits.
+/// Handles legacy rows where the country code was embedded in the number field.
+({String code, String national}) _splitPhone(String? raw, String? storedCode) {
+  final fallbackCode = (storedCode ?? '+92').trim().isEmpty ? '+92' : (storedCode ?? '+92').trim();
   final trimmed = (raw ?? '').trim();
-  if (trimmed.isEmpty) return '+92';
+  if (trimmed.isEmpty || trimmed.toUpperCase() == 'N/A') {
+    return (code: fallbackCode, national: '');
+  }
 
-  String formatted = trimmed;
-  if (!formatted.startsWith('+92')) {
-    String digits = formatted.replaceAll(RegExp(r'\D'), '');
-    if (digits.startsWith('92')) {
-      digits = digits.substring(2);
-    } else if (digits.startsWith('0')) {
-      digits = digits.substring(1);
+  if (trimmed.startsWith('+')) {
+    final match = RegExp(r'^(\+\d{1,4})(.*)$').firstMatch(trimmed);
+    if (match != null) {
+      final code = match.group(1)!;
+      final rest = (match.group(2) ?? '').replaceAll(RegExp(r'\D'), '');
+      // Prefer stored code when present and number doesn't embed a different one.
+      if (storedCode != null &&
+          storedCode.trim().isNotEmpty &&
+          !trimmed.startsWith(storedCode.trim())) {
+        // Number embeds a different dialling code — trust the number's prefix.
+        return (code: code, national: rest);
+      }
+      if (storedCode != null &&
+          storedCode.trim().isNotEmpty &&
+          trimmed.startsWith(storedCode.trim())) {
+        final national = trimmed.substring(storedCode.trim().length).replaceAll(RegExp(r'\D'), '');
+        return (code: storedCode.trim(), national: national);
+      }
+      return (code: code, national: rest);
     }
-    formatted = '+92$digits';
   }
-  if (formatted.length > 13) {
-    formatted = formatted.substring(0, 13);
+
+  var digits = trimmed.replaceAll(RegExp(r'\D'), '');
+  if (fallbackCode == '+92' && digits.startsWith('0') && digits.length > 1) {
+    digits = digits.substring(1);
   }
-  return formatted;
+  return (code: fallbackCode, national: digits);
 }
 
-String? _validatePakistaniNumber(String? value) {
+String? _validateNationalNumber(String? value) {
   final text = (value ?? '').trim();
-  if (text.isEmpty || text == '+92') return null;
-  if (!RegExp(r'^\+92\d{10}$').hasMatch(text)) {
-    return 'Enter exactly 10 digits after +92';
+  if (text.isEmpty) return null;
+  final digits = text.replaceAll(RegExp(r'\D'), '');
+  if (digits.length < 6 || digits.length > 15) {
+    return 'Enter 6–15 digits';
+  }
+  return null;
+}
+
+String? _validateCountryCode(String? value) {
+  final text = (value ?? '').trim();
+  if (text.isEmpty) return 'Required';
+  if (!RegExp(r'^\+\d{1,4}$').hasMatch(text)) {
+    return 'Use + and digits (e.g. +92)';
   }
   return null;
 }
@@ -59,7 +87,9 @@ class _EditGuardianPageState extends State<EditGuardianPage> with SingleTickerPr
   late final AnimationController _shakeController;
   late final Animation<double> _shakeAnimation;
   late TextEditingController _nameController;
+  late TextEditingController _phoneCountryCodeController;
   late TextEditingController _phoneController;
+  late TextEditingController _whatsappCountryCodeController;
   late TextEditingController _whatsappController;
   late TextEditingController _emailController;
   late TextEditingController _cnicController;
@@ -155,8 +185,12 @@ class _EditGuardianPageState extends State<EditGuardianPage> with SingleTickerPr
       TweenSequenceItem(tween: Tween(begin: 8.0, end: 0.0), weight: 1),
     ]).animate(_shakeController);
     _nameController = TextEditingController(text: widget.guardian.name);
-    _phoneController = TextEditingController(text: _formatPakistaniNumber(widget.guardian.phone));
-    _whatsappController = TextEditingController(text: _formatPakistaniNumber(widget.guardian.whatsapp));
+    final phoneParts = _splitPhone(widget.guardian.phone, widget.guardian.phoneCountryCode);
+    final whatsappParts = _splitPhone(widget.guardian.whatsapp, widget.guardian.whatsappCountryCode);
+    _phoneCountryCodeController = TextEditingController(text: phoneParts.code);
+    _phoneController = TextEditingController(text: phoneParts.national);
+    _whatsappCountryCodeController = TextEditingController(text: whatsappParts.code);
+    _whatsappController = TextEditingController(text: whatsappParts.national);
     _emailController = TextEditingController(text: widget.guardian.email);
     _cnicController = TextEditingController(text: widget.guardian.cnic);
     _occupationController = TextEditingController(text: widget.guardian.occupation);
@@ -179,7 +213,9 @@ class _EditGuardianPageState extends State<EditGuardianPage> with SingleTickerPr
   void dispose() {
     _shakeController.dispose();
     _nameController.dispose();
+    _phoneCountryCodeController.dispose();
     _phoneController.dispose();
+    _whatsappCountryCodeController.dispose();
     _whatsappController.dispose();
     _emailController.dispose();
     _cnicController.dispose();
@@ -235,14 +271,26 @@ class _EditGuardianPageState extends State<EditGuardianPage> with SingleTickerPr
       final normalizedCurrent = (current ?? '').trim();
       final normalizedNext = next.trim();
       if (normalizedCurrent == normalizedNext) return;
-      if (normalizedCurrent.isEmpty && normalizedNext == '+92') return;
       if (normalizedCurrent.isEmpty && normalizedNext.isEmpty) return;
       changes[key] = normalizedNext;
     }
 
+    final initialPhone = _splitPhone(widget.guardian.phone, widget.guardian.phoneCountryCode);
+    final initialWhatsapp = _splitPhone(widget.guardian.whatsapp, widget.guardian.whatsappCountryCode);
+
     addIfChanged('full_name', widget.guardian.name, _nameController.text);
-    addIfChanged('primary_phone', widget.guardian.phone, _phoneController.text);
-    addIfChanged('whatsapp_number', widget.guardian.whatsapp, _whatsappController.text);
+    addIfChanged('primary_phone', initialPhone.national, _phoneController.text);
+    addIfChanged(
+      'primary_phone_country_code',
+      initialPhone.code,
+      _phoneCountryCodeController.text,
+    );
+    addIfChanged('whatsapp_number', initialWhatsapp.national, _whatsappController.text);
+    addIfChanged(
+      'whatsapp_country_code',
+      initialWhatsapp.code,
+      _whatsappCountryCodeController.text,
+    );
     addIfChanged('email_address', widget.guardian.email, _emailController.text);
     addIfChanged('cnic', widget.guardian.cnic, _cnicController.text);
     addIfChanged('occupation', widget.guardian.occupation, _occupationController.text);
@@ -386,29 +434,21 @@ class _EditGuardianPageState extends State<EditGuardianPage> with SingleTickerPr
                           ),
                     ),
                     const SizedBox(height: AppTheme.space4),
-                    _buildTextField(
-                      _phoneController,
-                      'Primary Phone',
-                      Icons.phone_rounded,
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
-                        PakistaniPhoneFormatter(),
-                      ],
-                      validator: _validatePakistaniNumber,
-                      apiKey: 'primary_phone',
+                    _buildPhoneField(
+                      countryCodeController: _phoneCountryCodeController,
+                      numberController: _phoneController,
+                      label: 'Primary Phone',
+                      icon: Icons.phone_rounded,
+                      countryCodeApiKey: 'primary_phone_country_code',
+                      numberApiKey: 'primary_phone',
                     ),
-                    _buildTextField(
-                      _whatsappController,
-                      'WhatsApp Number',
-                      Icons.chat_bubble_rounded,
-                      keyboardType: TextInputType.phone,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
-                        PakistaniPhoneFormatter(),
-                      ],
-                      validator: _validatePakistaniNumber,
-                      apiKey: 'whatsapp_number',
+                    _buildPhoneField(
+                      countryCodeController: _whatsappCountryCodeController,
+                      numberController: _whatsappController,
+                      label: 'WhatsApp Number',
+                      icon: Icons.chat_bubble_rounded,
+                      countryCodeApiKey: 'whatsapp_country_code',
+                      numberApiKey: 'whatsapp_number',
                     ),
                     _buildTextField(_emailController, 'Email Address', Icons.email_rounded, apiKey: 'email_address'),
                     const SizedBox(height: AppTheme.space4),
@@ -552,6 +592,144 @@ class _EditGuardianPageState extends State<EditGuardianPage> with SingleTickerPr
     );
   }
 
+  Widget _buildPhoneField({
+    required TextEditingController countryCodeController,
+    required TextEditingController numberController,
+    required String label,
+    required IconData icon,
+    required String countryCodeApiKey,
+    required String numberApiKey,
+  }) {
+    final isPending = widget.guardian.pendingFields.contains(numberApiKey) ||
+        widget.guardian.pendingFields.contains(countryCodeApiKey);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.space4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 88,
+                child: TextFormField(
+                  key: _keyFor(countryCodeApiKey),
+                  controller: countryCodeController,
+                  keyboardType: TextInputType.phone,
+                  readOnly: isPending,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                    LengthLimitingTextInputFormatter(5),
+                  ],
+                  validator: _validateCountryCode,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: isPending ? AppTheme.blue300 : AppTheme.navy,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Code',
+                    prefixIcon: Icon(icon, color: AppTheme.blue200, size: 18),
+                    prefixIconConstraints: const BoxConstraints(minWidth: 36),
+                    filled: true,
+                    fillColor: isPending ? AppTheme.blue100.withValues(alpha: 0.15) : AppTheme.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      borderSide: const BorderSide(color: AppTheme.blue100),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      borderSide: const BorderSide(color: AppTheme.blue100),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      borderSide: BorderSide(
+                        color: isPending ? AppTheme.blue100 : AppTheme.navy,
+                        width: isPending ? 1.0 : 1.5,
+                      ),
+                    ),
+                    labelStyle: const TextStyle(
+                      color: AppTheme.blue300,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextFormField(
+                  key: _keyFor(numberApiKey),
+                  controller: numberController,
+                  keyboardType: TextInputType.phone,
+                  readOnly: isPending,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(15),
+                  ],
+                  validator: _validateNationalNumber,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: isPending ? AppTheme.blue300 : AppTheme.navy,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: label,
+                    suffixIcon: isPending
+                        ? const Icon(Icons.lock_rounded, color: AppTheme.blue200, size: 16)
+                        : null,
+                    filled: true,
+                    fillColor: isPending ? AppTheme.blue100.withValues(alpha: 0.15) : AppTheme.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      borderSide: const BorderSide(color: AppTheme.blue100),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      borderSide: const BorderSide(color: AppTheme.blue100),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      borderSide: BorderSide(
+                        color: isPending ? AppTheme.blue100 : AppTheme.navy,
+                        width: isPending ? 1.0 : 1.5,
+                      ),
+                    ),
+                    labelStyle: const TextStyle(
+                      color: AppTheme.blue300,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (isPending) ...[
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.pending_actions_rounded, color: AppTheme.blue300, size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Pending admin approval',
+                    style: TextStyle(
+                      color: AppTheme.blue300.withValues(alpha: 0.9),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildTextField(
     TextEditingController controller,
     String label,
@@ -625,38 +803,6 @@ class _EditGuardianPageState extends State<EditGuardianPage> with SingleTickerPr
           ],
         ],
       ),
-    );
-  }
-}
-
-class PakistaniPhoneFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    String text = newValue.text;
-
-    // Do not allow deleting the +92 prefix
-    if (!text.startsWith('+92')) {
-      if (text.startsWith('+9') || text.startsWith('+') || text.startsWith('9') || text.startsWith('2')) {
-        text = '+92';
-      } else {
-        String digits = text.replaceAll(RegExp(r'\D'), '');
-        if (digits.startsWith('92')) {
-          digits = digits.substring(2);
-        } else if (digits.startsWith('0')) {
-          digits = digits.substring(1);
-        }
-        text = '+92$digits';
-      }
-    }
-
-    // Enforce max 10 digits after +92 (total 13 characters)
-    if (text.length > 13) {
-      text = text.substring(0, 13);
-    }
-
-    return TextEditingValue(
-      text: text,
-      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }

@@ -147,7 +147,14 @@ class _DepositSlipViewerPageState extends State<DepositSlipViewerPage> {
       final tempFile = File(tempPath);
       await tempFile.writeAsBytes(bytes, flush: true);
 
-      await OpenFilex.open(tempPath);
+      final result = await OpenFilex.open(tempPath, type: 'application/pdf');
+      if (result.type != ResultType.done && mounted) {
+        showAppSnackBar(
+          context,
+          result.message.isNotEmpty ? result.message : 'Could not open the PDF viewer',
+          type: AppSnackBarType.error,
+        );
+      }
     } catch (e) {
       if (mounted) {
         showAppSnackBar(context, 'Could not open the PDF viewer', type: AppSnackBarType.error);

@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/chat_message.dart';
@@ -24,6 +25,9 @@ class ChatBubble extends StatelessWidget {
   /// parents must not see when staff/support has read their message.
   final bool showReadReceipts;
 
+  /// Staff ticket threads: long-press Delete for own messages only.
+  final void Function(ChatMessage message)? onDelete;
+
   const ChatBubble({
     super.key,
     required this.messages,
@@ -33,6 +37,7 @@ class ChatBubble extends StatelessWidget {
     this.onRetryTap,
     this.onAcknowledge,
     this.showReadReceipts = true,
+    this.onDelete,
   });
 
   @override
@@ -238,38 +243,41 @@ class ChatBubble extends StatelessWidget {
 
     final bubble = SwipeToReply(
       onReply: () => onReply(message),
-      child: Container(
-        margin: EdgeInsets.only(
-          top: 1,
-          bottom: 1,
-          left: isMe ? 0 : 12,
-          right: isMe ? 12 : 0,
-        ),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.7,
-        ),
-        decoration: BoxDecoration(
-          color: isMe ? AppTheme.navy : Colors.white,
-          borderRadius: borderRadius,
-          border: !isMe && message.isAnnouncement
-              ? Border.all(color: AppTheme.navy.withOpacity(0.15), width: 1)
-              : null,
-        ),
-        child: ClipRRect(
-          borderRadius: borderRadius,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (message.mediaMetadata?['replyTo'] != null)
-                _buildReplyPreview(context, message.mediaMetadata!['replyTo'], isMe),
-              _buildIndividualContent(context, message),
-              if (message.messageType != ChatMessageType.text)
-                Padding(
-                  padding: const EdgeInsets.only(right: 12, bottom: 8, left: 12, top: 0),
-                  child: _buildTimeAndChecksRow(message),
-                ),
-            ],
+      child: GestureDetector(
+        onLongPress: () => _showMessageMenu(context, message),
+        child: Container(
+          margin: EdgeInsets.only(
+            top: 1,
+            bottom: 1,
+            left: isMe ? 0 : 12,
+            right: isMe ? 12 : 0,
+          ),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.7,
+          ),
+          decoration: BoxDecoration(
+            color: isMe ? AppTheme.navy : Colors.white,
+            borderRadius: borderRadius,
+            border: !isMe && message.isAnnouncement
+                ? Border.all(color: AppTheme.navy.withOpacity(0.15), width: 1)
+                : null,
+          ),
+          child: ClipRRect(
+            borderRadius: borderRadius,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (message.mediaMetadata?['replyTo'] != null)
+                  _buildReplyPreview(context, message.mediaMetadata!['replyTo'], isMe),
+                _buildIndividualContent(context, message),
+                if (message.messageType != ChatMessageType.text)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12, bottom: 8, left: 12, top: 0),
+                    child: _buildTimeAndChecksRow(message),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -395,22 +403,13 @@ class ChatBubble extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            GestureDetector(
+            _buildAspectImage(
+              context: context,
+              imageUrl: imageUrl,
+              localPath: message.mediaMetadata?['localPath'] as String?,
+              mediaMetadata: message.mediaMetadata,
+              maxWidth: bubbleWidth,
               onTap: () => onImageTap(imageUrl),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: bubbleWidth,
-                  height: 220,
-                  child: _renderImage(
-                    imageUrl,
-                    localPath: message.mediaMetadata?['localPath'],
-                    width: bubbleWidth,
-                    height: 220,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
             ),
             if (caption != null && caption.isNotEmpty)
               Padding(
@@ -580,6 +579,7 @@ class ChatBubble extends StatelessWidget {
     final caption = (firstMsg.mediaMetadata?['url'] != null && firstMsg.content != firstMsg.mediaMetadata?['url']) 
         ? firstMsg.content 
         : null;
+    final maxTileHeight = MediaQuery.of(context).size.height * 0.28;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -593,15 +593,17 @@ class ChatBubble extends StatelessWidget {
           crossAxisSpacing: 2,
           children: messages.map((m) {
             final url = m.mediaMetadata?['url'] ?? m.content;
-            final localPath = m.mediaMetadata?['localPath'];
+            final localPath = m.mediaMetadata?['localPath'] as String?;
             return GestureDetector(
               onTap: () => onImageTap(url),
-              child: _renderImage(
-                url,
-                localPath: localPath,
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxTileHeight),
+                child: _renderImage(
+                  url,
+                  localPath: localPath,
+                  width: double.infinity,
+                  fit: BoxFit.contain,
+                ),
               ),
             );
           }).toList(),
@@ -618,6 +620,134 @@ class ChatBubble extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+
+  /// Sizes the image to its aspect ratio within min/max height so the full
+  /// image is visible (no centre-crop). Uses media_metadata width/height when present.
+  Widget _buildAspectImage({
+    required BuildContext context,
+    required String imageUrl,
+    String? localPath,
+    Map<String, dynamic>? mediaMetadata,
+    required double maxWidth,
+    required VoidCallback onTap,
+  }) {
+    final metaW = (mediaMetadata?['width'] as num?)?.toDouble();
+    final metaH = (mediaMetadata?['height'] as num?)?.toDouble();
+    final maxH = MediaQuery.of(context).size.height * 0.45;
+    const minH = 80.0;
+
+    Widget image;
+    if (metaW != null && metaH != null && metaW > 0 && metaH > 0) {
+      final aspect = metaW / metaH;
+      var width = maxWidth;
+      var height = width / aspect;
+      if (height > maxH) {
+        height = maxH;
+        width = height * aspect;
+      }
+      if (height < minH) {
+        height = minH;
+        width = (height * aspect).clamp(0.0, maxWidth);
+      }
+      image = SizedBox(
+        width: width,
+        height: height,
+        child: _renderImage(
+          imageUrl,
+          localPath: localPath,
+          width: width,
+          height: height,
+          fit: BoxFit.contain,
+        ),
+      );
+    } else {
+      image = ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: maxWidth,
+          minHeight: minH,
+          maxHeight: maxH,
+        ),
+        child: _renderImage(
+          imageUrl,
+          localPath: localPath,
+          width: maxWidth,
+          fit: BoxFit.contain,
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: image,
+      ),
+    );
+  }
+
+  String? _copyableText(ChatMessage message) {
+    switch (message.messageType) {
+      case ChatMessageType.text:
+        return message.content.trim().isEmpty ? null : message.content;
+      case ChatMessageType.image:
+      case ChatMessageType.document:
+        final hasUrl = message.mediaMetadata?['url'] != null;
+        final caption = (hasUrl && message.content != message.mediaMetadata?['url'])
+            ? message.content
+            : null;
+        if (caption != null && caption.trim().isNotEmpty) return caption;
+        final metaCaption = message.mediaMetadata?['caption']?.toString();
+        if (metaCaption != null && metaCaption.trim().isNotEmpty) return metaCaption;
+        return null;
+      default:
+        return null;
+    }
+  }
+
+  Future<void> _showMessageMenu(BuildContext context, ChatMessage message) async {
+    final text = _copyableText(message);
+    final canDelete = onDelete != null;
+    if (text == null && !canDelete) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (text != null)
+                ListTile(
+                  leading: const Icon(Icons.copy_rounded),
+                  title: const Text('Copy'),
+                  onTap: () async {
+                    await Clipboard.setData(ClipboardData(text: text));
+                    if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Copied'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              if (canDelete)
+                ListTile(
+                  leading: Icon(Icons.delete_outline, color: Colors.red.shade700),
+                  title: Text('Delete', style: TextStyle(color: Colors.red.shade700)),
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    onDelete!(message);
+                  },
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 

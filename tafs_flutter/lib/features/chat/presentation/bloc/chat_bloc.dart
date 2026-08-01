@@ -359,10 +359,28 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
             return m;
           }).toList(),
         ));
-        content = await repository.uploadMedia(event.file!);
+        final uploaded = await repository.uploadMedia(event.file!);
+        content = uploaded['url'] as String? ?? content;
+        if (uploaded['width'] != null) metadata['width'] = uploaded['width'];
+        if (uploaded['height'] != null) metadata['height'] = uploaded['height'];
+        if (uploaded['sizeBytes'] != null) metadata['sizeBytes'] = uploaded['sizeBytes'];
+        if (uploaded['mimetype'] != null) metadata['mimetype'] = uploaded['mimetype'];
+        if (uploaded['originalName'] != null) {
+          metadata['originalName'] = uploaded['originalName'];
+        }
+        metadata['url'] = content;
       }
 
-      final finalMetadata = <String, dynamic>{'tempId': tempId};
+      final finalMetadata = <String, dynamic>{
+        'tempId': tempId,
+        if (metadata['url'] != null) 'url': metadata['url'],
+        if (metadata['width'] != null) 'width': metadata['width'],
+        if (metadata['height'] != null) 'height': metadata['height'],
+        if (metadata['sizeBytes'] != null) 'sizeBytes': metadata['sizeBytes'],
+        if (metadata['mimetype'] != null) 'mimetype': metadata['mimetype'],
+        if (metadata['originalName'] != null)
+          'originalName': metadata['originalName'],
+      };
       if (event.batchId != null) {
         finalMetadata['batchId'] = event.batchId;
       }
