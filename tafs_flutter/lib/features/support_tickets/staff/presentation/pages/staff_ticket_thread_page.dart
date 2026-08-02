@@ -181,42 +181,27 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                       Colors.grey.shade200,
                     ),
                   Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          ticketRequesterLabel(
-                            studentName: ticket.studentName,
-                            householdName: ticket.householdName,
-                            familyId: ticket.familyId,
-                          ),
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${categoryLabel(ticket.category.name)} · ${ticket.subtopic ?? ''}',
-                          style: const TextStyle(fontSize: 13, color: AppTheme.blue300),
-                        ),
-                        const SizedBox(height: 8),
                         Row(
                           children: [
-                            TicketStatusBadge(status: ticket.status),
-                            const SizedBox(width: 8),
-                            if (ticket.assigneeName != null)
-                              Expanded(
-                                child: Text(
-                                  'Assignee: ${ticket.assigneeName}',
-                                  style: const TextStyle(fontSize: 12),
-                                  overflow: TextOverflow.ellipsis,
+                            Expanded(
+                              child: Text(
+                                ticketRequesterLabel(
+                                  studentName: ticket.studentName,
+                                  householdName: ticket.householdName,
+                                  familyId: ticket.familyId,
                                 ),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          children: [
+                            ),
                             if (isUnclaimedFinance && widget.staff.role == 'FINANCE_CLERK')
                               _actionChip('Claim', state.actionLoading, () => _cubit.claim()),
                             if (isFinance && isAssignee && widget.staff.role == 'FINANCE_CLERK' && !isClosed)
@@ -242,8 +227,35 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
                                   danger: true),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(ticket.description, style: const TextStyle(fontSize: 13)),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            TicketStatusBadge(status: ticket.status),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                '${categoryLabel(ticket.category.name)} · ${ticket.subtopic ?? ''}',
+                                style: const TextStyle(fontSize: 12, color: AppTheme.blue300),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (ticket.assigneeName != null) ...[
+                              const Text(
+                                ' · ',
+                                style: TextStyle(fontSize: 12, color: AppTheme.blue300),
+                              ),
+                              Flexible(
+                                child: Text(
+                                  ticket.assigneeName!,
+                                  style: const TextStyle(fontSize: 12, color: AppTheme.blue300),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -675,7 +687,10 @@ class _StaffTicketThreadPageState extends State<StaffTicketThreadPage> {
               height: 14,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : Text(label),
+          : Text(label, style: const TextStyle(fontSize: 12)),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       backgroundColor: danger ? Colors.red.shade50 : null,
       onPressed: loading ? null : onTap,
     );

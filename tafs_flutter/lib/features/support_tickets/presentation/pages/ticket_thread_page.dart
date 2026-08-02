@@ -217,25 +217,22 @@ class _TicketThreadPageState extends State<TicketThreadPage> {
                       ),
                     ),
                   Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
                       children: [
-                        Row(
-                          children: [
-                            TicketStatusBadge(status: ticket.status),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '${_categoryLabel(ticket.category.name)} · ${ticket.subtopic ?? ''}',
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontWeight: FontWeight.w600),
-                              ),
+                        TicketStatusBadge(status: ticket.status),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${_categoryLabel(ticket.category.name)} · ${ticket.subtopic ?? ''}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
                             ),
-                          ],
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(ticket.description, style: const TextStyle(fontSize: 13)),
                       ],
                     ),
                   ),
