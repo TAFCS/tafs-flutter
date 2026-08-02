@@ -25,6 +25,20 @@ class EditGuardianPage extends StatefulWidget {
 
 /// Splits a stored phone into dialling code + national digits.
 /// Handles legacy rows where the country code was embedded in the number field.
+/// Strips the trunk prefix that is not part of the national number.
+/// Legacy rows arrive in several shapes — `+923001234567`, `03001234567`,
+/// `+9203001234567` and plain `3001234567` — and all must land in the field as
+/// the same 10 digits, otherwise the +92 length rule rejects a number the
+/// parent never mistyped.
+String _stripTrunkPrefix(String digits, String code) {
+  if (code.trim() != '+92') return digits;
+  var d = digits;
+  while (d.startsWith('0') && d.length > 1) {
+    d = d.substring(1);
+  }
+  return d;
+}
+
 ({String code, String national}) _splitPhone(String? raw, String? storedCode) {
   final fallbackCode = (storedCode ?? '+92').trim().isEmpty ? '+92' : (storedCode ?? '+92').trim();
   final trimmed = (raw ?? '').trim();
@@ -42,29 +56,49 @@ class EditGuardianPage extends StatefulWidget {
           storedCode.trim().isNotEmpty &&
           !trimmed.startsWith(storedCode.trim())) {
         // Number embeds a different dialling code — trust the number's prefix.
-        return (code: code, national: rest);
+        return (code: code, national: _stripTrunkPrefix(rest, code));
       }
       if (storedCode != null &&
           storedCode.trim().isNotEmpty &&
           trimmed.startsWith(storedCode.trim())) {
-        final national = trimmed.substring(storedCode.trim().length).replaceAll(RegExp(r'\D'), '');
-        return (code: storedCode.trim(), national: national);
+        final resolved = storedCode.trim();
+        final national = trimmed.substring(resolved.length).replaceAll(RegExp(r'\D'), '');
+        return (code: resolved, national: _stripTrunkPrefix(national, resolved));
       }
-      return (code: code, national: rest);
+      return (code: code, national: _stripTrunkPrefix(rest, code));
     }
   }
 
-  var digits = trimmed.replaceAll(RegExp(r'\D'), '');
-  if (fallbackCode == '+92' && digits.startsWith('0') && digits.length > 1) {
-    digits = digits.substring(1);
-  }
-  return (code: fallbackCode, national: digits);
+  final digits = trimmed.replaceAll(RegExp(r'\D'), '');
+  return (code: fallbackCode, national: _stripTrunkPrefix(digits, fallbackCode));
 }
 
-String? _validateNationalNumber(String? value) {
+/// Digits required after a given dialling code. Pakistani numbers are always a
+/// 10-digit national number (e.g. +92 3001234567 / +92 2134567890) — the
+/// leading trunk `0` is not part of it. Other countries vary too much to pin
+/// down, so they keep a permissive range.
+int? _requiredNationalLength(String countryCode) {
+  return countryCode.trim() == '+92' ? 10 : null;
+}
+
+String? _validateNationalNumber(String? value, String countryCode) {
   final text = (value ?? '').trim();
   if (text.isEmpty) return null;
   final digits = text.replaceAll(RegExp(r'\D'), '');
+
+  final exact = _requiredNationalLength(countryCode);
+  if (exact != null) {
+    // Typed with the trunk prefix (03001234567) — tell them precisely what's
+    // wrong instead of a bare length error, since this is the common mistake.
+    if (digits.startsWith('0')) {
+      return 'Drop the leading 0 — enter $exact digits (e.g. 3001234567)';
+    }
+    if (digits.length != exact) {
+      return 'Enter exactly $exact digits after ${countryCode.trim()}';
+    }
+    return null;
+  }
+
   if (digits.length < 6 || digits.length > 15) {
     return 'Enter 6–15 digits';
   }
@@ -622,6 +656,13 @@ class _EditGuardianPageState extends State<EditGuardianPage> with SingleTickerPr
                     LengthLimitingTextInputFormatter(5),
                   ],
                   validator: _validateCountryCode,
+                  // Changing the code changes the number field's rules (digit cap,
+                  // required length, hint), so rebuild and re-check it immediately
+                  // rather than leaving a stale error from the previous country.
+                  onChanged: (_) {
+                    setState(() {});
+                    _keyFor(numberApiKey)?.currentState?.validate();
+                  },
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: isPending ? AppTheme.blue300 : AppTheme.navy,
@@ -665,15 +706,25 @@ class _EditGuardianPageState extends State<EditGuardianPage> with SingleTickerPr
                   readOnly: isPending,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(15),
+                    // Cap at the exact length for codes we know (+92 → 10) so the
+                    // field physically cannot hold an invalid number; fall back to
+                    // a permissive cap for everywhere else.
+                    LengthLimitingTextInputFormatter(
+                      _requiredNationalLength(countryCodeController.text) ?? 15,
+                    ),
                   ],
-                  validator: _validateNationalNumber,
+                  validator: (v) =>
+                      _validateNationalNumber(v, countryCodeController.text),
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: isPending ? AppTheme.blue300 : AppTheme.navy,
                   ),
                   decoration: InputDecoration(
                     labelText: label,
+                    // Makes the +92 rule discoverable before they hit Save.
+                    hintText: countryCodeController.text.trim() == '+92'
+                        ? '3001234567'
+                        : null,
                     suffixIcon: isPending
                         ? const Icon(Icons.lock_rounded, color: AppTheme.blue200, size: 16)
                         : null,

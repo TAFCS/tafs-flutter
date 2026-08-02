@@ -458,47 +458,56 @@ class _ParentHeaderCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: AppTheme.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              border: Border.all(color: AppTheme.white.withValues(alpha: 0.2)),
-              image: appCachedNetworkImageProvider(parent.photographUrl) != null
-                  ? DecorationImage(
-                      image: appCachedNetworkImageProvider(parent.photographUrl)!,
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
-            child: parent.photographUrl == null
-                ? const Icon(Icons.family_restroom_rounded, color: AppTheme.white, size: 32)
-                : null,
-          ),
-          const SizedBox(width: AppTheme.space5),
+          // ── Family photo/avatar — temporarily hidden ─────────────────────
+          // Restore by uncommenting this block and the SizedBox below.
+          // The underlying field (parent.photographUrl) is untouched and still
+          // returned by the API; it is only not rendered here.
+          // Container(
+          //   width: 64,
+          //   height: 64,
+          //   decoration: BoxDecoration(
+          //     color: AppTheme.white.withValues(alpha: 0.1),
+          //     borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          //     border: Border.all(color: AppTheme.white.withValues(alpha: 0.2)),
+          //     image: appCachedNetworkImageProvider(parent.photographUrl) != null
+          //         ? DecorationImage(
+          //             image: appCachedNetworkImageProvider(parent.photographUrl)!,
+          //             fit: BoxFit.cover,
+          //           )
+          //         : null,
+          //   ),
+          //   child: parent.photographUrl == null
+          //       ? const Icon(Icons.family_restroom_rounded, color: AppTheme.white, size: 32)
+          //       : null,
+          // ),
+          // const SizedBox(width: AppTheme.space5),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                // Static heading — replaces the household name, which is
+                // temporarily hidden (see below). Change this string to retitle.
+                const Text(
                   'Family Household',
                   style: TextStyle(
-                    color: AppTheme.white.withValues(alpha: 0.6),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  parent.householdName,
-                  style: const TextStyle(
                     color: AppTheme.white,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+                // ── Household name — temporarily hidden ───────────────────
+                // Restore by uncommenting this block and reverting the heading
+                // above to its small-label style. parent.householdName is still
+                // populated and used elsewhere; it is only not rendered here.
+                // const SizedBox(height: 2),
+                // Text(
+                //   parent.householdName,
+                //   style: const TextStyle(
+                //     color: AppTheme.white,
+                //     fontSize: 22,
+                //     fontWeight: FontWeight.bold,
+                //   ),
+                // ),
                 const SizedBox(height: 4),
                 Text(
                   parent.username.isNotEmpty ? parent.username : 'No primary email',
