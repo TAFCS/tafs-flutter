@@ -857,25 +857,6 @@ class _BreakdownStat extends StatelessWidget {
 class _IbftDetailsNote extends StatelessWidget {
   const _IbftDetailsNote();
 
-  static const String _message = '''
-Assalam O Alaikum,
-Dear,
-Kindly note the following account details,
-
-BANK : MEEZAN BANK.
-
-BRANCH – RAMSHA AVENUE,
-BLOCK # 13, GULISTAN - E - JAUHAR, KARACHI.
-
-IBAN: PK98MEZN0010280107453476
-
-BRANCH CODE : 1028
-
-ACCOUNT TITLE : THE AMERICAN FOUNDATION SCHOOL.
-
-Kind Regards,
-Ms. Meshah.''';
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -896,9 +877,9 @@ Ms. Meshah.''';
                 color: AppTheme.navy,
               ),
               const SizedBox(width: AppTheme.space2),
-              Text(
+              const Text(
                 'IBFT / Online Transfer Details',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: AppTheme.navy,
                 ),
@@ -906,13 +887,32 @@ Ms. Meshah.''';
             ],
           ),
           const SizedBox(height: AppTheme.space4),
-          SelectableText(
-            _message,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppTheme.navy,
-              height: 1.5,
-            ),
+          const _BankField(
+            label: 'Bank',
+            value: 'MEEZAN BANK',
+          ),
+          const _BankField(
+            label: 'Account Title',
+            value: 'THE AMERICAN FOUNDATION SCHOOL',
+          ),
+          const _BankField(
+            label: 'Account No.',
+            value: '10280107453476',
+            canCopy: true,
+          ),
+          const _BankField(
+            label: 'IBAN',
+            value: 'PK98MEZN0010280107453476',
+            canCopy: true,
+          ),
+          const _BankField(
+            label: 'Branch Code',
+            value: '1028',
+            canCopy: true,
+          ),
+          const _BankField(
+            label: 'Branch',
+            value: 'RAMSHA AVENUE, BLOCK # 13, GULISTAN - E - JAUHAR, KARACHI',
           ),
         ],
       ),
