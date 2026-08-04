@@ -74,15 +74,23 @@ class _EditStudentPageState extends State<EditStudentPage> {
   }
 
   Future<void> _selectDate() async {
-    final initialDate = _selectedDob ?? DateTime(2018);
+    final firstDate = DateTime(1900);
+    final lastDate = DateTime.now();
+    DateTime initialDate = _selectedDob ?? DateTime(2018);
+    if (initialDate.isBefore(firstDate)) {
+      initialDate = firstDate;
+    } else if (initialDate.isAfter(lastDate)) {
+      initialDate = lastDate;
+    }
+
     // calendarOnly blocks typed MM/dd vs dd/MM ambiguity (common on en_US
     // devices in PK) which was submitting month/day-swapped DOBs
     // (e.g. 2010-07-12 → 2010-12-07).
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: initialDate,
-      firstDate: DateTime(2005),
-      lastDate: DateTime.now(),
+      firstDate: firstDate,
+      lastDate: lastDate,
       initialEntryMode: DatePickerEntryMode.calendarOnly,
       builder: (context, child) {
         return Theme(

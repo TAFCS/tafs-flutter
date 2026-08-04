@@ -103,11 +103,20 @@ class _QuickAdmissionFormPageState extends State<QuickAdmissionFormPage> {
   }
 
   Future<void> _selectDob(BuildContext context) async {
+    final firstDate = DateTime(1900);
+    final lastDate = DateTime.now();
+    DateTime initialDate = _selectedDob ?? DateTime.now().subtract(const Duration(days: 365 * 5));
+    if (initialDate.isBefore(firstDate)) {
+      initialDate = firstDate;
+    } else if (initialDate.isAfter(lastDate)) {
+      initialDate = lastDate;
+    }
+
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().subtract(const Duration(days: 365 * 5)),
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
