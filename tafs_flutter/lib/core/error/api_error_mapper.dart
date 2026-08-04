@@ -4,7 +4,7 @@ import 'failures.dart';
 
 /// Maps API / network errors to short, user-friendly messages.
 class ApiErrorMapper {
-  static const int _maxMessageLength = 140;
+  static const int _maxMessageLength = 200;
 
   static const String defaultMessage =
       'Something went wrong. Please try again.';
