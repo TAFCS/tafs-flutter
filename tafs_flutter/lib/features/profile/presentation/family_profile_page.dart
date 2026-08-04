@@ -574,6 +574,7 @@ class _StudentInfoCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CircleAvatar(
                     radius: 24,
@@ -593,10 +594,15 @@ class _StudentInfoCard extends StatelessWidget {
                       children: [
                         Text(
                           student.fullName,
+                          maxLines: 3,
+                          softWrap: true,
+                          overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.navy),
                         ),
                         Text(
                           '${student.className ?? "N/A"} • Section ${student.section ?? "N/A"}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: AppTheme.blue300, fontSize: 12, fontWeight: FontWeight.w500),
                         ),
                       ],
@@ -604,7 +610,10 @@ class _StudentInfoCard extends StatelessWidget {
                   ),
 
                   const SizedBox(width: AppTheme.space2),
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.blue100),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.blue100),
+                  ),
                 ],
               ),
             ],

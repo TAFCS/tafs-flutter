@@ -84,10 +84,15 @@ class StudentSwitcherSheet extends StatelessWidget {
                 ),
                 title: Text(
                   student.fullName,
+                  maxLines: 3,
+                  softWrap: true,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
                   '${student.className} - ${student.section}\n${student.grNumber} • ${student.campus}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.blue300),
                 ),
                 isThreeLine: true,

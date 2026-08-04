@@ -6,6 +6,9 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/selected_student_cubit.dart';
 import 'student_switcher_sheet.dart';
 
+/// Toolbar height leaves room for a 2-line student name + subtitle.
+const double _kStudentAppBarToolbarHeight = 72;
+
 class StudentAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Student? student;
   final List<Widget>? actions;
@@ -20,7 +23,7 @@ class StudentAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => Size.fromHeight(
-        kToolbarHeight + (bottom?.preferredSize.height ?? 0.0),
+        _kStudentAppBarToolbarHeight + (bottom?.preferredSize.height ?? 0.0),
       );
 
   void _showStudentSwitcher(BuildContext context) {
@@ -46,6 +49,7 @@ class StudentAppBar extends StatelessWidget implements PreferredSizeWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
+        toolbarHeight: _kStudentAppBarToolbarHeight,
         title: const Text(
           'Loading...',
           maxLines: 1,
@@ -61,44 +65,53 @@ class StudentAppBar extends StatelessWidget implements PreferredSizeWidget {
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
       centerTitle: false,
+      toolbarHeight: _kStudentAppBarToolbarHeight,
+      titleSpacing: 16,
       actions: [
         if (actions != null) ...actions!,
       ],
       bottom: bottom,
+      // Force title to use remaining width between leading & actions
+      // so long names wrap instead of cutting off early.
       title: GestureDetector(
         onTap: () => _showStudentSwitcher(context),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      student!.fullName,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                Expanded(
+                  child: Text(
+                    student!.fullName,
+                    maxLines: 2,
+                    softWrap: true,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      height: 1.15,
                     ),
-                    const SizedBox(width: 2),
-                    const Icon(
-                      Icons.arrow_drop_down,
-                      color: AppTheme.blue300,
-                    ),
-                  ],
-                ),
-                Text(
-                  '${student!.grNumber ?? 'GR-XXXX'} • ${student!.campus ?? 'Main Campus'}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.blue300,
                   ),
                 ),
+                const SizedBox(width: 2),
+                const Icon(
+                  Icons.arrow_drop_down,
+                  color: AppTheme.blue300,
+                ),
               ],
+            ),
+            Text(
+              '${student!.grNumber ?? 'GR-XXXX'} • ${student!.campus ?? 'Main Campus'}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.blue300,
+              ),
             ),
           ],
         ),

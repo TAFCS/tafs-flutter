@@ -80,6 +80,8 @@ class AppDrawer extends StatelessWidget {
                 const SizedBox(height: 20),
                 Text(
                   parentName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: AppTheme.white,
                     fontWeight: FontWeight.bold,
@@ -93,6 +95,7 @@ class AppDrawer extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 6,
@@ -103,13 +106,21 @@ class AppDrawer extends StatelessWidget {
                     border: Border.all(color: AppTheme.white.withValues(alpha: 0.1)),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.school_rounded, color: AppTheme.blue100, size: 14),
                       const SizedBox(width: 8),
-                      Text(
-                        student.fullName,
-                        style: const TextStyle(color: AppTheme.white, fontSize: 12, fontWeight: FontWeight.w500),
+                      Flexible(
+                        child: Text(
+                          student.fullName,
+                          maxLines: 2,
+                          softWrap: true,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppTheme.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ],
                   ),

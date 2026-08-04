@@ -54,7 +54,8 @@ class StudentProfileCard extends StatelessWidget {
                   children: [
                     Text(
                       student.fullName,
-                      maxLines: 1,
+                      maxLines: 3,
+                      softWrap: true,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,

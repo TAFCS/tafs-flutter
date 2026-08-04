@@ -171,14 +171,18 @@ class _GroupedApprovalRow extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(
-                      ticketRequesterLabel(
-                        studentName: group.studentName,
-                        householdName: group.householdName,
-                      ),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                    Expanded(
+                      child: Text(
+                        ticketRequesterLabel(
+                          studentName: group.studentName,
+                          householdName: group.householdName,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                     if (group.count > 1) ...[

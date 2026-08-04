@@ -80,6 +80,8 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
+        titleSpacing: 0,
+        toolbarHeight: 72,
         title: GestureDetector(
           onTap: () {
             showModalBottomSheet(
@@ -110,26 +112,35 @@ class _AttendanceCalendarPageState extends State<AttendanceCalendarPage> {
               }
             });
           },
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const Text(
+                'Attendance History',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              Row(
                 children: [
-                  const Text(
-                    'Attendance History',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  Row(
-                    children: [
-                      Text(
-                        widget.student.fullName,
-                        style: const TextStyle(fontSize: 12, color: AppTheme.blue300, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Text(
+                      widget.student.fullName,
+                      maxLines: 2,
+                      softWrap: true,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.blue300,
+                        fontWeight: FontWeight.bold,
+                        height: 1.15,
                       ),
-                      const SizedBox(width: 2),
-                      const Icon(Icons.arrow_drop_down, color: AppTheme.blue300, size: 16),
-                    ],
+                    ),
                   ),
+                  const SizedBox(width: 2),
+                  const Icon(Icons.arrow_drop_down, color: AppTheme.blue300, size: 16),
                 ],
               ),
             ],

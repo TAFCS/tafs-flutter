@@ -95,6 +95,9 @@ class StudentSelectionPage extends StatelessWidget {
                               children: [
                                 Text(
                                   student.fullName,
+                                  maxLines: 3,
+                                  softWrap: true,
+                                  overflow: TextOverflow.ellipsis,
                                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                         fontWeight: FontWeight.bold,
                                         color: AppTheme.navy,
@@ -103,6 +106,8 @@ class StudentSelectionPage extends StatelessWidget {
                                 const SizedBox(height: 2),
                                 Text(
                                   '${student.className ?? "N/A"} • Section ${student.section ?? "N/A"}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     color: AppTheme.blue300,
                                     fontWeight: FontWeight.w600,

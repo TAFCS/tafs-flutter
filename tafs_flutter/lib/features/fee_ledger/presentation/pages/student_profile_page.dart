@@ -272,9 +272,16 @@ class StudentProfilePage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppTheme.space4),
-          Text(
-            student.fullName,
-            style: Theme.of(context).textTheme.headlineMedium,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.space3),
+            child: Text(
+              student.fullName,
+              textAlign: TextAlign.center,
+              maxLines: 4,
+              softWrap: true,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
           ),
           const SizedBox(height: AppTheme.space1),
           Text(
