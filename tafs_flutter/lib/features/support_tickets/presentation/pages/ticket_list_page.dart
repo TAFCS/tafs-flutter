@@ -373,20 +373,14 @@ class _TicketOriginationPageState extends State<TicketOriginationPage> {
   }
 
   static const int _minDescriptionLength = 20;
-  static const int _maxDescriptionLength = 150;
 
   Future<void> _submit() async {
     final description = _descriptionController.text.trim();
     if (_category == null ||
         _subtopic == null ||
-        description.length < _minDescriptionLength ||
-        description.length > _maxDescriptionLength) {
+        description.length < _minDescriptionLength) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please complete all steps (20–150 characters)',
-          ),
-        ),
+        const SnackBar(content: Text('Please complete all steps (min 20 characters)')),
       );
       return;
     }
@@ -510,12 +504,11 @@ class _TicketOriginationPageState extends State<TicketOriginationPage> {
                   TextField(
                     controller: _descriptionController,
                     maxLines: 5,
-                    maxLength: _maxDescriptionLength,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: AppTheme.white,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      hintText: 'Briefly describe your question (20–150 characters)...',
+                      hintText: 'At least 20 characters...',
                     ),
                   ),
                   const SizedBox(height: 16),
