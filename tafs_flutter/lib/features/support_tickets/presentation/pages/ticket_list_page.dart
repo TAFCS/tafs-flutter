@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/error/api_error_mapper.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart';
 import '../../domain/entities/origination_options.dart';
@@ -265,10 +266,6 @@ class _TicketOriginationPageState extends State<TicketOriginationPage> {
         _options = options;
         _students = students;
         _loading = false;
-        if (students.length == 1) {
-          _studentId = students.first['cc'] as int;
-          _childLabel = _studentLabel(students.first);
-        }
       });
     } catch (_) {
       if (!mounted) return;
@@ -291,17 +288,16 @@ class _TicketOriginationPageState extends State<TicketOriginationPage> {
     setState(() {
       _category = cat['value'];
       _subtopic = null;
+      _studentId = null;
+      _childLabel = null;
       if (_students.isEmpty) {
-        _studentId = null;
+        // No children on file — skip to topics with the family / general label.
         _childLabel = _category == 'FINANCIAL'
             ? _options!.financialFamilyLabel
             : _options!.generalNoChildLabel;
         _step = 2;
-      } else if (_students.length == 1) {
-        _studentId = _students.first['cc'] as int;
-        _childLabel = _studentLabel(_students.first);
-        _step = 2;
       } else {
+        // Always offer child + "not about one specific child" / family options.
         _step = 1;
       }
     });
@@ -342,7 +338,8 @@ class _TicketOriginationPageState extends State<TicketOriginationPage> {
     return _options!.topicsGeneralWithChild;
   }
 
-  bool get _skippedChildStep => _students.length <= 1;
+  /// Child step is skipped only when the family has no students on file.
+  bool get _skippedChildStep => _students.isEmpty;
 
   void _goBack() {
     if (_step <= 0) {
@@ -400,10 +397,17 @@ class _TicketOriginationPageState extends State<TicketOriginationPage> {
           builder: (_) => TicketThreadPage(ticketId: ticket.id),
         ),
       );
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not submit your query. Please try again.')),
+        SnackBar(
+          content: Text(
+            ApiErrorMapper.fromObject(
+              e,
+              fallback: 'Could not submit your query. Please try again.',
+            ),
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);
