@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_cached_network_image.dart';
+import '../../../core/widgets/country_code_picker_field.dart';
 import '../../auth/domain/entities/parent.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
 import '../../auth/presentation/bloc/auth_state.dart';
@@ -645,56 +646,21 @@ class _EditGuardianPageState extends State<EditGuardianPage> with SingleTickerPr
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                width: 88,
-                child: TextFormField(
-                  key: _keyFor(countryCodeApiKey),
+                width: 112,
+                child: CountryCodePickerField(
+                  fieldKey: _keyFor(countryCodeApiKey),
                   controller: countryCodeController,
-                  keyboardType: TextInputType.phone,
                   readOnly: isPending,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
-                    LengthLimitingTextInputFormatter(5),
-                  ],
                   validator: _validateCountryCode,
+                  fillColor: isPending ? AppTheme.blue100.withValues(alpha: 0.15) : AppTheme.white,
+                  textColor: isPending ? AppTheme.blue300 : AppTheme.navy,
                   // Changing the code changes the number field's rules (digit cap,
                   // required length, hint), so rebuild and re-check it immediately
                   // rather than leaving a stale error from the previous country.
-                  onChanged: (_) {
+                  onSelected: (_) {
                     setState(() {});
                     _keyFor(numberApiKey)?.currentState?.validate();
                   },
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: isPending ? AppTheme.blue300 : AppTheme.navy,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: 'Code',
-                    prefixIcon: Icon(icon, color: AppTheme.blue200, size: 18),
-                    prefixIconConstraints: const BoxConstraints(minWidth: 36),
-                    filled: true,
-                    fillColor: isPending ? AppTheme.blue100.withValues(alpha: 0.15) : AppTheme.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                      borderSide: const BorderSide(color: AppTheme.blue100),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                      borderSide: const BorderSide(color: AppTheme.blue100),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                      borderSide: BorderSide(
-                        color: isPending ? AppTheme.blue100 : AppTheme.navy,
-                        width: isPending ? 1.0 : 1.5,
-                      ),
-                    ),
-                    labelStyle: const TextStyle(
-                      color: AppTheme.blue300,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-                  ),
                 ),
               ),
               const SizedBox(width: 10),
