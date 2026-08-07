@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tafs_flutter/features/fee_ledger/data/models/voucher_dto.dart';
 import 'package:tafs_flutter/features/fee_ledger/domain/entities/voucher.dart';
+import 'package:tafs_flutter/features/fee_ledger/presentation/utils/voucher_display.dart';
 
 Voucher _buildVoucher({
   required List<VoucherHead> heads,
@@ -165,6 +166,77 @@ void main() {
       expect(dto.totalPayableBeforeDue, 21000);
       expect(dto.totalBalance, 21000);
       expect(dto.activeArrearSurcharges.length, 1);
+    });
+  });
+
+  group('VoucherDisplay months label', () {
+    Voucher voucherWith({String? monthsLabel, int? month, String? academicYear}) {
+      return Voucher(
+        id: 4983,
+        status: 'UNPAID',
+        issueDate: DateTime(2026, 6, 1),
+        dueDate: DateTime(2026, 9, 30),
+        totalPayableBeforeDue: 21000,
+        totalPayableAfterDue: 22000,
+        lateFeeDeposited: 0,
+        lateFeeCharge: true,
+        heads: const [],
+        academicYear: academicYear,
+        month: month,
+        monthsLabel: monthsLabel,
+      );
+    }
+
+    test('prefers the server label over the single header month', () {
+      // vouchers.month says August, but the voucher actually bills Aug-Oct.
+      final v = voucherWith(
+        monthsLabel: 'AUG 25 - OCT 25',
+        month: 8,
+        academicYear: '2025-2026',
+      );
+
+      expect(VoucherDisplay.monthsLabel(v), 'AUG 25 - OCT 25');
+      // The label carries its own years — academicYear must not be appended.
+      expect(VoucherDisplay.title(v), 'AUG 25 - OCT 25');
+    });
+
+    test('keeps non-contiguous ranges intact', () {
+      final v = voucherWith(monthsLabel: 'AUG 25 - SEP 25, JAN 26', month: 8);
+      expect(VoucherDisplay.monthsLabel(v), 'AUG 25 - SEP 25, JAN 26');
+    });
+
+    test('falls back to header month when server label is absent', () {
+      final v = voucherWith(month: 10, academicYear: '2025-2026');
+      expect(VoucherDisplay.monthsLabel(v), 'October');
+      expect(VoucherDisplay.title(v), 'October 2025-2026');
+    });
+
+    test('treats an N/A or blank server label as absent', () {
+      expect(VoucherDisplay.monthsLabel(voucherWith(monthsLabel: 'N/A', month: 10)), 'October');
+      expect(VoucherDisplay.monthsLabel(voucherWith(monthsLabel: '  ', month: 10)), 'October');
+    });
+
+    test('degrades to "Fee" when there is no month information at all', () {
+      expect(VoucherDisplay.monthsLabel(voucherWith()), 'Fee');
+    });
+
+    test('VoucherDto.fromJson reads months_label', () {
+      final dto = VoucherDto.fromJson({
+        'id': 4983,
+        'status': 'UNPAID',
+        'issue_date': '2026-06-01',
+        'due_date': '2026-09-30',
+        'total_payable_before_due': 21000,
+        'total_payable_after_due': 22000,
+        'late_fee_charge': true,
+        'late_fee_deposited': 0,
+        'month': 8,
+        'months_label': 'AUG 25 - OCT 25',
+        'voucher_heads': const [],
+      });
+
+      expect(dto.monthsLabel, 'AUG 25 - OCT 25');
+      expect(VoucherDisplay.monthsLabel(dto), 'AUG 25 - OCT 25');
     });
   });
 }

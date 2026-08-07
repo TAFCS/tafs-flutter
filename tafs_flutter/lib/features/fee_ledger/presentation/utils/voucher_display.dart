@@ -30,7 +30,25 @@ class VoucherDisplay {
       status == 'OVERDUE' ||
       status == 'PARTIALLY_PAID';
 
-  static String monthLabel(Voucher voucher) {
+  /// Caption shown above the months on a voucher card, matching the challan's
+  /// "FOR MONTH(S) OF" heading.
+  static const forMonthsOfLabel = 'For the month(s) of';
+
+  /// Every month this voucher bills, consolidated into ranges — e.g.
+  /// "AUG 25 - OCT 25, JAN 26".
+  ///
+  /// Built server-side (vouchers.months_label) from the billed fee rows, so it
+  /// always matches the challan PDF. Falls back to the voucher's own header
+  /// month only for payloads issued before that field existed: that column
+  /// names at most one month of a multi-month voucher, which is exactly what
+  /// made this label wrong.
+  static String monthsLabel(Voucher voucher) {
+    final label = voucher.monthsLabel?.trim();
+    if (label != null && label.isNotEmpty && label != 'N/A') return label;
+    return _headerMonthLabel(voucher);
+  }
+
+  static String _headerMonthLabel(Voucher voucher) {
     if (voucher.month != null && voucher.month! >= 1 && voucher.month! <= 12) {
       return DateFormat('MMMM').format(DateTime(2000, voucher.month!, 1));
     }
@@ -38,11 +56,16 @@ class VoucherDisplay {
   }
 
   static String title(Voucher voucher) {
-    final label = monthLabel(voucher);
+    final label = voucher.monthsLabel?.trim();
+    // The server label already carries its own year(s) ("AUG 25 - OCT 25");
+    // appending academicYear on top would read as a contradiction.
+    if (label != null && label.isNotEmpty && label != 'N/A') return label;
+
+    final fallback = _headerMonthLabel(voucher);
     if (voucher.academicYear != null && voucher.academicYear!.isNotEmpty) {
-      return '$label ${voucher.academicYear}';
+      return '$fallback ${voucher.academicYear}';
     }
-    return label;
+    return fallback;
   }
 
   static String statusLabel(Voucher voucher) {

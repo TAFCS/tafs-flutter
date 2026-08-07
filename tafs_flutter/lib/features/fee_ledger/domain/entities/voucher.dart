@@ -95,6 +95,11 @@ class Voucher extends Equatable {
   final String? pdfUrl;
   final String? academicYear;
   final int? month;
+
+  /// Server-built "for the month(s) of" label, e.g. "AUG 25 - OCT 25, JAN 26".
+  /// Covers every month billed on the voucher; [month] names at most one of them.
+  final String? monthsLabel;
+
   final bool lateFeeCharge;
   final List<VoucherHead> heads;
   final List<VoucherArrearSurcharge> arrearSurcharges;
@@ -120,6 +125,7 @@ class Voucher extends Equatable {
     this.pdfUrl,
     this.academicYear,
     this.month,
+    this.monthsLabel,
     required this.lateFeeCharge,
     required this.heads,
     this.arrearSurcharges = const [],

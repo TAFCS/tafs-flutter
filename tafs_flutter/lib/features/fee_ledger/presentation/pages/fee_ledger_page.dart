@@ -678,16 +678,32 @@ class _ActiveVoucherCard extends StatelessWidget {
             children: [
               Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Text(
-                          VoucherDisplay.title(voucher),
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.navy,
-                              ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              VoucherDisplay.forMonthsOfLabel.toUpperCase(),
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: AppTheme.blue300,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 9,
+                                    letterSpacing: 0.5,
+                                  ),
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              VoucherDisplay.monthsLabel(voucher),
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.navy,
+                                  ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: AppTheme.space2),
@@ -952,6 +968,18 @@ class _HistoryVoucherCard extends StatelessWidget {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${VoucherDisplay.forMonthsOfLabel} '
+                        '${VoucherDisplay.monthsLabel(voucher)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.navy,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: AppTheme.space2),
                       if (amount != null)
